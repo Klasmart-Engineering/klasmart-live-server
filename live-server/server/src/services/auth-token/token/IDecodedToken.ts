@@ -1,5 +1,5 @@
-import { UserInformation } from '../user-info/UserInformation'
-import { RoomInformation } from '../room-info/RoomInformation'
+import { UserInformation } from "../user-info/UserInformation";
+import { RoomInformation } from "../room-info/RoomInformation";
 
 export interface IDecodedToken {
     isValid () : boolean

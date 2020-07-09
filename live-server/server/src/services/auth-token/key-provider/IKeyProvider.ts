@@ -1,5 +1,5 @@
 
-import { Algorithm } from 'jsonwebtoken'
+import { Algorithm } from "jsonwebtoken";
 
 export interface VerificationCredentials {
     id: string

@@ -1,10 +1,10 @@
-import { IAuthenticationTokenDecoder } from './IAuthenticationTokenDecoder'
-import { IDecodedToken } from './token/IDecodedToken'
-import { IKeyProvider } from './key-provider/IKeyProvider'
-import jwt from 'jsonwebtoken'
-import { KidsLoopToken } from './token/KidsLoopToken'
-import { UserInformation } from './user-info/UserInformation'
-import { RoomInformation } from './room-info/RoomInformation'
+import { IAuthenticationTokenDecoder } from "./IAuthenticationTokenDecoder";
+import { IDecodedToken } from "./token/IDecodedToken";
+import { IKeyProvider } from "./key-provider/IKeyProvider";
+import jwt from "jsonwebtoken";
+import { KidsLoopToken } from "./token/KidsLoopToken";
+import { UserInformation } from "./user-info/UserInformation";
+import { RoomInformation } from "./room-info/RoomInformation";
 
 interface IJsonWebTokenPayload {
     // NOTE: JWT standard fields
@@ -27,14 +27,14 @@ export class KidsLoopTokenDecoder implements IAuthenticationTokenDecoder {
     private readonly keyProvider: IKeyProvider
 
     constructor (keyProvider: IKeyProvider) {
-        this.keyProvider = keyProvider
+        this.keyProvider = keyProvider;
     }
 
     decodeToken (token: string) : Promise<IDecodedToken> {
-        const payload = jwt.decode(token) as IJsonWebTokenPayload
+        const payload = jwt.decode(token) as IJsonWebTokenPayload;
 
         if (!payload) {
-            return Promise.reject(new Error('Malformed token data.'))
+            return Promise.reject(new Error("Malformed token data."));
         }
 
         const userInfo = UserInformation.builder()
@@ -42,14 +42,14 @@ export class KidsLoopTokenDecoder implements IAuthenticationTokenDecoder {
             .withName(payload.name)
             .withIsTeacher(payload.teacher)
             .withOrganization(payload.org)
-            .build()
+            .build();
 
         const roomInfo = RoomInformation.builder()
             .withRoomId(payload.roomid)
-            .build()
+            .build();
 
-        const issuer = payload.iss
-        const cred = this.keyProvider.getCredentials(issuer)
+        const issuer = payload.iss;
+        const cred = this.keyProvider.getCredentials(issuer);
 
         if (cred === undefined) {
             const decodedToken =
@@ -60,9 +60,9 @@ export class KidsLoopTokenDecoder implements IAuthenticationTokenDecoder {
                         .withAudience(payload.aud)
                         .withUser(userInfo)
                         .withRoom(roomInfo)
-                        .build()
+                        .build();
 
-            return Promise.resolve(decodedToken)
+            return Promise.resolve(decodedToken);
         }
         
         const verifyOperation = new Promise<IDecodedToken>((resolve) => {
@@ -72,8 +72,8 @@ export class KidsLoopTokenDecoder implements IAuthenticationTokenDecoder {
                 algorithms: cred.algorithms,
                 issuer: cred.issuer
             }, (err, _verifiedPayload) => {
-                const expired = (err instanceof jwt.NotBeforeError || err instanceof jwt.TokenExpiredError)
-                const invalid = (err !== null)
+                const expired = (err instanceof jwt.NotBeforeError || err instanceof jwt.TokenExpiredError);
+                const invalid = (err !== null);
 
                 const decodedToken =
                     KidsLoopToken.builder()
@@ -83,12 +83,12 @@ export class KidsLoopTokenDecoder implements IAuthenticationTokenDecoder {
                         .withAudience(payload.aud)
                         .withUser(userInfo)
                         .withRoom(roomInfo)
-                        .build()
+                        .build();
 
-                resolve(decodedToken)
-            })
-        })
+                resolve(decodedToken);
+            });
+        });
 
-        return verifyOperation
+        return verifyOperation;
     }
 }

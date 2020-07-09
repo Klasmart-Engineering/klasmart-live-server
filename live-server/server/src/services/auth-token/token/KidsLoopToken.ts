@@ -1,7 +1,7 @@
-import { IDecodedToken } from './IDecodedToken'
-import { UserInformation } from '../user-info/UserInformation'
-import { KidsLoopTokenBuilder } from './KidsLoopTokenBuilder'
-import { RoomInformation } from '../room-info/RoomInformation'
+import { IDecodedToken } from "./IDecodedToken";
+import { UserInformation } from "../user-info/UserInformation";
+import { KidsLoopTokenBuilder } from "./KidsLoopTokenBuilder";
+import { RoomInformation } from "../room-info/RoomInformation";
 
 export interface KidsLoopTokenData {
     valid: boolean
@@ -23,36 +23,36 @@ export class KidsLoopToken implements IDecodedToken {
     readonly room: RoomInformation | undefined
 
     private constructor (data: KidsLoopTokenData) {
-        this.valid = data.valid
-        this.expired = data.expired
-        this.user = data.user
-        this.audience = data.audience
-        this.subject = data.subject
-        this.room = data.room
+        this.valid = data.valid;
+        this.expired = data.expired;
+        this.user = data.user;
+        this.audience = data.audience;
+        this.subject = data.subject;
+        this.room = data.room;
     }
 
     isValid () : boolean {
-        return this.valid
+        return this.valid;
     }
 
     isExpired () : boolean {
-        return this.expired
+        return this.expired;
     }
 
     getSubject () : string {
-        return this.subject
+        return this.subject;
     }
 
     getAudience () : string {
-        return this.audience
+        return this.audience;
     }
 
     userInformation () : UserInformation | undefined {
-        return this.user
+        return this.user;
     }
 
     roomInformation () : RoomInformation | undefined {
-        return this.room
+        return this.room;
     }
 
     toData () : KidsLoopTokenData {
@@ -63,14 +63,14 @@ export class KidsLoopToken implements IDecodedToken {
             audience: this.audience,
             subject: this.subject,
             room: this.room
-        }
+        };
     }
 
     static fromData (data: KidsLoopTokenData) : KidsLoopToken {
-        return new KidsLoopToken(data)
+        return new KidsLoopToken(data);
     }
 
     static builder (token?: KidsLoopToken) : KidsLoopTokenBuilder {
-        return new KidsLoopTokenBuilder(token)
+        return new KidsLoopTokenBuilder(token);
     }
 }

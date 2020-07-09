@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server'
+import { gql } from "apollo-server";
 
 export const schema = gql`
   type Query {
@@ -80,4 +80,4 @@ export const schema = gql`
     checkout: Boolean
     event: String!
   }
-`
+`;

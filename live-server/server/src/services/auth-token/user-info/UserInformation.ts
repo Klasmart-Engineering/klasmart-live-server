@@ -1,4 +1,4 @@
-import { UserInformationBuilder } from './UserInformationBuilder'
+import { UserInformationBuilder } from "./UserInformationBuilder";
 
 export interface UserInformationData {
     id: string
@@ -14,10 +14,10 @@ export class UserInformation {
     readonly organization: string | undefined
 
     private constructor (userInformationData: UserInformationData) {
-        this.id = userInformationData.id
-        this.name = userInformationData.name
-        this.isTeacher = userInformationData.isTeacher
-        this.organization = userInformationData.organization
+        this.id = userInformationData.id;
+        this.name = userInformationData.name;
+        this.isTeacher = userInformationData.isTeacher;
+        this.organization = userInformationData.organization;
     }
 
     toData () : UserInformationData {
@@ -26,14 +26,14 @@ export class UserInformation {
             name: this.name,
             isTeacher: this.isTeacher,
             organization: this.organization
-        }
+        };
     }
 
     static fromData (userInformationData: UserInformationData) : UserInformation {
-        return new UserInformation(userInformationData)
+        return new UserInformation(userInformationData);
     }
 
     static builder (userInformation?: UserInformation) : UserInformationBuilder {
-        return new UserInformationBuilder(userInformation)
+        return new UserInformationBuilder(userInformation);
     }
 }
