@@ -11,6 +11,7 @@ export const schema = gql`
     showContent(roomId: ID!, type: ContentType!, contentId: ID): Boolean
     sendMessage(roomId: ID!, message: String): Message
     postPageEvent(streamId: ID!, pageEvents: [PageEventIn]): Boolean
+    webRTCSignal(roomId: ID!, toSessionId: ID!, webrtc: WebRTCIn): Boolean
   }
 
   type Subscription {
@@ -23,6 +24,24 @@ export const schema = gql`
     join: Session
     leave: Session
     content: Content
+    session: SessionNotification
+  }
+
+  type SessionNotification {
+    webRTC: WebRTC
+  }
+
+  input WebRTCIn {
+    offer: String
+    answer: String
+    ice: String
+  }
+
+  type WebRTC {
+    sessionId: ID!
+    offer: String
+    answer: String
+    ice: String
   }
 
   type Session {

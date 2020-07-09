@@ -7,11 +7,7 @@
     "start": "ts-node src/main.ts",
     "build": "webpack",
     "test": "mocha -r ts-node/register tests/**/*[Tt]est.ts",
-    "coverage": "nyc -r lcov -e .ts -x \"*[Tt]est.ts\" npm run test",
-    "lint": "eslint --fix",
-    "docker:auth": "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 494634321140.dkr.ecr.ap-northeast-2.amazonaws.com",
-    "docker:build": "docker build -t 494634321140.dkr.ecr.ap-northeast-2.amazonaws.com/kidsloop-live:latest .",
-    "docker:push": "docker push 494634321140.dkr.ecr.ap-northeast-2.amazonaws.com/kidsloop-live:latest"
+    "coverage": "nyc -r lcov -e .ts -x \"*[Tt]est.ts\" npm run test"
   },
   "repository": {
     "type": "git",

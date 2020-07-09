@@ -1,33 +1,41 @@
 export class RedisKeys {
-  public static room (roomId: string): string {
-    return `room:${roomId}`
-  }
+    private static room (roomId: string): string {
+        return `room:${roomId}`
+    }
 
-  public static roomContent (roomId: string): string {
-    return `${RedisKeys.room(roomId)}:content`
-  }
+    public static roomContent (roomId: string) {
+        return { key: `${RedisKeys.room(roomId)}:content`, ttl: 3600 }
+    }
 
-  public static roomNotify (roomId: string): string {
-    return `${RedisKeys.room(roomId)}:notify`
-  }
+    public static roomNotify (roomId: string) {
+        return { key: `${RedisKeys.room(roomId)}:notify`, ttl: 3600 }
+    }
 
-  public static roomMessages (roomId: string): string {
-    return `${RedisKeys.room(roomId)}:messages`
-  }
+    public static roomMessages (roomId: string) {
+        return { key: `${RedisKeys.room(roomId)}:messages`, ttl: 3600 }
+    }
 
-  public static roomSession (roomId: string, sessionId: string) {
-    return `${RedisKeys.room(roomId)}:session:${sessionId}`
-  }
+    private static session (roomId: string, sessionId: string): string {
+        return `${RedisKeys.room(roomId)}:session:${sessionId}`
+    }
 
-  private static roomSessionRegex = /^room:(.*):session:(.*)$/
-  public static parseRoomSession (key: string) {
-    const results = key.match(this.roomSessionRegex)
-    if (!results) { return }
-    if (results.length !== 3) { return }
-    return { roomId: results[1], sessionId: results[2] }
+    public static sessionData (roomId: string, sessionId: string) {
+        return `${RedisKeys.session(roomId, sessionId)}:data`
+    }
+
+    public static sessionNotify (roomId: string, sessionId: string) {
+        return `${RedisKeys.session(roomId, sessionId)}:notify`
+    }
+
+  private static sessionDataKeyRegex = /^room:(.*):session:(.*):data$/
+  public static parseSessionDataKey (key: string) {
+      const results = key.match(this.sessionDataKeyRegex)
+      if (!results) { return }
+      if (results.length !== 3) { return }
+      return { roomId: results[1], sessionId: results[2] }
   }
 
   public static streamEvents (streamId: string): string {
-    return `stream:${streamId}:events`
+      return `stream:${streamId}:events`
   }
 }

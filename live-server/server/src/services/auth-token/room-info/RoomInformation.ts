@@ -1,4 +1,4 @@
-import { RoomInformationBuilder } from "./RoomInformationBuilder"
+import { RoomInformationBuilder } from './RoomInformationBuilder'
 
 export interface RoomInformationData {
     roomId: string
