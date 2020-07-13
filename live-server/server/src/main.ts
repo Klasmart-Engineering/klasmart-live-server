@@ -47,6 +47,7 @@ async function main () {
         const server = new ApolloServer({
             typeDefs: schema,
             subscriptions: {
+                keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, _webSocket, connectionData: any): Promise<Context> => {
                     connectionData.sessionId = sessionId;
                     const token = authToken ? await tokenDecoder.decodeToken(authToken) : undefined;
