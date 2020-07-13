@@ -27,6 +27,14 @@ export class RedisKeys {
         return `${RedisKeys.session(roomId, sessionId)}:notify`;
     }
 
+    public static whiteboardOperation(roomId: string, operationId: string) {
+        return `${RedisKeys.room(roomId)}:whiteboard:operation:${operationId}`;
+    }
+
+    public static whiteboardEvents(roomId: string) {
+        return `${RedisKeys.room(roomId)}:whiteboard:events`;
+    }
+
   private static sessionDataKeyRegex = /^room:(.*):session:(.*):data$/
   public static parseSessionDataKey (key: string) {
       const results = key.match(this.sessionDataKeyRegex);
