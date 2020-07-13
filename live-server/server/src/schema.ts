@@ -12,11 +12,13 @@ export const schema = gql`
     sendMessage(roomId: ID!, message: String): Message
     postPageEvent(streamId: ID!, pageEvents: [PageEventIn]): Boolean
     webRTCSignal(roomId: ID!, toSessionId: ID!, webrtc: WebRTCIn): Boolean
+    whiteboardSendEvent(roomId: ID!, event: String) : Boolean
   }
 
   type Subscription {
     room(roomId: ID!, name: String): RoomNotification
     stream(streamId: ID!, from: ID): PageEventOut
+    whiteboardEvents(roomId: ID!): WhiteboardEventOut
   }
 
   type RoomNotification {
@@ -79,5 +81,11 @@ export const schema = gql`
     index: Int
     checkout: Boolean
     event: String!
+  }
+
+  type WhiteboardEventOut {
+    type: String
+    id: String
+    param: String
   }
 `;

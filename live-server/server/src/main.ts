@@ -70,7 +70,8 @@ async function main () {
                         // return posted2redis && saved2dynamo;
                     },
                     showContent: (_parent, { roomId, type, contentId }, context: Context) => model.showContent(roomId, type, contentId),
-                    webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, context: Context) => model.webRTCSignal(roomId, toSessionId, context.sessionId, webrtc)
+                    webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, context: Context) => model.webRTCSignal(roomId, toSessionId, context.sessionId, webrtc),
+                    whiteboardSendEvent: (_parent, { roomId, event }, _context: Context) => model.whiteboardSendEvent(roomId, event)
                 },
                 Subscription: {
                     room: {
@@ -78,6 +79,9 @@ async function main () {
                     },
                     stream: {
                         subscribe: (_parent, { streamId, from }, context: Context) => model.stream(streamId, from)
+                    },
+                    whiteboardEvents: {
+                        subscribe: (_parent, { roomId }, _context: Context) => model.whiteboardEvents(roomId)
                     }
                 }
             },
