@@ -42,7 +42,7 @@ async function main () {
 
         const model = await Model.create();
         const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || "kidsloop_live_events_alphabeta";
-        const persist = await Persist.createDynamoClient(DYNAMODB_TABLE);
+        // const persist = await Persist.createDynamoClient(DYNAMODB_TABLE);
 
         const server = new ApolloServer({
             typeDefs: schema,
@@ -63,6 +63,7 @@ async function main () {
                     sendMessage: (_parent, { roomId, message }, context: Context) => model.sendMessage(roomId, context.sessionId, message),
                     postPageEvent: async (_parent, { streamId, pageEvents }, context: Context) => {
                         const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
+                        return a;
                         const b = persist.savePageEvent(streamId, pageEvents).catch((e) => e);
                         const [posted2redis,saved2dynamo] = await Promise.all([a, b]);
                         return posted2redis && saved2dynamo;
