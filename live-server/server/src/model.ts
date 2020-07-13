@@ -1,6 +1,8 @@
 import { fromRedisKeyValueArray, redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
 import Redis = require("ioredis")
+import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
+import { IWhiteboardService } from "./services/whiteboard/IWhiteboardService";
 
 interface PageEvent {
   sequenceNumber: number
@@ -22,8 +24,11 @@ export class Model {
     }
 
     private client: Redis.Redis
+    private whiteboard: IWhiteboardService
+
     private constructor (client: Redis.Redis) {
         this.client = client;
+        this.whiteboard = new WhiteboardService(client);
     }
 
     public async getSession (roomId: string, sessionId: string) {
@@ -86,6 +91,10 @@ export class Model {
     public async webRTCSignal (roomId: string, toSessionId: string, sessionId: string, webRTC: any) {
         await this.notifySession(roomId, toSessionId, { webRTC: { sessionId, ...webRTC } });
         return true;
+    }
+
+    public whiteboardSendEvent(roomId: string, event: string): Promise<boolean> {
+        return this.whiteboard.whiteboardSendEvent(roomId, event);
     }
 
     public disconnect (context: any) {
@@ -211,6 +220,10 @@ export class Model {
         } finally {
             client.disconnect();
         }
+    }
+
+    public whiteboardEvents(roomId: string) {
+        return this.whiteboard.whiteboardEventStream(roomId);
     }
 
     private async notifyRoom (roomId:string, message: any): Promise<string> {
