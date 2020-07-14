@@ -18,7 +18,7 @@ export const schema = gql`
   type Subscription {
     room(roomId: ID!, name: String): RoomNotification
     stream(streamId: ID!, from: ID): PageEventOut
-    whiteboardEvents(roomId: ID!): WhiteboardEventOut
+    whiteboardEvents(roomId: ID!): [WhiteboardEventOut]
   }
 
   type RoomNotification {

@@ -3,7 +3,7 @@ import { Redis } from "ioredis";
 import { RedisKeys } from "../../redisKeys";
 import { OperationState } from "./model/OperationState";
 import { OperationEvent } from "./events/OperationEvent";
-import { redisStreamDeserialize } from "../../utils";
+import { redisStreamDeserialize, redisStreamSerialize } from "../../utils";
 
 const OperationExpireSeconds = 60;
 
@@ -55,7 +55,7 @@ export class WhiteboardService implements IWhiteboardService {
         return true;
     }
 
-    async * whiteboardEventStream (roomId: string): AsyncGenerator<{whiteboardEvents:OperationEvent}, any, unknown> {
+    async * whiteboardEventStream(roomId: string): AsyncGenerator<{ whiteboardEvents: OperationEvent[] }, any, unknown> {
         const blockingClient = this.client.duplicate();
         const eventsKey = RedisKeys.whiteboardEvents(roomId);
 
@@ -66,15 +66,14 @@ export class WhiteboardService implements IWhiteboardService {
             if (!response) continue;
 
             const [[, events]] = response;
-            for (const [id, eventValues] of events) {
-                lastEventId = id;
 
-                const operation = redisStreamDeserialize<OperationEvent>(eventValues as any);
-
-                if (operation !== undefined) {
-                    yield { whiteboardEvents: operation };
-                }
+            if (events.length === 0) {
+                continue;
             }
+
+            lastEventId = events[events.length - 1][0];
+
+            yield { whiteboardEvents: events.map(([,eventValue]) => redisStreamDeserialize<OperationEvent>(eventValue as any)).filter(x => x !== undefined) as OperationEvent[] };
         }
     }
 
