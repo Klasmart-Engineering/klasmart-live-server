@@ -13,11 +13,13 @@ export const schema = gql`
     postPageEvent(streamId: ID!, pageEvents: [PageEventIn]): Boolean
     webRTCSignal(roomId: ID!, toSessionId: ID!, webrtc: WebRTCIn): Boolean
     whiteboardSendEvent(roomId: ID!, event: String) : Boolean
+    whiteboardSendDisplay(roomId: ID!, display: Boolean): Boolean
   }
 
   type Subscription {
     room(roomId: ID!, name: String): RoomNotification
     stream(streamId: ID!, from: ID): PageEventOut
+    whiteboardState(roomId: ID!): WhiteboardStateOut
     whiteboardEvents(roomId: ID!): [WhiteboardEventOut]
   }
 
@@ -81,6 +83,11 @@ export const schema = gql`
     index: Int
     checkout: Boolean
     event: String!
+  }
+
+  type WhiteboardStateOut {
+    display: Boolean
+    onlyTeacherDraw: Boolean
   }
 
   type WhiteboardEventOut {

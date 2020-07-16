@@ -97,6 +97,10 @@ export class Model {
         return this.whiteboard.whiteboardSendEvent(roomId, event);
     }
 
+    public whiteboardSendDisplay(roomId: string, display: boolean) : Promise<boolean> {
+        return this.whiteboard.whiteboardSendDisplay(roomId, display);
+    }
+
     public disconnect (context: any) {
         if (context.sessionId) { this.userLeave(context.sessionId); }
         console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
@@ -224,6 +228,10 @@ export class Model {
 
     public whiteboardEvents(roomId: string) {
         return this.whiteboard.whiteboardEventStream(roomId);
+    }
+
+    public whiteboardState(roomId: string) {
+        return this.whiteboard.whiteboardStateStream(roomId);
     }
 
     private async notifyRoom (roomId:string, message: any): Promise<string> {

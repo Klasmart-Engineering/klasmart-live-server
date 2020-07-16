@@ -4,6 +4,7 @@ import { RedisKeys } from "../../redisKeys";
 import { OperationState } from "./model/OperationState";
 import { OperationEvent } from "./events/OperationEvent";
 import { redisStreamDeserialize, redisStreamSerialize } from "../../utils";
+import { WhiteboardState } from "./model/WhiteboardState";
 
 const OperationExpireSeconds = 60;
 
@@ -12,6 +13,48 @@ export class WhiteboardService implements IWhiteboardService {
 
     constructor (client: Redis) {
         this.client = client;
+    }
+
+    async whiteboardSendDisplay(roomId: string, display: boolean): Promise<boolean> {
+        const whiteboardStateKey = RedisKeys.whiteboardState(roomId);
+
+        const whiteboardState: WhiteboardState = {
+            display: display,
+            onlyTeacherDraw: true,
+        };
+
+        await this.client.xadd(whiteboardStateKey, "MAXLEN", "~", 1, "*", ...redisStreamSerialize(whiteboardState));
+
+        return true;
+    }
+
+    async * whiteboardStateStream(roomId: string): AsyncGenerator<{ whiteboardState: WhiteboardState }, void, unknown> {
+        const blockingClient = this.client.duplicate();
+        const stateKey = RedisKeys.whiteboardState(roomId);
+        
+        let lastEventId = "0";
+
+        while (true) {
+            const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", stateKey, lastEventId);
+            if (!response) continue;
+
+            const [[, states]] = response;
+
+            if (states.length === 0) {
+                continue;
+            }
+
+            lastEventId = states[states.length - 1][0];
+
+            const mostRecentState = states[states.length - 1][1] as any;
+            const whiteboardState = redisStreamDeserialize<WhiteboardState>(mostRecentState);
+
+            if (!whiteboardState) {
+                continue;
+            }
+
+            yield { whiteboardState };
+        }
     }
 
     async whiteboardSendEvent (roomId: string, event: string): Promise<boolean> {
@@ -55,7 +98,7 @@ export class WhiteboardService implements IWhiteboardService {
         return true;
     }
 
-    async * whiteboardEventStream(roomId: string): AsyncGenerator<{ whiteboardEvents: OperationEvent[] }, any, unknown> {
+    async * whiteboardEventStream(roomId: string): AsyncGenerator<{ whiteboardEvents: OperationEvent[] }, void, unknown> {
         const blockingClient = this.client.duplicate();
         const eventsKey = RedisKeys.whiteboardEvents(roomId);
 
