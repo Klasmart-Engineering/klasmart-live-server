@@ -36,15 +36,13 @@ export const schema = gql`
   }
 
   input WebRTCIn {
-    offer: String
-    answer: String
+    description: String
     ice: String
   }
 
   type WebRTC {
     sessionId: ID!
-    offer: String
-    answer: String
+    description: String
     ice: String
   }
 
@@ -58,6 +56,7 @@ export const schema = gql`
     Blank,
     Stream,
     Activity,
+    Video,
   }
 
   type Content {
