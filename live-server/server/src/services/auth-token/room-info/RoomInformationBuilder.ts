@@ -1,8 +1,10 @@
+import { Material } from "./Material";
 import { RoomInformation, RoomInformationData } from "./RoomInformation";
 
 export class RoomInformationBuilder {
     private data: RoomInformationData = {
-        roomId: ""
+        roomId: "",
+        materials: []
     }
 
     constructor (roomInformation?: RoomInformation) {
@@ -13,6 +15,11 @@ export class RoomInformationBuilder {
 
     withRoomId (roomId: string) : RoomInformationBuilder {
         this.data.roomId = roomId;
+        return this;
+    }
+
+    withMaterials (materials: Material[]) : RoomInformationBuilder {
+        this.data.materials = materials;
         return this;
     }
 

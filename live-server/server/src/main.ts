@@ -7,6 +7,8 @@ import { DebugKeyProvider } from "./services/auth-token/key-provider/DebugKeyPro
 import { IDecodedToken } from "./services/auth-token/token/IDecodedToken";
 import { IncomingHttpHeaders } from "http";
 import { IAuthenticationTokenDecoder } from "./services/auth-token/IAuthenticationTokenDecoder";
+import { StaticKeyProvider } from "./services/auth-token/key-provider/StaticKeyProvider";
+import { VerificationCredentials } from "./services/auth-token/key-provider/IKeyProvider";
 
 function getTokenFromBearerString (bearer: string | undefined) : string | undefined {
     if (!bearer) { return; }
@@ -35,9 +37,31 @@ interface Context {
   sessionId: string
 }
 
+const TokenCredentials: VerificationCredentials[] = [
+    { // Debug 
+        id: "calmid-debug",
+        issuer: "calmid-debug",
+        audience: "kidsloop-live",
+        algorithms: ["HS512", "HS256", "HS384"],
+        certificate: "iXtZx1D5AqEB0B9pfn+hRQ=="
+    },
+    { // China
+        id: "KidsLoopChinaUser-live",
+        issuer: "KidsLoopChinaUser-live",
+        audience: "kidsloop-live",
+        algorithms: ["RS512"],
+        certificate: ["-----BEGIN PUBLIC KEY-----",
+            "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDAGN9KAcc61KBz8EQAH54bFwGK",
+            "6PEQNVXXlsObwFd3Zos83bRm+3grzP0pKWniZ6TL/y7ZgFh4OlUMh9qJjIt6Lpz9",
+            "l4uDxkgDDrKHn8IrflBxjJKq0OyXqwIYChnFoi/HGjcRtJhi8oTFToSvKMqIeUuL",
+            "mWmLA8nXdDnMl7zwoQIDAQAB",
+            "-----END PUBLIC KEY-----"].join("\n")
+    }
+];
+
 async function main () {
     try {
-        const keyProvider = new DebugKeyProvider();
+        const keyProvider = new StaticKeyProvider(TokenCredentials);
         const tokenDecoder = new KidsLoopTokenDecoder(keyProvider);
 
         const model = await Model.create();
@@ -57,7 +81,37 @@ async function main () {
             },
             resolvers: {
                 Query: {
-                    ready: () => true
+                    ready: () => true,
+                    token: (_parent, _args, context: Context) => {
+                        const token = context.token;
+                        if (!token) {
+                            return null;
+                        }
+
+                        if (!token.isValid()){
+                            return null;
+                        }
+                        
+                        if (token.isExpired()) {
+                            return null;
+                        }
+
+                        const user = token.userInformation();
+                        const room = token.roomInformation();
+
+                        const result = {
+                            subject: token.getSubject(),
+                            audience: token.getAudience(),
+                            userId: user?.id,
+                            userName: user?.name,
+                            isTeacher: user?.isTeacher,
+                            organization: user?.organization,
+                            roomId: room?.roomId,
+                            materials: room?.materials
+                        };
+
+                        return result;
+                    },
                 },
                 Mutation: {
                     setSessionStreamId: (_parent, { roomId, streamId }, context: Context) => model.setSessionStreamId(roomId, context.sessionId, streamId),

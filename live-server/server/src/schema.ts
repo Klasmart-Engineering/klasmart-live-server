@@ -3,7 +3,8 @@ import { gql } from "apollo-server";
 export const schema = gql`
   type Query {
     ready: Boolean
-    session(roomId: ID!, sessionId: ID!): Session 
+    session(roomId: ID!, sessionId: ID!): Session
+    token: Token
   }
 
   type Mutation {
@@ -80,6 +81,22 @@ export const schema = gql`
     id: ID!
     session: Session
     message: String
+  }
+
+  type Token {
+    subject: String
+    audience: String
+    userId: String
+    userName: String
+    isTeacher: Boolean
+    organization: String
+    roomId: String
+    materials: [Material]
+  }
+
+  type Material {
+    name: String
+    url: String
   }
 
   input PageEventIn {

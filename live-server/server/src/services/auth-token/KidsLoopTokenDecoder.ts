@@ -20,6 +20,10 @@ interface IJsonWebTokenPayload {
     roomid: string
     userid: string
     teacher: boolean
+    materials: {
+        name: string
+        url: string
+    }[]
     org: string
 }
 
@@ -46,6 +50,7 @@ export class KidsLoopTokenDecoder implements IAuthenticationTokenDecoder {
 
         const roomInfo = RoomInformation.builder()
             .withRoomId(payload.roomid)
+            .withMaterials(payload.materials)
             .build();
 
         const issuer = payload.iss;
@@ -70,7 +75,8 @@ export class KidsLoopTokenDecoder implements IAuthenticationTokenDecoder {
             // would be invoked by the asynchronous verify method to retrieve the key.
             jwt.verify(token, cred.certificate, {
                 algorithms: cred.algorithms,
-                issuer: cred.issuer
+                issuer: cred.issuer,
+                audience: cred.audience,
             }, (err, _verifiedPayload) => {
                 const expired = (err instanceof jwt.NotBeforeError || err instanceof jwt.TokenExpiredError);
                 const invalid = (err !== null);

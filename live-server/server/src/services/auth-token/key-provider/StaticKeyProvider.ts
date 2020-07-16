@@ -24,6 +24,15 @@ export class StaticKeyProvider implements IKeyProvider {
         return undefined;
     }
 
+    getValidAudience (issuerId: string): string | string[] | undefined {
+        const cred = this.lookupCredentials(issuerId);
+        if (cred !== undefined) {
+            return cred.audience;
+        }
+        
+        return undefined;
+    }
+
     getValidAlgorithms (issuerId: string): Algorithm[] | undefined {
         const cred = this.lookupCredentials(issuerId);
         if (cred !== undefined) {

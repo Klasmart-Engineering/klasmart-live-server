@@ -47,11 +47,14 @@ export const ValidIssuer: string[] = ["calmid"];
 
 export const ValidAlgorithms: Algorithm[] = ["RS512"];
 
+export const ValidAudience: string[] = ["kidsloop-live"];
+
 export class DebugKeyProvider implements IKeyProvider {
     getCredentials (_issuerId: string): VerificationCredentials | undefined {
         return {
             id: "",
             issuer: ValidIssuer,
+            audience: ValidAudience,
             algorithms: ValidAlgorithms,
             certificate: PublicKey
         };
@@ -67,5 +70,9 @@ export class DebugKeyProvider implements IKeyProvider {
 
     getValidAlgorithms (_issuerId: string) : Algorithm[] | undefined {
         return ValidAlgorithms;
+    }
+
+    getValidAudience (_issuerId: string) : string | string[] | undefined {
+        return ValidAudience;
     }
 }
