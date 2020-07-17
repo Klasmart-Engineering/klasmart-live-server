@@ -3,6 +3,10 @@ export class RedisKeys {
         return `room:${roomId}`;
     }
 
+    private static user (userId: string): string {
+        return `user:${userId}`;
+    }
+
     public static roomContent (roomId: string) {
         return { key: `${RedisKeys.room(roomId)}:content`, ttl: 3600 };
     }
@@ -37,6 +41,10 @@ export class RedisKeys {
 
     public static whiteboardState(roomId: string) {
         return `${RedisKeys.room(roomId)}:whiteboard:state`;
+    }
+
+    public static whiteboardPermissions(roomId: string, userId: string) {
+        return `${RedisKeys.room(roomId)}:${RedisKeys.user(userId)}:whiteboard:permissions`;
     }
 
   private static sessionDataKeyRegex = /^room:(.*):session:(.*):data$/

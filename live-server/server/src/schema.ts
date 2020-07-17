@@ -14,12 +14,14 @@ export const schema = gql`
     webRTCSignal(roomId: ID!, toSessionId: ID!, webrtc: WebRTCIn): Boolean
     whiteboardSendEvent(roomId: ID!, event: String) : Boolean
     whiteboardSendDisplay(roomId: ID!, display: Boolean): Boolean
+    whiteboardSendPermissions(roomId: ID!, userId: ID!, permissions: String): Boolean
   }
 
   type Subscription {
     room(roomId: ID!, name: String): RoomNotification
     stream(streamId: ID!, from: ID): PageEventOut
     whiteboardState(roomId: ID!): WhiteboardStateOut
+    whiteboardPermissions(roomId: ID!, userId: ID!): String
     whiteboardEvents(roomId: ID!): [WhiteboardEventOut]
   }
 

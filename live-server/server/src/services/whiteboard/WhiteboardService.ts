@@ -28,32 +28,30 @@ export class WhiteboardService implements IWhiteboardService {
         return true;
     }
 
+    // TODO: Add type for the permissions instead of passing a string. This will allow the server
+    // to verify the permission settings is sane and that the user is actually allowed to mess
+    // with the desired permissions.
+    async whiteboardSendPermissions(roomId: string, userId: string, permissions: string): Promise<boolean> {
+        const whiteboardPermissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
+
+        await this.client.xadd(whiteboardPermissionsKey, "MAXLEN", "~", 1, "*", ...redisStreamSerialize(permissions));
+
+        return true;
+    }
+
     async * whiteboardStateStream(roomId: string): AsyncGenerator<{ whiteboardState: WhiteboardState }, void, unknown> {
-        const blockingClient = this.client.duplicate();
         const stateKey = RedisKeys.whiteboardState(roomId);
-        
-        let lastEventId = "0";
 
-        while (true) {
-            const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", stateKey, lastEventId);
-            if (!response) continue;
-
-            const [[, states]] = response;
-
-            if (states.length === 0) {
-                continue;
-            }
-
-            lastEventId = states[states.length - 1][0];
-
-            const mostRecentState = states[states.length - 1][1] as any;
-            const whiteboardState = redisStreamDeserialize<WhiteboardState>(mostRecentState);
-
-            if (!whiteboardState) {
-                continue;
-            }
-
+        for await (const whiteboardState of this.readMostRecentStreamValue<WhiteboardState>(stateKey)) {
             yield { whiteboardState };
+        }
+    }
+
+    async * whiteboardPermissionsStream(roomId: string, userId: string): AsyncGenerator<{ whiteboardPermissions: string }, void, unknown> {
+        const permissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
+
+        for await (const whiteboardPermissions of this.readMostRecentStreamValue<string>(permissionsKey)) {
+            yield { whiteboardPermissions };
         }
     }
 
@@ -168,5 +166,34 @@ export class WhiteboardService implements IWhiteboardService {
         // TODO: Trim stream length by keeping track of event count since most recent clear (or come up
         // with a different mechanism for trimming the stream).
         await this.client.xadd(whiteboardEventsKey, "*", "json", event);
+    }
+
+    private async * readMostRecentStreamValue<TResult>(key: string) : AsyncGenerator<TResult, void, unknown> {
+        const blockingClient = this.client.duplicate();
+        
+        let lastEventId = "0";
+
+        while (true) {
+            const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", key, lastEventId);
+            if (!response) continue;
+
+            const [[, streamData]] = response;
+
+            if (streamData.length === 0) {
+                continue;
+            }
+
+            const lastIndex = streamData.length - 1;
+            lastEventId = streamData[lastIndex][0];
+
+            const mostRecentData = streamData[lastIndex][1] as any;
+            const item = redisStreamDeserialize<TResult>(mostRecentData);
+
+            if (!item) {
+                continue;
+            }
+
+            yield item;
+        }
     }
 }
