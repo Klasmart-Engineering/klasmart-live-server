@@ -98,23 +98,27 @@ export class WhiteboardService implements IWhiteboardService {
 
     async * whiteboardEventStream(roomId: string): AsyncGenerator<{ whiteboardEvents: OperationEvent[] }, void, unknown> {
         const blockingClient = this.client.duplicate();
-        const eventsKey = RedisKeys.whiteboardEvents(roomId);
+        try {
+            const eventsKey = RedisKeys.whiteboardEvents(roomId);
 
-        let lastEventId = "0";
+            let lastEventId = "0";
 
-        while (true) {
-            const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", eventsKey, lastEventId);
-            if (!response) continue;
+            while (true) {
+                const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", eventsKey, lastEventId);
+                if (!response) continue;
 
-            const [[, events]] = response;
+                const [[, events]] = response;
 
-            if (events.length === 0) {
-                continue;
+                if (events.length === 0) {
+                    continue;
+                }
+
+                lastEventId = events[events.length - 1][0];
+
+                yield { whiteboardEvents: events.map(([,eventValue]) => redisStreamDeserialize<OperationEvent>(eventValue as any)).filter(x => x !== undefined) as OperationEvent[] };
             }
-
-            lastEventId = events[events.length - 1][0];
-
-            yield { whiteboardEvents: events.map(([,eventValue]) => redisStreamDeserialize<OperationEvent>(eventValue as any)).filter(x => x !== undefined) as OperationEvent[] };
+        } finally {
+            blockingClient.disconnect();
         }
     }
 
@@ -170,30 +174,33 @@ export class WhiteboardService implements IWhiteboardService {
 
     private async * readMostRecentStreamValue<TResult>(key: string) : AsyncGenerator<TResult, void, unknown> {
         const blockingClient = this.client.duplicate();
-        
-        let lastEventId = "0";
+        try {
+            let lastEventId = "0";
 
-        while (true) {
-            const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", key, lastEventId);
-            if (!response) continue;
+            while (true) {
+                const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", key, lastEventId);
+                if (!response) continue;
 
-            const [[, streamData]] = response;
+                const [[, streamData]] = response;
 
-            if (streamData.length === 0) {
-                continue;
-            }
+                if (streamData.length === 0) {
+                    continue;
+                }
 
-            const lastIndex = streamData.length - 1;
-            lastEventId = streamData[lastIndex][0];
+                const lastIndex = streamData.length - 1;
+                lastEventId = streamData[lastIndex][0];
 
-            const mostRecentData = streamData[lastIndex][1] as any;
-            const item = redisStreamDeserialize<TResult>(mostRecentData);
+                const mostRecentData = streamData[lastIndex][1] as any;
+                const item = redisStreamDeserialize<TResult>(mostRecentData);
 
-            if (!item) {
-                continue;
-            }
+                if (!item) {
+                    continue;
+                }
 
-            yield item;
+                yield item;
+            } 
+        } finally {
+            blockingClient.disconnect();
         }
     }
 }
