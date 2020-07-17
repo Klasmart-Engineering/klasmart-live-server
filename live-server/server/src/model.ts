@@ -101,6 +101,10 @@ export class Model {
         return this.whiteboard.whiteboardSendDisplay(roomId, display);
     }
 
+    public whiteboardSendPermissions(roomId: string, userId: string, permissions: string): Promise<boolean> {
+        return this.whiteboard.whiteboardSendPermissions(roomId, userId, permissions);
+    }
+
     public disconnect (context: any) {
         if (context.sessionId) { this.userLeave(context.sessionId); }
         console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
@@ -232,6 +236,10 @@ export class Model {
 
     public whiteboardState(roomId: string) {
         return this.whiteboard.whiteboardStateStream(roomId);
+    }
+
+    public whiteboardPermissions(roomId: string, userId: string) {
+        return this.whiteboard.whiteboardPermissionsStream(roomId, userId);
     }
 
     private async notifyRoom (roomId:string, message: any): Promise<string> {

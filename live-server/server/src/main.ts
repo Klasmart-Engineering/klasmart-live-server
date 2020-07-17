@@ -72,7 +72,8 @@ async function main () {
                     showContent: (_parent, { roomId, type, contentId }, context: Context) => model.showContent(roomId, type, contentId),
                     webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, context: Context) => model.webRTCSignal(roomId, toSessionId, context.sessionId, webrtc),
                     whiteboardSendEvent: (_parent, { roomId, event }, _context: Context) => model.whiteboardSendEvent(roomId, event),
-                    whiteboardSendDisplay: (_parent, { roomId, display }, _context: Context) => model.whiteboardSendDisplay(roomId, display)
+                    whiteboardSendDisplay: (_parent, { roomId, display }, _context: Context) => model.whiteboardSendDisplay(roomId, display),
+                    whiteboardSendPermissions: (_parent, { roomId, userId, permissions }, _context: Context) => model.whiteboardSendPermissions(roomId, userId, permissions)
                 },
                 Subscription: {
                     room: {
@@ -86,6 +87,9 @@ async function main () {
                     },
                     whiteboardState: {
                         subscribe: (_parent, { roomId }, _context: Context) => model.whiteboardState(roomId)
+                    },
+                    whiteboardPermissions: {
+                        subscribe: (_parent, { roomId, userId }, _context: Context) => model.whiteboardPermissions(roomId, userId)
                     }
                 }
             },
