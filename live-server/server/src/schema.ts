@@ -35,15 +35,25 @@ export const schema = gql`
     webRTC: WebRTC
   }
 
+  input StreamNameIn {
+    name: String,
+    streamId: ID!
+  }
   input WebRTCIn {
     description: String
     ice: String
+    stream: StreamNameIn
   }
 
+  type StreamName {
+    name: String,
+    streamId: ID!
+  }
   type WebRTC {
     sessionId: ID!
     description: String
     ice: String
+    stream: StreamName
   }
 
   type Session {
