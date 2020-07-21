@@ -104,6 +104,11 @@ export class Model {
     public whiteboardSendPermissions(roomId: string, userId: string, permissions: string): Promise<boolean> {
         return this.whiteboard.whiteboardSendPermissions(roomId, userId, permissions);
     }
+    
+    public async mute(roomId: string, sessionId: string, audio?: boolean, video?: boolean): Promise<boolean> {
+        await this.notifyRoom(roomId, { mute: {sessionId, audio, video} });
+        return true;
+    }
 
     public disconnect (context: any) {
         if (context.sessionId) { this.userLeave(context.sessionId); }

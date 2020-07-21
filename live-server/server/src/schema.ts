@@ -16,6 +16,7 @@ export const schema = gql`
     whiteboardSendEvent(roomId: ID!, event: String) : Boolean
     whiteboardSendDisplay(roomId: ID!, display: Boolean): Boolean
     whiteboardSendPermissions(roomId: ID!, userId: ID!, permissions: String): Boolean
+    mute(roomId: ID!, sessionId: ID!, audio: Boolean, video: Boolean): Boolean
   }
 
   type Subscription {
@@ -32,6 +33,13 @@ export const schema = gql`
     leave: Session
     content: Content
     session: SessionNotification
+    mute: MuteNotification
+  }
+
+  type MuteNotification {
+    sessionId: ID!
+    audio: Boolean
+    video: Boolean
   }
 
   type SessionNotification {
