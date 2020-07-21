@@ -127,7 +127,8 @@ async function main () {
                     webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, context: Context) => model.webRTCSignal(roomId, toSessionId, context.sessionId, webrtc),
                     whiteboardSendEvent: (_parent, { roomId, event }, _context: Context) => model.whiteboardSendEvent(roomId, event),
                     whiteboardSendDisplay: (_parent, { roomId, display }, _context: Context) => model.whiteboardSendDisplay(roomId, display),
-                    whiteboardSendPermissions: (_parent, { roomId, userId, permissions }, _context: Context) => model.whiteboardSendPermissions(roomId, userId, permissions)
+                    whiteboardSendPermissions: (_parent, { roomId, userId, permissions }, _context: Context) => model.whiteboardSendPermissions(roomId, userId, permissions),
+                    mute: (_parent, { roomId, sessionId, audio, video }, _context: Context) => model.mute(roomId, sessionId, audio, video),
                 },
                 Subscription: {
                     room: {
