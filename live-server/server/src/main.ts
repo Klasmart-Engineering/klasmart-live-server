@@ -129,13 +129,17 @@ async function main () {
                     whiteboardSendDisplay: (_parent, { roomId, display }, _context: Context) => model.whiteboardSendDisplay(roomId, display),
                     whiteboardSendPermissions: (_parent, { roomId, userId, permissions }, _context: Context) => model.whiteboardSendPermissions(roomId, userId, permissions),
                     mute: (_parent, { roomId, sessionId, audio, video }, _context: Context) => model.mute(roomId, sessionId, audio, video),
+                    video: (_parent, {roomId, sessionId, src, play, offset}, _context: Context) => model.video(roomId, sessionId, src, play, offset),
                 },
                 Subscription: {
                     room: {
                         subscribe: (_parent, { roomId, name }, context: Context) => model.room(roomId, context.sessionId, name)
                     },
                     stream: {
-                        subscribe: (_parent, { streamId, from }, context: Context) => model.stream(streamId, from)
+                        subscribe: (_parent, { streamId, from }, _context: Context) => model.stream(streamId, from)
+                    },
+                    video: {
+                        subscribe: (_parent, { roomId, sessionId }, _context: Context) => model.videoSubscription(roomId, sessionId)
                     },
                     whiteboardEvents: {
                         subscribe: (_parent, { roomId }, _context: Context) => model.whiteboardEvents(roomId)

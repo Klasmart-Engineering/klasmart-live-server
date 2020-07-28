@@ -298,6 +298,64 @@ export class Model {
         await pipeline.exec();
     }
 
+    public async video(roomId: string, sessionId: string, src?: string, play?: boolean, offset?: number) {
+        if(src === undefined && play === undefined && offset === undefined) {return true;}
+        
+        const timePromise = this.getTime();
+        const pipeline = this.client.pipeline();
+        const state = RedisKeys.videoState(roomId, sessionId);
+        pipeline.expire(state.key, state.ttl);
+        const stream = RedisKeys.videoStateChanges(roomId, sessionId);
+        pipeline.expire(stream.key, stream.ttl);
+
+        if(src !== undefined) {pipeline.hset(state.key,"src",src);}
+        if(play !== undefined) {pipeline.hset(state.key,"play",play?1:0);}
+        if(offset !== undefined) {pipeline.hset(state.key,"offset",offset);}
+
+        const time = await timePromise;
+        pipeline.hset(state.key,"time",time);
+        pipeline.xadd(stream.key, "MAXLEN", "~", "32", "*", "json", JSON.stringify({ src, play, time, offset }));
+        await pipeline.exec();
+
+        return true;
+    }
+    public async * videoSubscription(roomId: string, sessionId: string) {
+        const video = RedisKeys.videoState(roomId, sessionId);
+        {
+            const state = await this.client.hgetall(video.key);
+            const delta = (await this.getTime())-Number(state["time"]);
+            yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number(state["offset"])+delta }};
+        }
+        const stream = RedisKeys.videoStateChanges(roomId, sessionId);
+        let from = "$";
+        const client = this.client.duplicate(); // We will block
+        try {
+            while (true) {
+                client.expire(video.key, video.ttl);
+                client.expire(stream.key, stream.ttl);
+                const response = await client.xread("BLOCK", 1000 * 60, "STREAMS", stream.key, from);
+                if (!response) { continue; }
+                const [[, messages]] = response;
+                //TODO: optimize to only send most recent message
+                for (const [id, keyValues] of messages) {
+                    // ioredis's types definitions are incorrect
+                    // keyValues is of type string[], e.g. [key1, value1, key2, value2, key3, value3...]
+                    from = id;
+                    const state = redisStreamDeserialize(keyValues as any) as any;
+                    const delta = (await this.getTime())-Number(state["time"]);
+                    yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number(state["offset"])+delta }};
+                }
+            }
+        } finally {
+            client.disconnect();
+        }
+    }
+
+    private async getTime() {
+        const [seconds, microseconds] = await this.client.time();
+        return Number(seconds)+Number(microseconds)/1e6;
+    }
+
     private async getStreamsLastGeneratedId (key: string): Promise<string> {
         try {
             const info = await this.client.xinfo("STREAM", key);
@@ -315,4 +373,5 @@ export class Model {
             client.disconnect();
         }
     }
+
 }

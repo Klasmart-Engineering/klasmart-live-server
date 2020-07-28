@@ -58,4 +58,15 @@ export class RedisKeys {
   public static streamEvents (streamId: string): string {
       return `stream:${streamId}:events`;
   }
+
+  public static video(roomId: string, sessionId: string) {
+      return `${RedisKeys.session(roomId, sessionId)}:video`;
+  }
+
+  public static videoState(roomId: string, sessionId: string) {
+      return {key: `${RedisKeys.video(roomId, sessionId)}:state`, ttl: 3600};
+  }
+  public static videoStateChanges(roomId: string, sessionId: string) {
+      return {key: `${RedisKeys.video(roomId, sessionId)}:changes`, ttl: 3600};
+  }
 }

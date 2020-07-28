@@ -17,11 +17,13 @@ export const schema = gql`
     whiteboardSendDisplay(roomId: ID!, display: Boolean): Boolean
     whiteboardSendPermissions(roomId: ID!, userId: ID!, permissions: String): Boolean
     mute(roomId: ID!, sessionId: ID!, audio: Boolean, video: Boolean): Boolean
+    video(roomId: ID!, sessionId: ID!, src: String, play: Boolean, offset: Float): Boolean
   }
 
   type Subscription {
     room(roomId: ID!, name: String): RoomNotification
     stream(streamId: ID!, from: ID): PageEventOut
+    video(roomId: ID!, sessionId: ID!): VideoSynchronize
     whiteboardState(roomId: ID!): WhiteboardStateOut
     whiteboardPermissions(roomId: ID!, userId: ID!): String
     whiteboardEvents(roomId: ID!): [WhiteboardEventOut]
@@ -130,5 +132,11 @@ export const schema = gql`
     type: String
     id: String
     param: String
+  }
+
+  type VideoSynchronize {
+    src: String
+    play: Boolean
+    offset: Float
   }
 `;
