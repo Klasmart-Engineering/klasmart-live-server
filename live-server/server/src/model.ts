@@ -323,8 +323,13 @@ export class Model {
         const video = RedisKeys.videoState(roomId, sessionId);
         {
             const state = await this.client.hgetall(video.key);
-            const delta = (await this.getTime())-Number(state["time"]);
-            yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number(state["offset"])+delta }};
+            const play = Boolean(state["play"]);
+            let offset = Number(state["offset"]);
+            if(play) {
+                const delta = (await this.getTime())-Number(state["time"]);
+                offset += delta||0;
+            }
+            yield { video: { src: state["src"], play, offset }};
         }
         const stream = RedisKeys.videoStateChanges(roomId, sessionId);
         let from = "$";
