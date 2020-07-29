@@ -309,7 +309,7 @@ export class Model {
         pipeline.expire(stream.key, stream.ttl);
 
         if(src !== undefined) {pipeline.hset(state.key,"src",src);}
-        if(play !== undefined) {pipeline.hset(state.key,"play",play?1:0);}
+        if(play !== undefined) {pipeline.hset(state.key,"play",play?"true":"");}
         if(offset !== undefined) {pipeline.hset(state.key,"offset",offset);}
 
         const time = await timePromise;
