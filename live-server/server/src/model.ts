@@ -343,7 +343,8 @@ export class Model {
                     from = id;
                     const state = redisStreamDeserialize(keyValues as any) as any;
                     const delta = (await this.getTime())-Number(state["time"]);
-                    yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number(state["offset"])+delta }};
+                    const offset = Number(state["offset"])+delta;
+                    yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number.isFinite(offset)?offset:undefined }};
                 }
             }
         } finally {
