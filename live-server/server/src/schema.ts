@@ -80,6 +80,9 @@ export const schema = gql`
     Stream,
     Activity,
     Video,
+    Audio,
+    Image,
+    Camera,
   }
 
   type Content {
