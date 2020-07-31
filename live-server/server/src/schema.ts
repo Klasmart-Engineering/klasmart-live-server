@@ -83,6 +83,7 @@ export const schema = gql`
     Audio,
     Image,
     Camera,
+    Screen,
   }
 
   type Content {
