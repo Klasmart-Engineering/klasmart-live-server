@@ -3,19 +3,18 @@ import { redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
 import Redis = require("ioredis")
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
-import { IWhiteboardService } from "./services/whiteboard/IWhiteboardService";
 import { Context } from "./main";
 import WebSocket = require("ws");
 
 interface PageEvent {
-  sequenceNumber: number
-  isKeyframe: boolean
-  eventsSinceKeyframe: number
-  eventData: string
+    sequenceNumber: number
+    isKeyframe: boolean
+    eventsSinceKeyframe: number
+    eventData: string
 }
 
 export class Model {
-    public static async create () {
+    public static async create() {
         const redis = new Redis({
             host: process.env.REDIS_HOST,
             port: Number(process.env.REDIS_PORT) || undefined,
@@ -30,12 +29,12 @@ export class Model {
     private client: Redis.Redis
     private whiteboard: WhiteboardService
 
-    private constructor (client: Redis.Redis) {
+    private constructor(client: Redis.Redis) {
         this.client = client;
         this.whiteboard = new WhiteboardService(client);
     }
 
-    public async getSession (roomId: string, sessionId: string) {
+    public async getSession(roomId: string, sessionId: string) {
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         const sessionKeyValues = await this.client.hgetall(sessionKey);
         return { ...sessionKeyValues };
@@ -44,11 +43,11 @@ export class Model {
     public async getSfuAddress(roomId: string) {
         const sfu = RedisKeys.roomSfu(roomId);
         const address = await this.client.get(sfu.key);
-        if(address) { return address; }
+        if (address) { return address; }
 
         const notify = RedisKeys.roomNotify(roomId);
         let lastNotifyIndex = "$";
-        const endTime =  Date.now() + 15*1000;
+        const endTime = Date.now() + 15 * 1000;
         while (Date.now() < endTime) {
             const responses = await this.client.xread(
                 "BLOCK", 15,
@@ -61,13 +60,13 @@ export class Model {
                 for (const [id, keyValues] of response) {
                     lastNotifyIndex = id;
                     const { sfuAddress } = redisStreamDeserialize<any>(keyValues as any);
-                    if(sfuAddress) {return sfuAddress;}
+                    if (sfuAddress) { return sfuAddress; }
                 }
             }
         }
     }
 
-    public async setSessionStreamId (roomId: string, sessionId: string, streamId: string) {
+    public async setSessionStreamId(roomId: string, sessionId: string, streamId: string) {
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         await this.client.pipeline()
             .hset(sessionKey, "id", sessionId)
@@ -77,7 +76,7 @@ export class Model {
         this.notifyRoom(roomId, { join: session });
     }
 
-    public async showContent (roomId: string, type: string, contentId?: string) {
+    public async showContent(roomId: string, type: string, contentId?: string) {
         const roomContent = RedisKeys.roomContent(roomId);
         const content = { type, contentId };
         await this.notifyRoom(roomId, { content });
@@ -85,11 +84,11 @@ export class Model {
         await this.client.expire(roomContent.key, roomContent.ttl);
     }
 
-    public async postPageEvent (streamId: string, pageEvents: PageEvent[]) {
+    public async postPageEvent(streamId: string, pageEvents: PageEvent[]) {
         const key = RedisKeys.streamEvents(streamId);
         const pipeline = this.client.pipeline();
 
-        for (const {eventsSinceKeyframe, isKeyframe, eventData } of pageEvents) {
+        for (const { eventsSinceKeyframe, isKeyframe, eventData } of pageEvents) {
             pipeline.xadd(
                 key,
                 "MAXLEN", "~", (eventsSinceKeyframe + 1).toString(),
@@ -104,7 +103,7 @@ export class Model {
         return result.every(([e]) => e == null);
     }
 
-    public async sendMessage (roomId: string, sessionId: string, message: string) {
+    public async sendMessage(roomId: string, sessionId: string, message: string) {
         if (!roomId) { throw new Error(`Invalid roomId('${roomId}')`); }
         message = message.trim();
         if (message.length > 1024) { message = `${message.slice(0, 1024).trim()}...`; }
@@ -117,7 +116,7 @@ export class Model {
         return { id, session, message };
     }
 
-    public async webRTCSignal (roomId: string, toSessionId: string, sessionId: string, webRTC: any) {
+    public async webRTCSignal(roomId: string, toSessionId: string, sessionId: string, webRTC: any) {
         await this.notifySession(roomId, toSessionId, { webRTC: { sessionId, ...webRTC } });
         return true;
     }
@@ -126,36 +125,36 @@ export class Model {
         return this.whiteboard.whiteboardSendEvent(roomId, event);
     }
 
-    public whiteboardSendDisplay(roomId: string, display: boolean) : Promise<boolean> {
+    public whiteboardSendDisplay(roomId: string, display: boolean): Promise<boolean> {
         return this.whiteboard.whiteboardSendDisplay(roomId, display);
     }
 
     public whiteboardSendPermissions(roomId: string, userId: string, permissions: string): Promise<boolean> {
         return this.whiteboard.whiteboardSendPermissions(roomId, userId, permissions);
     }
-    
+
     public async mute(roomId: string, sessionId: string, audio?: boolean, video?: boolean): Promise<boolean> {
-        await this.notifyRoom(roomId, { mute: {sessionId, audio, video} });
+        await this.notifyRoom(roomId, { mute: { sessionId, audio, video } });
         return true;
     }
 
-    public disconnect (context: any) {
+    public disconnect(context: any) {
         if (context.sessionId) { this.userLeave(context.sessionId); }
         console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
     }
 
-    public async * room ({ sessionId, websocket }: Context ,roomId: string, name?: string) {
+    public async * room({ sessionId, websocket }: Context, roomId: string, name?: string) {
         // TODO: Pipeline initial opperations
         console.log("name", name);
         await this.userJoin(roomId, sessionId, name);
-        
+
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
-        if(sfuAddress) {
+        if (sfuAddress) {
             yield { room: { sfu: sfuAddress } };
         } else {
             const requestKey = RedisKeys.sfuRequest();
-            await this.client.rpush(requestKey,roomId);
+            await this.client.rpush(requestKey, roomId);
         }
 
 
@@ -184,7 +183,7 @@ export class Model {
                 const pipeline = this.client.pipeline();
                 for (const key of keys) { pipeline.hgetall(key); }
                 const sessions = await pipeline.exec();
-                
+
                 for (const [, session] of sessions) {
                     yield { room: { join: session } };
                 }
@@ -220,25 +219,25 @@ export class Model {
                 if (!responses) { continue; }
                 for (const [key, response] of responses) {
                     switch (key) {
-                    case notify.key:
-                        for (const [id, keyValues] of response) {
-                            lastNotifyIndex = id;
-                            yield { room: { ...redisStreamDeserialize<any>(keyValues as any) } };
-                        }
-                        break;
-                    case chatMessages.key:
-                        
-                        for (const [id, keyValues] of response) {
-                            lastMessageIndex = id;
-                            yield { room: { message: { id, ...redisStreamDeserialize<any>(keyValues as any) } } };
-                        }
-                        break;
-                    case sessionNotifyKey:
-                        for (const [id, keyValues] of response) {
-                            lastSessionNotifyIndex = id;
-                            yield { room: { session: { ...redisStreamDeserialize<any>(keyValues as any) } } };
-                        }
-                        break;
+                        case notify.key:
+                            for (const [id, keyValues] of response) {
+                                lastNotifyIndex = id;
+                                yield { room: { ...redisStreamDeserialize<any>(keyValues as any) } };
+                            }
+                            break;
+                        case chatMessages.key:
+
+                            for (const [id, keyValues] of response) {
+                                lastMessageIndex = id;
+                                yield { room: { message: { id, ...redisStreamDeserialize<any>(keyValues as any) } } };
+                            }
+                            break;
+                        case sessionNotifyKey:
+                            for (const [id, keyValues] of response) {
+                                lastSessionNotifyIndex = id;
+                                yield { room: { session: { ...redisStreamDeserialize<any>(keyValues as any) } } };
+                            }
+                            break;
                     }
                 }
             }
@@ -247,7 +246,7 @@ export class Model {
         }
     }
 
-    public async * stream ({ websocket }: Context, streamId: string, from:string) {
+    public async * stream({ websocket }: Context, streamId: string, from: string) {
         const key = RedisKeys.streamEvents(streamId);
         if (!from) { from = "0"; }
         const client = this.client.duplicate(); // We will block
@@ -289,7 +288,7 @@ export class Model {
         return this.whiteboard.whiteboardPermissionsStream(context, roomId, userId);
     }
 
-    private async notifyRoom (roomId:string, message: any): Promise<string> {
+    private async notifyRoom(roomId: string, message: any): Promise<string> {
         const notify = RedisKeys.roomNotify(roomId);
         await this.client.expire(notify.key, notify.ttl);
         return await this.client.xadd(
@@ -299,7 +298,7 @@ export class Model {
         );
     }
 
-    private async notifySession (roomId: string, sessionId: string, message: any): Promise<string> {
+    private async notifySession(roomId: string, sessionId: string, message: any): Promise<string> {
         const notifyKey = RedisKeys.sessionNotify(roomId, sessionId);
         return await this.client.xadd(
             notifyKey,
@@ -308,14 +307,14 @@ export class Model {
         );
     }
 
-    private async userJoin (roomId: string, sessionId: string, name?: string) {
+    private async userJoin(roomId: string, sessionId: string, name?: string) {
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         await this.client.hmset(sessionKey, "id", sessionId);
         if (name) { await this.client.hmset(sessionKey, "name", name); }
         await this.notifyRoom(roomId, { join: { id: sessionId, name } });
     }
 
-    private async userLeave (sessionId: string) {
+    private async userLeave(sessionId: string) {
         const sessionSearchKey = RedisKeys.sessionData("*", sessionId);
         let sessionSearchCursor = "0";
         let count = 0;
@@ -341,8 +340,8 @@ export class Model {
     }
 
     public async video(roomId: string, sessionId: string, src?: string, play?: boolean, offset?: number) {
-        if(src === undefined && play === undefined && offset === undefined) {return true;}
-        
+        if (src === undefined && play === undefined && offset === undefined) { return true; }
+
         const timePromise = this.getTime();
         const pipeline = this.client.pipeline();
         const state = RedisKeys.videoState(roomId, sessionId);
@@ -350,12 +349,12 @@ export class Model {
         const stream = RedisKeys.videoStateChanges(roomId, sessionId);
         pipeline.expire(stream.key, stream.ttl);
 
-        if(src !== undefined) {pipeline.hset(state.key,"src",src);}
-        if(play !== undefined) {pipeline.hset(state.key,"play",play?"true":"");}
-        if(offset !== undefined) {pipeline.hset(state.key,"offset",offset);}
+        if (src !== undefined) { pipeline.hset(state.key, "src", src); }
+        if (play !== undefined) { pipeline.hset(state.key, "play", play ? "true" : ""); }
+        if (offset !== undefined) { pipeline.hset(state.key, "offset", offset); }
 
         const time = await timePromise;
-        pipeline.hset(state.key,"time",time);
+        pipeline.hset(state.key, "time", time);
         pipeline.xadd(stream.key, "MAXLEN", "~", "32", "*", "json", JSON.stringify({ src, play, time, offset }));
         await pipeline.exec();
 
@@ -367,11 +366,11 @@ export class Model {
             const state = await this.client.hgetall(video.key);
             const play = Boolean(state["play"]);
             let offset = Number(state["offset"]);
-            if(play) {
-                const delta = (await this.getTime())-Number(state["time"]);
-                offset += delta||0;
+            if (play) {
+                const delta = (await this.getTime()) - Number(state["time"]);
+                offset += delta || 0;
             }
-            yield { video: { src: state["src"], play, offset }};
+            yield { video: { src: state["src"], play, offset } };
         }
         const stream = RedisKeys.videoStateChanges(roomId, sessionId);
         let from = "$";
@@ -389,9 +388,9 @@ export class Model {
                     // keyValues is of type string[], e.g. [key1, value1, key2, value2, key3, value3...]
                     from = id;
                     const state = redisStreamDeserialize(keyValues as any) as any;
-                    const delta = (await this.getTime())-Number(state["time"]);
-                    const offset = Number(state["offset"])+delta;
-                    yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number.isFinite(offset)?offset:undefined }};
+                    const delta = (await this.getTime()) - Number(state["time"]);
+                    const offset = Number(state["offset"]) + delta;
+                    yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number.isFinite(offset) ? offset : undefined } };
                 }
             }
         } finally {
@@ -406,10 +405,10 @@ export class Model {
 
     private async getTime() {
         const [seconds, microseconds] = await this.client.time();
-        return Number(seconds)+Number(microseconds)/1e6;
+        return Number(seconds) + Number(microseconds) / 1e6;
     }
 
-    private async getStreamsLastGeneratedId (key: string): Promise<string> {
+    private async getStreamsLastGeneratedId(key: string): Promise<string> {
         try {
             const info = await this.client.xinfo("STREAM", key);
             return info[8];
@@ -418,7 +417,7 @@ export class Model {
         }
     }
 
-    private async duplicateClient<T> (f:(client: Redis.Redis) => Promise<T>): Promise<T> {
+    private async duplicateClient<T>(f: (client: Redis.Redis) => Promise<T>): Promise<T> {
         const client = this.client.duplicate();
         try {
             return await f(client);

@@ -137,6 +137,8 @@ export const schema = gql`
   type WhiteboardEventOut {
     type: String
     id: String
+    generatedBy: String
+    objectType: String
     param: String
   }
 

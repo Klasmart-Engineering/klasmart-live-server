@@ -13,20 +13,20 @@ import * as Sentry from "@sentry/node";
 import { RedisKeys } from "./redisKeys";
 import WebSocket from "ws";
 
-Sentry.init({ 
+Sentry.init({
     dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
     environment: process.env.NODE_ENV || "not-specified",
     release: "kidsloop-gql@" + process.env.npm_package_version,
 });
 
-function getTokenFromBearerString (bearer: string | undefined) : string | undefined {
+function getTokenFromBearerString(bearer: string | undefined): string | undefined {
     if (!bearer) { return; }
     const parts = bearer.split(" ");
     if (parts.length === 2) { return; }
     return parts[1];
 }
 
-async function getTokenFromAuthorizationHeaders (decoder: IAuthenticationTokenDecoder, headers: IncomingHttpHeaders) {
+async function getTokenFromAuthorizationHeaders(decoder: IAuthenticationTokenDecoder, headers: IncomingHttpHeaders) {
     const tokenString = getTokenFromBearerString(headers.authorization);
 
     let token: IDecodedToken | undefined;
@@ -42,9 +42,9 @@ async function getTokenFromAuthorizationHeaders (decoder: IAuthenticationTokenDe
 }
 
 export interface Context {
-  token?: IDecodedToken
-  sessionId: string
-  websocket: WebSocket
+    token?: IDecodedToken
+    sessionId: string
+    websocket: WebSocket
 }
 
 const TokenCredentials: VerificationCredentials[] = [
@@ -69,7 +69,7 @@ const TokenCredentials: VerificationCredentials[] = [
     }
 ];
 
-async function main () {
+async function main() {
     try {
         const keyProvider = new StaticKeyProvider(TokenCredentials);
         const tokenDecoder = new KidsLoopTokenDecoder(keyProvider);
@@ -98,10 +98,10 @@ async function main () {
                             return null;
                         }
 
-                        if (!token.isValid()){
+                        if (!token.isValid()) {
                             return null;
                         }
-                        
+
                         if (token.isExpired()) {
                             return null;
                         }
@@ -140,7 +140,7 @@ async function main () {
                     whiteboardSendDisplay: (_parent, { roomId, display }, _context: Context) => model.whiteboardSendDisplay(roomId, display),
                     whiteboardSendPermissions: (_parent, { roomId, userId, permissions }, _context: Context) => model.whiteboardSendPermissions(roomId, userId, permissions),
                     mute: (_parent, { roomId, sessionId, audio, video }, _context: Context) => model.mute(roomId, sessionId, audio, video),
-                    video: (_parent, {roomId, sessionId, src, play, offset}, _context: Context) => model.video(roomId, sessionId, src, play, offset),
+                    video: (_parent, { roomId, sessionId, src, play, offset }, _context: Context) => model.video(roomId, sessionId, src, play, offset),
                     rewardTrophy: (_parent, { roomId, user, kind }, context: Context) => model.rewardTrophy({ sessionId: context.sessionId, roomId, user, kind }),
                 },
                 Subscription: {
