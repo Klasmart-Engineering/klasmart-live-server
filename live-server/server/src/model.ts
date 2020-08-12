@@ -357,6 +357,11 @@ export class Model {
         }
     }
 
+    public async rewardTrophy(roomId: string, userId: string): Promise<boolean> {
+        this.notifyRoom(roomId, { trophy: { userId } });
+        return true;
+    }
+
     private async getTime() {
         const [seconds, microseconds] = await this.client.time();
         return Number(seconds)+Number(microseconds)/1e6;
