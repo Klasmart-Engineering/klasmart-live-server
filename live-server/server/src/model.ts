@@ -357,8 +357,8 @@ export class Model {
         }
     }
 
-    public async rewardTrophy(roomId: string, userId: string): Promise<boolean> {
-        this.notifyRoom(roomId, { trophy: { userId } });
+    public async rewardTrophy({ sessionId, roomId, user, kind }: { sessionId: string; roomId: string; user: string; kind: string; }): Promise<boolean> {
+        this.notifyRoom(roomId, { trophy: { from: sessionId, user, kind } });
         return true;
     }
 

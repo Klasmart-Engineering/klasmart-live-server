@@ -130,7 +130,7 @@ async function main () {
                     whiteboardSendPermissions: (_parent, { roomId, userId, permissions }, _context: Context) => model.whiteboardSendPermissions(roomId, userId, permissions),
                     mute: (_parent, { roomId, sessionId, audio, video }, _context: Context) => model.mute(roomId, sessionId, audio, video),
                     video: (_parent, {roomId, sessionId, src, play, offset}, _context: Context) => model.video(roomId, sessionId, src, play, offset),
-                    rewardTrophy: (_parent, { roomId, userId }, _context: Context) => model.rewardTrophy(roomId, userId),
+                    rewardTrophy: (_parent, { roomId, user, kind }, context: Context) => model.rewardTrophy({ sessionId: context.sessionId, roomId, user, kind }),
                 },
                 Subscription: {
                     room: {

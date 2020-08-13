@@ -18,7 +18,7 @@ export const schema = gql`
     whiteboardSendPermissions(roomId: ID!, userId: ID!, permissions: String): Boolean
     mute(roomId: ID!, sessionId: ID!, audio: Boolean, video: Boolean): Boolean
     video(roomId: ID!, sessionId: ID!, src: String, play: Boolean, offset: Float): Boolean
-    rewardTrophy(roomId: ID!, userId: ID!): Boolean
+    rewardTrophy(roomId: ID!, user: ID!, kind: String): Boolean
   }
 
   type Subscription {
@@ -41,7 +41,9 @@ export const schema = gql`
   }
 
   type TrophyNotification {
-    userId: ID
+    from: ID
+    user: ID
+    kind: String
   }
 
   type MuteNotification {
