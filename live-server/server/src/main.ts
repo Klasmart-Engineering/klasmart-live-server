@@ -9,6 +9,13 @@ import { IncomingHttpHeaders } from "http";
 import { IAuthenticationTokenDecoder } from "./services/auth-token/IAuthenticationTokenDecoder";
 import { StaticKeyProvider } from "./services/auth-token/key-provider/StaticKeyProvider";
 import { VerificationCredentials } from "./services/auth-token/key-provider/IKeyProvider";
+import * as Sentry from "@sentry/node";
+
+Sentry.init({ 
+    dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
+    environment: process.env.NODE_ENV || "not-specified",
+    release: "kidsloop-gql@" + process.env.npm_package_version,
+});
 
 function getTokenFromBearerString (bearer: string | undefined) : string | undefined {
     if (!bearer) { return; }
