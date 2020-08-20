@@ -3,7 +3,7 @@ import { gql } from "apollo-server";
 export const schema = gql`
   type Query {
     ready: Boolean
-    session(roomId: ID!, sessionId: ID!): Session
+    sfuAddress(roomId: ID!): String
     token: Token
   }
 
@@ -36,20 +36,14 @@ export const schema = gql`
     leave: Session
     content: Content
     session: SessionNotification
-    mute: MuteNotification
     trophy: TrophyNotification
+    sfu: String
   }
 
   type TrophyNotification {
     from: ID
     user: ID
     kind: String
-  }
-
-  type MuteNotification {
-    sessionId: ID!
-    audio: Boolean
-    video: Boolean
   }
 
   type SessionNotification {

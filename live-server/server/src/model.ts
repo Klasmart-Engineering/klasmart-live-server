@@ -1,4 +1,5 @@
-import { fromRedisKeyValueArray, redisStreamDeserialize, redisStreamSerialize } from "./utils";
+import { fromRedisKeyValueArray } from "./utils";
+import { redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
 import Redis = require("ioredis")
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
@@ -40,6 +41,32 @@ export class Model {
         return { ...sessionKeyValues };
     }
 
+    public async getSfuAddress(roomId: string) {
+        const sfu = RedisKeys.roomSfu(roomId);
+        const address = await this.client.get(sfu.key);
+        if(address) { return address; }
+
+        const notify = RedisKeys.roomNotify(roomId);
+        let lastNotifyIndex = "$";
+        const endTime =  Date.now() + 15*1000;
+        while (Date.now() < endTime) {
+            const responses = await this.client.xread(
+                "BLOCK", 15,
+                "STREAMS",
+                notify.key,
+                lastNotifyIndex,
+            );
+            if (!responses) { continue; }
+            for (const [, response] of responses) {
+                for (const [id, keyValues] of response) {
+                    lastNotifyIndex = id;
+                    const { sfuAddress } = redisStreamDeserialize<any>(keyValues as any);
+                    if(sfuAddress) {return sfuAddress;}
+                }
+            }
+        }
+    }
+
     public async setSessionStreamId (roomId: string, sessionId: string, streamId: string) {
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         await this.client.pipeline()
@@ -63,7 +90,6 @@ export class Model {
         const pipeline = this.client.pipeline();
 
         for (const {eventsSinceKeyframe, isKeyframe, eventData } of pageEvents) {
-        
             pipeline.xadd(
                 key,
                 "MAXLEN", "~", (eventsSinceKeyframe + 1).toString(),
@@ -122,6 +148,17 @@ export class Model {
         // TODO: Pipeline initial opperations
         console.log("name", name);
         await this.userJoin(roomId, sessionId, name);
+        
+        const sfu = RedisKeys.roomSfu(roomId);
+        const sfuAddress = await this.client.get(sfu.key);
+        if(sfuAddress) {
+            yield { room: { sfu: sfuAddress } };
+        } else {
+            const requestKey = RedisKeys.sfuRequest();
+            await this.client.rpush(requestKey,roomId);
+        }
+
+
 
         // Get room's last contents or supply default blank value
         try {
@@ -186,7 +223,6 @@ export class Model {
                     case notify.key:
                         for (const [id, keyValues] of response) {
                             lastNotifyIndex = id;
-
                             yield { room: { ...redisStreamDeserialize<any>(keyValues as any) } };
                         }
                         break;

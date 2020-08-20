@@ -19,12 +19,20 @@ export class RedisKeys {
         return { key: `${RedisKeys.room(roomId)}:messages`, ttl: 3600 };
     }
 
+    public static roomSfu (roomId: string) {
+        return { key: `${RedisKeys.room(roomId)}:sfu`, ttl: 3600 };
+    }
+
     private static session (roomId: string, sessionId: string): string {
         return `${RedisKeys.room(roomId)}:session:${sessionId}`;
     }
 
     public static sessionData (roomId: string, sessionId: string) {
         return `${RedisKeys.session(roomId, sessionId)}:data`;
+    }
+
+    public static sfuRequest() {
+        return "sfu:request";
     }
 
     public static sessionNotify (roomId: string, sessionId: string) {

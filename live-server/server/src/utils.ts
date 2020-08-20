@@ -1,19 +1,21 @@
-export async function * mapAsync<T, U> (collection: AsyncIterable<T>, f: (item: T) => U) {
-    for await (const b of collection) {
-        yield f(b);
-    }
-}
-
 export function redisStreamDeserialize<T> (keyValues: string[]): T|undefined {
     for (let i = 0; i + 1 < keyValues.length; i += 2) {
         try {
             if (keyValues[i] === "json") { return JSON.parse(keyValues[i + 1]) as any; }
-        } catch (e) { }
+        } catch (e) {
+            console.error(e);
+        }
     }
 }
 
 export function redisStreamSerialize (value: any): ["json", string] {
     return ["json", JSON.stringify(value)];
+}
+
+export async function * mapAsync<T, U> (collection: AsyncIterable<T>, f: (item: T) => U) {
+    for await (const b of collection) {
+        yield f(b);
+    }
 }
 
 // Takes an array of form [k1, v1, k2, v2, ...]

@@ -122,6 +122,7 @@ async function main () {
 
                         return result;
                     },
+                    sfuAddress: (_parent, { roomId }, context: Context) => model.getSfuAddress(roomId),
                 },
                 Mutation: {
                     setSessionStreamId: (_parent, { roomId, streamId }, context: Context) => model.setSessionStreamId(roomId, context.sessionId, streamId),
