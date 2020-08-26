@@ -16,7 +16,8 @@ export class Model {
         const redis = new Redis({
             host: process.env.REDIS_HOST,
             port: Number(process.env.REDIS_PORT) || undefined,
-            lazyConnect: true
+            lazyConnect: true,
+            password: process.env.REDIS_PASS || undefined
         });
         await redis.connect();
         console.log("🔴 Redis database connected");
