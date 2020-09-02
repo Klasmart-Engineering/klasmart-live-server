@@ -10,6 +10,8 @@ import { IAuthenticationTokenDecoder } from "./services/auth-token/IAuthenticati
 import { StaticKeyProvider } from "./services/auth-token/key-provider/StaticKeyProvider";
 import { VerificationCredentials } from "./services/auth-token/key-provider/IKeyProvider";
 import * as Sentry from "@sentry/node";
+import { RedisKeys } from "./redisKeys";
+import WebSocket from "ws";
 
 Sentry.init({ 
     dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
@@ -39,9 +41,10 @@ async function getTokenFromAuthorizationHeaders (decoder: IAuthenticationTokenDe
     return token;
 }
 
-interface Context {
+export interface Context {
   token?: IDecodedToken
   sessionId: string
+  websocket: WebSocket
 }
 
 const TokenCredentials: VerificationCredentials[] = [
@@ -79,10 +82,10 @@ async function main () {
             typeDefs: schema,
             subscriptions: {
                 keepAlive: 1000,
-                onConnect: async ({ authToken, sessionId }: any, _webSocket, connectionData: any): Promise<Context> => {
+                onConnect: async ({ authToken, sessionId }: any, websocket, connectionData: any): Promise<Context> => {
                     connectionData.sessionId = sessionId;
                     const token = authToken ? await tokenDecoder.decodeToken(authToken) : undefined;
-                    return { token, sessionId };
+                    return { token, sessionId, websocket };
                 },
                 onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData); }
             },
@@ -141,22 +144,22 @@ async function main () {
                 },
                 Subscription: {
                     room: {
-                        subscribe: (_parent, { roomId, name }, context: Context) => model.room(roomId, context.sessionId, name)
+                        subscribe: (_parent, { roomId, name }, context: Context) => model.room(context, roomId, name)
                     },
                     stream: {
-                        subscribe: (_parent, { streamId, from }, _context: Context) => model.stream(streamId, from)
+                        subscribe: (_parent, { streamId, from }, context: Context) => model.stream(context, streamId, from)
                     },
                     video: {
-                        subscribe: (_parent, { roomId, sessionId }, _context: Context) => model.videoSubscription(roomId, sessionId)
+                        subscribe: (_parent, { roomId, sessionId }, context: Context) => model.videoSubscription(context, roomId, sessionId)
                     },
                     whiteboardEvents: {
-                        subscribe: (_parent, { roomId }, _context: Context) => model.whiteboardEvents(roomId)
+                        subscribe: (_parent, { roomId }, context: Context) => model.whiteboardEvents(context, roomId)
                     },
                     whiteboardState: {
-                        subscribe: (_parent, { roomId }, _context: Context) => model.whiteboardState(roomId)
+                        subscribe: (_parent, { roomId }, context: Context) => model.whiteboardState(context, roomId)
                     },
                     whiteboardPermissions: {
-                        subscribe: (_parent, { roomId, userId }, _context: Context) => model.whiteboardPermissions(roomId, userId)
+                        subscribe: (_parent, { roomId, userId }, context: Context) => model.whiteboardPermissions(context, roomId, userId)
                     }
                 }
             },

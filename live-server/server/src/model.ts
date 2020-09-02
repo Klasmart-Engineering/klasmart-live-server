@@ -3,6 +3,8 @@ import { RedisKeys } from "./redisKeys";
 import Redis = require("ioredis")
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { IWhiteboardService } from "./services/whiteboard/IWhiteboardService";
+import { Context } from "./main";
+import WebSocket = require("ws");
 
 interface PageEvent {
   sequenceNumber: number
@@ -25,7 +27,7 @@ export class Model {
     }
 
     private client: Redis.Redis
-    private whiteboard: IWhiteboardService
+    private whiteboard: WhiteboardService
 
     private constructor (client: Redis.Redis) {
         this.client = client;
@@ -116,8 +118,9 @@ export class Model {
         console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
     }
 
-    public async * room (roomId: string, sessionId: string, name?: string) {
+    public async * room ({ sessionId, websocket }: Context ,roomId: string, name?: string) {
         // TODO: Pipeline initial opperations
+        console.log("name", name);
         await this.userJoin(roomId, sessionId, name);
 
         // Get room's last contents or supply default blank value
@@ -144,7 +147,7 @@ export class Model {
                 const pipeline = this.client.pipeline();
                 for (const key of keys) { pipeline.hgetall(key); }
                 const sessions = await pipeline.exec();
-
+                
                 for (const [, session] of sessions) {
                     yield { room: { join: session } };
                 }
@@ -167,12 +170,12 @@ export class Model {
         // Send updates
         const client = this.client.duplicate();
         try {
-            while (true) {
+            while (websocket.readyState === WebSocket.OPEN) {
                 const timeoutMs = 1000 * Math.min(notify.ttl, chatMessages.ttl) / 2;
                 await client.expire(chatMessages.key, chatMessages.ttl);
                 await client.expire(notify.key, notify.ttl);
                 const responses = await client.xread(
-                    "BLOCK", timeoutMs,
+                    "BLOCK", 10000,
                     "STREAMS",
                     chatMessages.key, notify.key, sessionNotifyKey,
                     lastMessageIndex, lastNotifyIndex, lastSessionNotifyIndex
@@ -183,10 +186,12 @@ export class Model {
                     case notify.key:
                         for (const [id, keyValues] of response) {
                             lastNotifyIndex = id;
+
                             yield { room: { ...redisStreamDeserialize<any>(keyValues as any) } };
                         }
                         break;
                     case chatMessages.key:
+                        
                         for (const [id, keyValues] of response) {
                             lastMessageIndex = id;
                             yield { room: { message: { id, ...redisStreamDeserialize<any>(keyValues as any) } } };
@@ -206,14 +211,14 @@ export class Model {
         }
     }
 
-    public async * stream (streamId: string, from:string) {
+    public async * stream ({ websocket }: Context, streamId: string, from:string) {
         const key = RedisKeys.streamEvents(streamId);
         if (!from) { from = "0"; }
         const client = this.client.duplicate(); // We will block
         try {
-            while (true) {
+            while (websocket.readyState === WebSocket.OPEN) {
                 client.expire(key, 60 * 5);
-                const response = await client.xread("BLOCK", 1000 * 60, "STREAMS", key, from);
+                const response = await client.xread("BLOCK", 10000, "STREAMS", key, from);
                 if (!response) { continue; }
                 const [[, messages]] = response;
                 for (const [id, keyValues] of messages) {
@@ -236,16 +241,16 @@ export class Model {
         }
     }
 
-    public whiteboardEvents(roomId: string) {
-        return this.whiteboard.whiteboardEventStream(roomId);
+    public whiteboardEvents(context: Context, roomId: string) {
+        return this.whiteboard.whiteboardEventStream(context, roomId);
     }
 
-    public whiteboardState(roomId: string) {
-        return this.whiteboard.whiteboardStateStream(roomId);
+    public whiteboardState(context: Context, roomId: string) {
+        return this.whiteboard.whiteboardStateStream(context, roomId);
     }
 
-    public whiteboardPermissions(roomId: string, userId: string) {
-        return this.whiteboard.whiteboardPermissionsStream(roomId, userId);
+    public whiteboardPermissions(context: Context, roomId: string, userId: string) {
+        return this.whiteboard.whiteboardPermissionsStream(context, roomId, userId);
     }
 
     private async notifyRoom (roomId:string, message: any): Promise<string> {
@@ -320,7 +325,7 @@ export class Model {
 
         return true;
     }
-    public async * videoSubscription(roomId: string, sessionId: string) {
+    public async * videoSubscription({ websocket }: Context, roomId: string, sessionId: string) {
         const video = RedisKeys.videoState(roomId, sessionId);
         {
             const state = await this.client.hgetall(video.key);
@@ -336,10 +341,10 @@ export class Model {
         let from = "$";
         const client = this.client.duplicate(); // We will block
         try {
-            while (true) {
+            while (websocket.readyState === WebSocket.OPEN) {
                 client.expire(video.key, video.ttl);
                 client.expire(stream.key, stream.ttl);
-                const response = await client.xread("BLOCK", 1000 * 60, "STREAMS", stream.key, from);
+                const response = await client.xread("BLOCK", 10000, "STREAMS", stream.key, from);
                 if (!response) { continue; }
                 const [[, messages]] = response;
                 //TODO: optimize to only send most recent message

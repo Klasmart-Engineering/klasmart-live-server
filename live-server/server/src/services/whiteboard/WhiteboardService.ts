@@ -1,14 +1,17 @@
-import { IWhiteboardService } from "./IWhiteboardService";
 import { Redis } from "ioredis";
 import { RedisKeys } from "../../redisKeys";
 import { OperationState } from "./model/OperationState";
 import { OperationEvent } from "./events/OperationEvent";
 import { redisStreamDeserialize, redisStreamSerialize } from "../../utils";
 import { WhiteboardState } from "./model/WhiteboardState";
+import { Context } from "../../main";
+import WebSocket from "ws";
+
+
 
 const OperationExpireSeconds = 60;
 
-export class WhiteboardService implements IWhiteboardService {
+export class WhiteboardService {
     readonly client: Redis
 
     constructor (client: Redis) {
@@ -39,18 +42,18 @@ export class WhiteboardService implements IWhiteboardService {
         return true;
     }
 
-    async * whiteboardStateStream(roomId: string): AsyncGenerator<{ whiteboardState: WhiteboardState }, void, unknown> {
+    async * whiteboardStateStream(context: Context, roomId: string): AsyncGenerator<{ whiteboardState: WhiteboardState }, void, unknown> {
         const stateKey = RedisKeys.whiteboardState(roomId);
 
-        for await (const whiteboardState of this.readMostRecentStreamValue<WhiteboardState>(stateKey)) {
+        for await (const whiteboardState of this.readMostRecentStreamValue<WhiteboardState>(context, stateKey)) {
             yield { whiteboardState };
         }
     }
 
-    async * whiteboardPermissionsStream(roomId: string, userId: string): AsyncGenerator<{ whiteboardPermissions: string }, void, unknown> {
+    async * whiteboardPermissionsStream(context: Context, roomId: string, userId: string): AsyncGenerator<{ whiteboardPermissions: string }, void, unknown> {
         const permissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
 
-        for await (const whiteboardPermissions of this.readMostRecentStreamValue<string>(permissionsKey)) {
+        for await (const whiteboardPermissions of this.readMostRecentStreamValue<string>(context, permissionsKey)) {
             yield { whiteboardPermissions };
         }
     }
@@ -96,14 +99,14 @@ export class WhiteboardService implements IWhiteboardService {
         return true;
     }
 
-    async * whiteboardEventStream(roomId: string): AsyncGenerator<{ whiteboardEvents: OperationEvent[] }, void, unknown> {
+    async * whiteboardEventStream({websocket}: Context, roomId: string): AsyncGenerator<{ whiteboardEvents: OperationEvent[] }, void, unknown> {
         const blockingClient = this.client.duplicate();
         try {
             const eventsKey = RedisKeys.whiteboardEvents(roomId);
 
             let lastEventId = "0";
 
-            while (true) {
+            while (websocket.readyState === WebSocket.OPEN) {
                 const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", eventsKey, lastEventId);
                 if (!response) continue;
 
@@ -172,12 +175,12 @@ export class WhiteboardService implements IWhiteboardService {
         await this.client.xadd(whiteboardEventsKey, "*", "json", event);
     }
 
-    private async * readMostRecentStreamValue<TResult>(key: string) : AsyncGenerator<TResult, void, unknown> {
+    private async * readMostRecentStreamValue<TResult>({ websocket }: Context, key: string) : AsyncGenerator<TResult, void, unknown> {
         const blockingClient = this.client.duplicate();
         try {
             let lastEventId = "0";
 
-            while (true) {
+            while (websocket.readyState === WebSocket.OPEN) {
                 const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", key, lastEventId);
                 if (!response) continue;
 
