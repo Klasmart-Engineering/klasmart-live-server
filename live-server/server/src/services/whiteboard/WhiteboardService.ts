@@ -22,7 +22,8 @@ export class WhiteboardService implements IWhiteboardService {
             onlyTeacherDraw: true,
         };
 
-        await this.client.xadd(whiteboardStateKey, "MAXLEN", "~", 1, "*", ...redisStreamSerialize(whiteboardState));
+        await this.client.expire(whiteboardStateKey.key, whiteboardStateKey.ttl);
+        await this.client.xadd(whiteboardStateKey.key, "MAXLEN", "~", 1, "*", ...redisStreamSerialize(whiteboardState));
 
         return true;
     }
@@ -31,9 +32,10 @@ export class WhiteboardService implements IWhiteboardService {
     // to verify the permission settings is sane and that the user is actually allowed to mess
     // with the desired permissions.
     async whiteboardSendPermissions(roomId: string, userId: string, permissions: string): Promise<boolean> {
-        const whiteboardPermissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
+        const permissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
 
-        await this.client.xadd(whiteboardPermissionsKey, "MAXLEN", "~", 1, "*", ...redisStreamSerialize(permissions));
+        await this.client.expire(permissionsKey.key, permissionsKey.ttl);
+        await this.client.xadd(permissionsKey.key, "MAXLEN", "~", 1, "*", ...redisStreamSerialize(permissions));
 
         return true;
     }
@@ -41,7 +43,7 @@ export class WhiteboardService implements IWhiteboardService {
     async * whiteboardStateStream(context: Context, roomId: string): AsyncGenerator<{ whiteboardState: WhiteboardState }, void, unknown> {
         const stateKey = RedisKeys.whiteboardState(roomId);
 
-        for await (const whiteboardState of this.readMostRecentStreamValue<WhiteboardState>(context, stateKey)) {
+        for await (const whiteboardState of this.readMostRecentStreamValue<WhiteboardState>(context, stateKey.key, stateKey.ttl)) {
             yield { whiteboardState };
         }
     }
@@ -49,7 +51,7 @@ export class WhiteboardService implements IWhiteboardService {
     async * whiteboardPermissionsStream(context: Context, roomId: string, userId: string): AsyncGenerator<{ whiteboardPermissions: string }, void, unknown> {
         const permissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
 
-        for await (const whiteboardPermissions of this.readMostRecentStreamValue<string>(context, permissionsKey)) {
+        for await (const whiteboardPermissions of this.readMostRecentStreamValue<string>(context, permissionsKey.key, permissionsKey.ttl)) {
             yield { whiteboardPermissions };
         }
     }
@@ -74,7 +76,9 @@ export class WhiteboardService implements IWhiteboardService {
             let lastEventId = "0";
 
             while (websocket.readyState === WebSocket.OPEN) {
-                const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", eventsKey, lastEventId);
+                await blockingClient.expire(eventsKey.key, eventsKey.ttl);
+
+                const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", eventsKey.key, lastEventId);
                 if (!response) continue;
 
                 const [[, events]] = response;
@@ -93,19 +97,22 @@ export class WhiteboardService implements IWhiteboardService {
     }
 
     private async addPainterEventToStream(roomId: string, event: string) {
-        const whiteboardEventsKey = RedisKeys.whiteboardEvents(roomId);
+        const eventsKey = RedisKeys.whiteboardEvents(roomId);
+        await this.client.expire(eventsKey.key, eventsKey.ttl);
 
         // TODO: Trim stream length by keeping track of event count since most recent clear (or come up
         // with a different mechanism for trimming the stream).
-        await this.client.xadd(whiteboardEventsKey, "*", "json", event);
+        await this.client.xadd(eventsKey.key, "*", "json", event);
     }
 
-    private async * readMostRecentStreamValue<TResult>({ websocket }: Context, key: string): AsyncGenerator<TResult, void, unknown> {
+    private async * readMostRecentStreamValue<TResult>({ websocket }: Context, key: string, ttl: number): AsyncGenerator<TResult, void, unknown> {
         const blockingClient = this.client.duplicate();
         try {
             let lastEventId = "0";
 
             while (websocket.readyState === WebSocket.OPEN) {
+                await blockingClient.expire(key, ttl);
+
                 const response = await blockingClient.xread("BLOCK", 10000, "STREAMS", key, lastEventId);
                 if (!response) continue;
 
