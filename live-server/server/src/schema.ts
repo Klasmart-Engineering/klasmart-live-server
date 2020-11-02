@@ -8,6 +8,7 @@ export const schema = gql`
   }
 
   type Mutation {
+    endClass(roomId: ID!): Boolean,
     setSessionStreamId(roomId: ID!, streamId: ID!): Boolean
     showContent(roomId: ID!, type: ContentType!, contentId: ID): Boolean
     sendMessage(roomId: ID!, message: String): Message

@@ -138,13 +138,24 @@ export class Model {
         return true;
     }
 
+    public async endClass(roomId: string, context: Context): Promise<boolean> {
+        if (!context.token?.userInformation()?.isTeacher) {
+            console.log(`Session ${context.sessionId} attempted to end class!`);
+            return false;
+        }
+        for await (const session of this.getSessions(roomId)) {
+            this.userLeave(session);
+        }
+        return true;
+    }
+
     public disconnect(context: any) {
         if (context.sessionId) { this.userLeave(context.sessionId); }
         console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
     }
 
     public async * room({ sessionId, websocket }: Context, roomId: string, name?: string) {
-        // TODO: Pipeline initial opperations
+        // TODO: Pipeline initial operations
         console.log("name", name);
         await this.userJoin(roomId, sessionId, name);
 
@@ -156,8 +167,6 @@ export class Model {
             const requestKey = RedisKeys.sfuRequest();
             await this.client.rpush(requestKey, roomId);
         }
-
-
 
         // Get room's last contents or supply default blank value
         try {
@@ -175,20 +184,8 @@ export class Model {
         }
 
         // Get all the sessions within a room
-        {
-            const sessionSearchKey = RedisKeys.sessionData(roomId, "*");
-            let sessionSearchCursor = "0";
-            do {
-                const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
-                const pipeline = this.client.pipeline();
-                for (const key of keys) { pipeline.hgetall(key); }
-                const sessions = await pipeline.exec();
-
-                for (const [, session] of sessions) {
-                    yield { room: { join: session } };
-                }
-                sessionSearchCursor = newCursor;
-            } while (sessionSearchCursor !== "0");
+        for await (const session of this.getSessions(roomId)) {
+            yield { room: { join: session } };
         }
 
         // Get room's last messages
@@ -219,25 +216,25 @@ export class Model {
                 if (!responses) { continue; }
                 for (const [key, response] of responses) {
                     switch (key) {
-                        case notify.key:
-                            for (const [id, keyValues] of response) {
-                                lastNotifyIndex = id;
-                                yield { room: { ...redisStreamDeserialize<any>(keyValues as any) } };
-                            }
-                            break;
-                        case chatMessages.key:
+                    case notify.key:
+                        for (const [id, keyValues] of response) {
+                            lastNotifyIndex = id;
+                            yield { room: { ...redisStreamDeserialize<any>(keyValues as any) } };
+                        }
+                        break;
+                    case chatMessages.key:
 
-                            for (const [id, keyValues] of response) {
-                                lastMessageIndex = id;
-                                yield { room: { message: { id, ...redisStreamDeserialize<any>(keyValues as any) } } };
-                            }
-                            break;
-                        case sessionNotifyKey:
-                            for (const [id, keyValues] of response) {
-                                lastSessionNotifyIndex = id;
-                                yield { room: { session: { ...redisStreamDeserialize<any>(keyValues as any) } } };
-                            }
-                            break;
+                        for (const [id, keyValues] of response) {
+                            lastMessageIndex = id;
+                            yield { room: { message: { id, ...redisStreamDeserialize<any>(keyValues as any) } } };
+                        }
+                        break;
+                    case sessionNotifyKey:
+                        for (const [id, keyValues] of response) {
+                            lastSessionNotifyIndex = id;
+                            yield { room: { session: { ...redisStreamDeserialize<any>(keyValues as any) } } };
+                        }
+                        break;
                     }
                 }
             }
@@ -274,6 +271,22 @@ export class Model {
         } finally {
             client.disconnect();
         }
+    }
+
+    public async * getSessions(roomId: string) {
+        const sessionSearchKey = RedisKeys.sessionData(roomId, "*");
+        let sessionSearchCursor = "0";
+        do {
+            const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
+            const pipeline = this.client.pipeline();
+            for (const key of keys) { pipeline.hgetall(key); }
+            const sessions = await pipeline.exec();
+
+            for (const [, session] of sessions) {
+                yield session;
+            }
+            sessionSearchCursor = newCursor;
+        } while (sessionSearchCursor !== "0");
     }
 
     public whiteboardEvents(context: Context, roomId: string) {
@@ -407,23 +420,4 @@ export class Model {
         const [seconds, microseconds] = await this.client.time();
         return Number(seconds) + Number(microseconds) / 1e6;
     }
-
-    private async getStreamsLastGeneratedId(key: string): Promise<string> {
-        try {
-            const info = await this.client.xinfo("STREAM", key);
-            return info[8];
-        } catch (e) {
-            return "$";
-        }
-    }
-
-    private async duplicateClient<T>(f: (client: Redis.Redis) => Promise<T>): Promise<T> {
-        const client = this.client.duplicate();
-        try {
-            return await f(client);
-        } finally {
-            client.disconnect();
-        }
-    }
-
 }
