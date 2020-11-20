@@ -138,9 +138,9 @@ export class Model {
         return true;
     }
 
-    public async endClass(roomId: string, context: Context): Promise<boolean> {
-        if (!context.token?.userInformation()?.isTeacher) {
-            console.log(`Session ${context.sessionId} attempted to end class!`);
+    public async endClass(roomId: string, {sessionId, token}: Context): Promise<boolean> {
+        if (!token.teacher) {
+            console.log(`Session ${sessionId} attempted to end class!`);
             return false;
         }
         for await (const session of this.getSessions(roomId)) {
@@ -156,7 +156,6 @@ export class Model {
 
     public async * room({ sessionId, websocket }: Context, roomId: string, name?: string) {
         // TODO: Pipeline initial operations
-        console.log("name", name);
         await this.userJoin(roomId, sessionId, name);
 
         const sfu = RedisKeys.roomSfu(roomId);

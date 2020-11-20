@@ -1,14 +1,9 @@
 import { ApolloServer } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
-import { KidsLoopTokenDecoder } from "./services/auth-token/KidsLoopTokenDecoder";
-import { IDecodedToken } from "./services/auth-token/token/IDecodedToken";
-import { IncomingHttpHeaders } from "http";
-import { IAuthenticationTokenDecoder } from "./services/auth-token/IAuthenticationTokenDecoder";
-import { StaticKeyProvider } from "./services/auth-token/key-provider/StaticKeyProvider";
-import { VerificationCredentials } from "./services/auth-token/key-provider/IKeyProvider";
 import * as Sentry from "@sentry/node";
 import WebSocket from "ws";
+import { checkToken, JWT } from "./auth";
 
 Sentry.init({
     dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
@@ -16,78 +11,15 @@ Sentry.init({
     release: "kidsloop-gql@" + process.env.npm_package_version,
 });
 
-function getTokenFromBearerString(bearer: string | undefined): string | undefined {
-    if (!bearer) { return; }
-    const parts = bearer.split(" ");
-    if (parts.length === 2) { return; }
-    return parts[1];
-}
-
-async function getTokenFromAuthorizationHeaders(decoder: IAuthenticationTokenDecoder, headers: IncomingHttpHeaders) {
-    const tokenString = getTokenFromBearerString(headers.authorization);
-
-    let token: IDecodedToken | undefined;
-    if (tokenString) {
-        try {
-            token = await decoder.decodeToken(tokenString);
-        } catch (error) {
-            token = undefined;
-        }
-    }
-
-    return token;
-}
-
 export interface Context {
-    token?: IDecodedToken
+    token: JWT
     sessionId: string
     websocket: WebSocket
 }
 
-const TokenCredentials: VerificationCredentials[] = [
-    { // Debug 
-        id: "calmid-debug",
-        issuer: "calmid-debug",
-        audience: "kidsloop-live",
-        algorithms: ["HS512", "HS256", "HS384"],
-        certificate: "iXtZx1D5AqEB0B9pfn+hRQ=="
-    },
-    { // China
-        id: "KidsLoopChinaUser-live",
-        issuer: "KidsLoopChinaUser-live",
-        audience: "kidsloop-live",
-        algorithms: ["RS512"],
-        certificate: ["-----BEGIN PUBLIC KEY-----",
-            "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDAGN9KAcc61KBz8EQAH54bFwGK",
-            "6PEQNVXXlsObwFd3Zos83bRm+3grzP0pKWniZ6TL/y7ZgFh4OlUMh9qJjIt6Lpz9",
-            "l4uDxkgDDrKHn8IrflBxjJKq0OyXqwIYChnFoi/HGjcRtJhi8oTFToSvKMqIeUuL",
-            "mWmLA8nXdDnMl7zwoQIDAQAB",
-            "-----END PUBLIC KEY-----"].join("\n")
-    },
-    { // General Kidsloop
-        id: "kidsloop",
-        issuer: "kidsloop",
-        audience: "kidsloop-live",
-        algorithms: ["RS256", "RS384", "RS512", "HS256", "HS384", "HS512", "ES256", "ES384", "ES512", "PS256", "PS384", "PS512"],
-        certificate: [
-            "-----BEGIN PUBLIC KEY-----\n" +
-            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxdHMYTqFobj3oGD/JDYb",
-            "DN07icTH/Dj7jBtJSG2clM6hQ1HRLApQUNoqcrcJzA0A7aNqELIJuxMovYAoRtAT",
-            "E1pYMWpVyG41inQiJjKFyAkuHsVzL+t2C778BFxlXTC/VWoR6CowWSWJaYlT5fA/",
-            "krUew7/+sGW6rjV2lQqxBN3sQsfaDOdN5IGkizsfMpdrETbc5tKksNs6nL6SFRDe",
-            "LoS4AH5KI4T0/HC53iLDjgBoka7tJuu3YsOBzxDX22FbYfTFV7MmPyq++8ANbzTL",
-            "sgaD2lwWhfWO51cWJnFIPc7gHBq9kMqMK3T2dw0jCHpA4vYEMjsErNSWKjaxF8O/",
-            "FwIDAQAB",
-            "-----END PUBLIC KEY-----"
-        ].join("\n")
-    }
-];
 
 async function main() {
     try {
-        const keyProvider = new StaticKeyProvider(TokenCredentials);
-        const tokenDecoder = new KidsLoopTokenDecoder(keyProvider);
-
         const model = await Model.create();
         const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || "kidsloop_live_events_alphabeta";
 
@@ -97,7 +29,7 @@ async function main() {
                 keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, websocket, connectionData: any): Promise<Context> => {
                     connectionData.sessionId = sessionId;
-                    const token = authToken ? await tokenDecoder.decodeToken(authToken) : undefined;
+                    const token = await checkToken(authToken);
                     return { token, sessionId, websocket };
                 },
                 onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData); }
@@ -105,36 +37,15 @@ async function main() {
             resolvers: {
                 Query: {
                     ready: () => true,
-                    token: (_parent, _args, context: Context) => {
-                        const token = context.token;
-                        if (!token) {
-                            return null;
-                        }
-
-                        if (!token.isValid()) {
-                            return null;
-                        }
-
-                        if (token.isExpired()) {
-                            return null;
-                        }
-
-                        const user = token.userInformation();
-                        const room = token.roomInformation();
-
-                        const result = {
-                            subject: token.getSubject(),
-                            audience: token.getAudience(),
-                            userId: user?.id,
-                            userName: user?.name,
-                            isTeacher: user?.isTeacher,
-                            organization: user?.organization,
-                            roomId: room?.roomId,
-                            materials: room?.materials
-                        };
-
-                        return result;
-                    },
+                    token: (_parent, _args, {token}: Context) => ({
+                        subject: token.sub,
+                        audience: token.aud,
+                        userId: token.userid,
+                        userName: token.name,
+                        isTeacher: token.teacher,
+                        roomId: token.roomid,
+                        materials: token.materials
+                    }),
                     sfuAddress: (_parent, { roomId }, context: Context) => model.getSfuAddress(roomId),
                 },
                 Mutation: {
@@ -176,11 +87,9 @@ async function main() {
                 }
             },
             context: async ({ req, connection }) => {
-                if (connection) {
-                    return connection.context;
-                } else {
-                    return { token: await getTokenFromAuthorizationHeaders(tokenDecoder, req.headers) };
-                }
+                if (connection) { return connection.context; }
+                const token = await checkToken(req.headers.authorization);
+                return { token };
             }
         });
 
