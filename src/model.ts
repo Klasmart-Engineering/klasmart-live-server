@@ -66,7 +66,8 @@ export class Model {
         }
     }
 
-    public async setSessionStreamId(roomId: string, sessionId: string, streamId: string) {
+    public async setSessionStreamId(roomId: string, sessionId: string| undefined, streamId: string) {
+        if(!sessionId) { throw new Error("Can't setSessionStreamId without knowning the sessionId it was from"); }
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         await this.client.pipeline()
             .hset(sessionKey, "id", sessionId)
@@ -103,8 +104,9 @@ export class Model {
         return result.every(([e]) => e == null);
     }
 
-    public async sendMessage(roomId: string, sessionId: string, message: string) {
+    public async sendMessage(roomId: string, sessionId: string | undefined, message: string) {
         if (!roomId) { throw new Error(`Invalid roomId('${roomId}')`); }
+        if(!sessionId) { throw new Error("Can't reward trophy without knowning the sessionId it was from"); }
         message = message.trim();
         if (message.length > 1024) { message = `${message.slice(0, 1024).trim()}...`; }
         if (!message) { return; }
@@ -116,7 +118,8 @@ export class Model {
         return { id, session, message };
     }
 
-    public async webRTCSignal(roomId: string, toSessionId: string, sessionId: string, webRTC: any) {
+    public async webRTCSignal(roomId: string, toSessionId: string, sessionId: string | undefined, webRTC: any) {
+        if(!sessionId) { throw new Error("Can't send webrtc signal without knowning the sessionId it was from"); }
         await this.notifySession(roomId, toSessionId, { webRTC: { sessionId, ...webRTC } });
         return true;
     }
@@ -155,6 +158,8 @@ export class Model {
     }
 
     public async * room({ sessionId, websocket }: Context, roomId: string, name?: string) {
+        if(!sessionId) {throw new Error("Can't subscribe to a room without a sessionId");}
+        if(!websocket) {throw new Error("Can't subscribe to a room without a websocket");}
         // TODO: Pipeline initial operations
         await this.userJoin(roomId, sessionId, name);
 
@@ -243,6 +248,8 @@ export class Model {
     }
 
     public async * stream({ websocket }: Context, streamId: string, from: string) {
+        if(!websocket) {throw new Error("Can't subscribe to a stream without a websocket");}
+
         const key = RedisKeys.streamEvents(streamId);
         if (!from) { from = "0"; }
         const client = this.client.duplicate(); // We will block
@@ -373,6 +380,7 @@ export class Model {
         return true;
     }
     public async * videoSubscription({ websocket }: Context, roomId: string, sessionId: string) {
+        if(!websocket) {throw new Error("Can't subscribe to a video notifications without a websocket");}
         const video = RedisKeys.videoState(roomId, sessionId);
         {
             const state = await this.client.hgetall(video.key);
@@ -410,8 +418,9 @@ export class Model {
         }
     }
 
-    public async rewardTrophy({ sessionId, roomId, user, kind }: { sessionId: string; roomId: string; user: string; kind: string; }): Promise<boolean> {
-        this.notifyRoom(roomId, { trophy: { from: sessionId, user, kind } });
+    public async rewardTrophy(roomId: string, user: string, kind: string, sessionId?: string): Promise<boolean> {
+        if(!sessionId) { throw new Error("Can't reward trophy without knowning the sessionId it was from"); }
+        await this.notifyRoom(roomId, { trophy: { from: sessionId, user, kind } });
         return true;
     }
 

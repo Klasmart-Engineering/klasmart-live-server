@@ -13,10 +13,9 @@ Sentry.init({
 
 export interface Context {
     token: JWT
-    sessionId: string
-    websocket: WebSocket
+    sessionId?: string
+    websocket?: WebSocket
 }
-
 
 async function main() {
     try {
@@ -32,7 +31,7 @@ async function main() {
                     const token = await checkToken(authToken);
                     return { token, sessionId, websocket };
                 },
-                onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData); }
+                onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData as any); }
             },
             resolvers: {
                 Query: {
@@ -50,20 +49,20 @@ async function main() {
                 },
                 Mutation: {
                     endClass: (_parent, { roomId }, context: Context) => model.endClass(roomId, context),
-                    setSessionStreamId: (_parent, { roomId, streamId }, context: Context) => model.setSessionStreamId(roomId, context.sessionId, streamId),
-                    sendMessage: (_parent, { roomId, message }, context: Context) => model.sendMessage(roomId, context.sessionId, message),
+                    setSessionStreamId: (_parent, { roomId, streamId }, {sessionId}: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
+                    sendMessage: (_parent, { roomId, message }, {sessionId}: Context) => model.sendMessage(roomId, sessionId, message),
                     postPageEvent: async (_parent, { streamId, pageEvents }, context: Context) => {
                         const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
                         return a;
                     },
                     showContent: (_parent, { roomId, type, contentId }, context: Context) => model.showContent(roomId, type, contentId),
-                    webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, context: Context) => model.webRTCSignal(roomId, toSessionId, context.sessionId, webrtc),
+                    webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, {sessionId}: Context) => model.webRTCSignal(roomId, toSessionId, sessionId, webrtc),
                     whiteboardSendEvent: (_parent, { roomId, event }, _context: Context) => model.whiteboardSendEvent(roomId, event),
                     whiteboardSendDisplay: (_parent, { roomId, display }, _context: Context) => model.whiteboardSendDisplay(roomId, display),
                     whiteboardSendPermissions: (_parent, { roomId, userId, permissions }, _context: Context) => model.whiteboardSendPermissions(roomId, userId, permissions),
                     mute: (_parent, { roomId, sessionId, audio, video }, _context: Context) => model.mute(roomId, sessionId, audio, video),
                     video: (_parent, { roomId, sessionId, src, play, offset }, _context: Context) => model.video(roomId, sessionId, src, play, offset),
-                    rewardTrophy: (_parent, { roomId, user, kind }, context: Context) => model.rewardTrophy({ sessionId: context.sessionId, roomId, user, kind }),
+                    rewardTrophy: (_parent, { roomId, user, kind }, {sessionId}: Context) => model.rewardTrophy(roomId, user, kind, sessionId),
                 },
                 Subscription: {
                     room: {

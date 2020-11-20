@@ -69,6 +69,7 @@ export class WhiteboardService implements IWhiteboardService {
     }
 
     async * whiteboardEventStream({ websocket }: Context, roomId: string): AsyncGenerator<{ whiteboardEvents: PainterEvent[] }, void, unknown> {
+        if(!websocket) {throw new Error("whiteboardEventStream requires a websocket");}
         const blockingClient = this.client.duplicate();
         try {
             const eventsKey = RedisKeys.whiteboardEvents(roomId);
@@ -106,6 +107,7 @@ export class WhiteboardService implements IWhiteboardService {
     }
 
     private async * readMostRecentStreamValue<TResult>({ websocket }: Context, key: string, ttl: number): AsyncGenerator<TResult, void, unknown> {
+        if(!websocket) {throw new Error("whiteboardEventStream requires a websocket");}
         const blockingClient = this.client.duplicate();
         try {
             let lastEventId = "0";
