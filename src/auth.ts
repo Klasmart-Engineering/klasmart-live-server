@@ -95,28 +95,32 @@ export type JWT = {
 }
 
 export async function checkToken(token?: string) {
-    if (!token) {
-        throw new Error("Missing JWT token");
-    }
-    const payload = decode(token);
-    if (!payload || typeof payload !== "object") {
-        throw new Error("JWT Payload is incorrect");
-    }
-    const issuer = payload["iss"];
-    if (!issuer || typeof issuer !== "string") {
-        throw new Error("JWT Issuer is incorrect");
-    }
-    const issuerOptions = issuers.get(issuer);
-    if (!issuerOptions) {
-        throw new Error("JWT IssuerOptions are incorrect");
-    }
-    const {options, secretOrPublicKey} = issuerOptions;
-    return await new Promise<JWT>((resolve, reject) => {
-        verify(token, secretOrPublicKey, options, (err, decoded) => {
-            if (err) { reject(err); return; }
-            if (decoded) { resolve(<JWT>decoded); return; }
-            reject(new Error("Unexpected authorization error"));
+    try {
+        if (!token) {
+            throw new Error("Missing JWT token");
+        }
+        const payload = decode(token);
+        if (!payload || typeof payload !== "object") {
+            throw new Error("JWT Payload is incorrect");
+        }
+        const issuer = payload["iss"];
+        if (!issuer || typeof issuer !== "string") {
+            throw new Error("JWT Issuer is incorrect");
+        }
+        const issuerOptions = issuers.get(issuer);
+        if (!issuerOptions) {
+            throw new Error("JWT IssuerOptions are incorrect");
+        }
+        const {options, secretOrPublicKey} = issuerOptions;
+        return await new Promise<JWT>((resolve, reject) => {
+            verify(token, secretOrPublicKey, options, (err, decoded) => {
+                if (err) { reject(err); return; }
+                if (decoded) { resolve(<JWT>decoded); return; }
+                reject(new Error("Unexpected authorization error"));
+            });
         });
-    });
+    } catch(e) {
+        console.error(e);
+    }
 
 }

@@ -142,7 +142,7 @@ export class Model {
     }
 
     public async endClass(roomId: string, {sessionId, token}: Context): Promise<boolean> {
-        if (!token.teacher) {
+        if (!token?.teacher) {
             console.log(`Session ${sessionId} attempted to end class!`);
             return false;
         }

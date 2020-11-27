@@ -12,7 +12,7 @@ Sentry.init({
 });
 
 export interface Context {
-    token: JWT
+    token?: JWT
     sessionId?: string
     websocket?: WebSocket
 }
@@ -37,13 +37,13 @@ async function main() {
                 Query: {
                     ready: () => true,
                     token: (_parent, _args, {token}: Context) => ({
-                        subject: token.sub,
-                        audience: token.aud,
-                        userId: token.userid,
-                        userName: token.name,
-                        isTeacher: token.teacher,
-                        roomId: token.roomid,
-                        materials: token.materials
+                        subject: token?.sub,
+                        audience: token?.aud,
+                        userId: token?.userid,
+                        userName: token?.name,
+                        isTeacher: token?.teacher,
+                        roomId: token?.roomid,
+                        materials: token?.materials
                     }),
                     sfuAddress: (_parent, { roomId }, context: Context) => model.getSfuAddress(roomId),
                 },
