@@ -7,10 +7,10 @@ const issuers = new Map<
         secretOrPublicKey: Secret,
     }>([
         [
-            "KidsLoopChinaUser-live",
+            "KidsLoopUser-live",
             {
                 options: {
-                    issuer: "KidsLoopChinaUser-live",
+                    issuer: "KidsLoopUser-live",
                     algorithms: ["RS512"],
                 },
                 secretOrPublicKey: [
@@ -19,7 +19,27 @@ const issuers = new Map<
                     "6PEQNVXXlsObwFd3Zos83bRm+3grzP0pKWniZ6TL/y7ZgFh4OlUMh9qJjIt6Lpz9",
                     "l4uDxkgDDrKHn8IrflBxjJKq0OyXqwIYChnFoi/HGjcRtJhi8oTFToSvKMqIeUuL",
                     "mWmLA8nXdDnMl7zwoQIDAQAB",
-                    "-----END PUBLIC KEY-----"
+                    "-----END PUBLIC KEY-----",
+                ].join("\n")
+            }
+        ],
+        [
+            "KidsLoopChinaUser-live",
+            {
+                options: {
+                    issuer: "KidsLoopChinaUser-live",
+                    algorithms: ["RS512"],
+                },
+                secretOrPublicKey: [
+                    "-----BEGIN PUBLIC KEY-----",
+                    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwAar3URZdwCSSAAJS5Gx",
+                    "UO0j3xaIQgE4sNvQ0vLr1ImxZkoooTsiJn4uzL9hlipPDA98iUvUbx3G6ZuInsu5",
+                    "H93CTRKpg69+X2sDtGNHVDVz5BDs0zldB46yuDe4tLkgL7JGOb/OJ6+FA9wBjDAn",
+                    "GyMAjrYBf1RZMxEkhSDEh5eYJsR9FgoiDYelsz6uXoftRGdPQ4uhyi/6ZJI4IV/2",
+                    "nondOLcFhg74e8ok7HNtt/tKt6ybj38sM27xCiTY7HVzjeOxFQx8aGSU+Lljin7o",
+                    "JPNh1SWJFrnjOttGq3EUrnlf4NlTUyClUdk3EHwrkm+frF9qLbl9CNM6ycfXCb3K",
+                    "GwIDAQAB",
+                    "-----END PUBLIC KEY-----",
                 ].join("\n")
             }
         ],
@@ -28,11 +48,11 @@ const issuers = new Map<
             {
                 options: {
                     issuer: "kidsloop",
-                    algorithms: [ "RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512", "HS256", "HS384", "HS512"]
+                    algorithms: [ "RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512"]
                 },
                 secretOrPublicKey: [
-                    "-----BEGIN PUBLIC KEY-----\n" +
-                "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxdHMYTqFobj3oGD/JDYb",
+                    "-----BEGIN PUBLIC KEY-----",
+                    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxdHMYTqFobj3oGD/JDYb",
                     "DN07icTH/Dj7jBtJSG2clM6hQ1HRLApQUNoqcrcJzA0A7aNqELIJuxMovYAoRtAT",
                     "E1pYMWpVyG41inQiJjKFyAkuHsVzL+t2C778BFxlXTC/VWoR6CowWSWJaYlT5fA/",
                     "krUew7/+sGW6rjV2lQqxBN3sQsfaDOdN5IGkizsfMpdrETbc5tKksNs6nL6SFRDe",
@@ -57,7 +77,8 @@ if (process.env.NODE_ENV !== "production") {
                 ],
             },
             secretOrPublicKey: "iXtZx1D5AqEB0B9pfn+hRQ==",
-        });
+        }
+    );
 }
 
 export type JWT = {
