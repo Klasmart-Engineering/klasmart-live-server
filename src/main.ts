@@ -1,6 +1,7 @@
 import { ApolloServer } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
+import { createConnection } from "typeorm";
 import * as Sentry from "@sentry/node";
 import WebSocket from "ws";
 import { checkToken, JWT } from "./auth";
@@ -15,11 +16,31 @@ Sentry.init({
 export interface Context {
     token?: JWT
     sessionId?: string
+    roomId?: string
     websocket?: WebSocket
+    joinTime?: Date
+}
+
+async function connectPostgres() {
+    if(!process.env.DATABASE_URL) {
+        console.log("Attendance db not configured - skipping");
+        return
+    }
+    const connection = await createConnection({
+        name: "default",
+        type: "postgres",
+        url: process.env.DATABASE_URL || "postgres://postgres:kidsloop@localhost",
+        synchronize: true,
+        logging: Boolean(process.env.DATABASE_LOGGING),
+        entities: ["src/entities/*.ts"],
+    });
+    console.log("🐘 Connected to postgres");
+    return connection;
 }
 
 async function main() {
     try {
+        await connectPostgres();
         const model = await Model.create();
         const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || "kidsloop_live_events_alphabeta";
 
@@ -28,9 +49,13 @@ async function main() {
             subscriptions: {
                 keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, websocket, connectionData: any): Promise<Context> => {
-                    connectionData.sessionId = sessionId;
                     const token = await checkToken(authToken);
-                    return { token, sessionId, websocket };
+                    const joinTime = new Date();
+
+                    connectionData.sessionId = sessionId;
+                    connectionData.token = token;
+                    connectionData.joinTime = joinTime;
+                    return { token, sessionId, websocket, joinTime };
                 },
                 onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData as any); }
             },
