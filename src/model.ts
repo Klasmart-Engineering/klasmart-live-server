@@ -5,6 +5,10 @@ import Redis = require("ioredis")
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { Context } from "./main";
 import WebSocket = require("ws");
+import { Attendance } from "./entities/attendance";
+import { getRepository } from "typeorm";
+import axios from "axios";
+import { attendanceToken } from "./jwt";
 
 interface PageEvent {
     sequenceNumber: number
@@ -152,14 +156,17 @@ export class Model {
         return true;
     }
 
-    public disconnect(context: any) {
-        if (context.sessionId) { this.userLeave(context.sessionId); }
+    public async disconnect(context: Context | any) {
         console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
+        await this.userLeave(context);
     }
 
-    public async * room({ sessionId, websocket }: Context, roomId: string, name?: string) {
+    public async * room(context: Context, roomId: string, name?: string) {
+        const { sessionId, websocket } = context;
         if(!sessionId) {throw new Error("Can't subscribe to a room without a sessionId");}
         if(!websocket) {throw new Error("Can't subscribe to a room without a websocket");}
+        if(context.roomId) { console.error(`Session(${sessionId}) already subscribed to Room(${context.roomId}) and will now subscribe to Room(${roomId}) attendance records do not support multiple rooms`); }
+        context.roomId = roomId;
         // TODO: Pipeline initial operations
         await this.userJoin(roomId, sessionId, name);
 
@@ -333,17 +340,22 @@ export class Model {
         await this.notifyRoom(roomId, { join: { id: sessionId, name } });
     }
 
-    private async userLeave(sessionId: string) {
-        const sessionSearchKey = RedisKeys.sessionData("*", sessionId);
+    private async userLeave(context: Context) {
+        if(!context.sessionId) { return; }
+
+        const sessionSearchKey = RedisKeys.sessionData("*", context.sessionId);
         let sessionSearchCursor = "0";
         let count = 0;
         const pipeline = this.client.pipeline();
+        const rooms = new Set<string>();
         do {
             const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
             for (const key of keys) {
                 const params = RedisKeys.parseSessionDataKey(key);
                 if (!params) { continue; }
+                await this.logAttendance(params.roomId, context);
                 const notify = RedisKeys.roomNotify(params.roomId);
+                rooms.add(params.roomId);
                 count++;
                 pipeline.del(key);
                 pipeline.expire(notify.key, notify.ttl);
@@ -356,6 +368,71 @@ export class Model {
             sessionSearchCursor = newCursor;
         } while (sessionSearchCursor !== "0");
         await pipeline.exec();
+        await this.attendenceNotify(rooms);
+    }
+
+    private async logAttendance(room_id: string, context: Context) {
+        if(!context.token || !context.joinTime || !context.sessionId) { return; }
+
+        const leaveTime = Date.now();
+        try {
+            const attendance = new Attendance();
+            attendance.session_id = context.sessionId;
+            attendance.join_timestamp = context.joinTime;
+            attendance.leave_timestamp = new Date();
+            attendance.room_id = room_id;
+            attendance.user_id = context.token.userid;
+            await attendance.save();
+            console.log(attendance);
+        } catch(e) {
+            console.log(`Unable to save attendance: ${JSON.stringify({context, leaveTime})}`);
+            console.log(e);
+        }
+    }
+
+    private async attendenceNotify(rooms: Set<string>) {
+        nextRoom:
+        for(const roomId of rooms) {
+            const sessionSearchKey = RedisKeys.sessionData(roomId, "*");
+            let sessionSearchCursor = "0";
+
+            do {
+                const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
+                if(keys.length > 0) { continue nextRoom; }
+                sessionSearchCursor = newCursor;
+            } while (sessionSearchCursor !== "0");
+
+            //There were no sessions in room
+            //Maybe we need a timeout to check no one rejoins
+            await this.sendAttendance(roomId);
+        }
+
+    }
+
+    private async sendAttendance(room_id: string) {
+        //TODO: Remove endpoint
+        const url = process.env.ASSESSMENT_ENDPOINT || "https://kl2-test.kidsloop.net/v1/assessments";
+        try {
+            const attendance = await getRepository(Attendance).find({ room_id });
+            const attendance_ids = new Set([...attendance.map((a) => a.user_id)]);
+            const now = Number(new Date());
+            const class_end_time_ms = Math.max(
+                ...attendance.map((a) => Number(a.leave_timestamp)),
+                now,
+            );
+            const class_end_time = Math.round(class_end_time_ms / 1000);
+            const class_start_time_ms = Math.min(
+                ...attendance.map((a) => Number(a.join_timestamp)),
+                now,
+            );
+            const class_start_time = Math.round(class_start_time_ms / 1000);
+            const token = await attendanceToken(room_id, [...attendance_ids], class_start_time, class_end_time);
+            console.log(token);
+            await axios.post(url, {token});
+        } catch(e) {
+            console.log("Unable to post attendance");
+            console.error(e);
+        }
     }
 
     public async video(roomId: string, sessionId: string, src?: string, play?: boolean, offset?: number) {
