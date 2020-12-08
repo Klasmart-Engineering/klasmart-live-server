@@ -411,7 +411,7 @@ export class Model {
 
     private async sendAttendance(room_id: string) {
         //TODO: Remove endpoint
-        const url = process.env.ASSESSMENT_ENDPOINT || "https://kl2-test.kidsloop.net/v1/assessments";
+        const url = process.env.ASSESSMENT_ENDPOINT || "https://kl2.kidsloop.net/v1/assessments";
         try {
             const attendance = await getRepository(Attendance).find({ room_id });
             const attendance_ids = new Set([...attendance.map((a) => a.user_id)]);
