@@ -157,11 +157,12 @@ export class Model {
         console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
     }
 
-    public async * room({ sessionId, websocket }: Context, roomId: string, name?: string) {
+    public async * room(context: Context, roomId: string, name?: string) {
+        const { sessionId, websocket, token } = context;
         if(!sessionId) {throw new Error("Can't subscribe to a room without a sessionId");}
         if(!websocket) {throw new Error("Can't subscribe to a room without a websocket");}
         // TODO: Pipeline initial operations
-        await this.userJoin(roomId, sessionId, name);
+        await this.userJoin(roomId, sessionId, name, token?.teacher);
 
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
@@ -289,6 +290,7 @@ export class Model {
             const sessions = await pipeline.exec();
 
             for (const [, session] of sessions) {
+                session.isTeacher = session.isTeacher === "true";
                 yield session;
             }
             sessionSearchCursor = newCursor;
@@ -326,10 +328,11 @@ export class Model {
         );
     }
 
-    private async userJoin(roomId: string, sessionId: string, name?: string) {
+    private async userJoin(roomId: string, sessionId: string, name?: string, isTeacher?: boolean) {
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         await this.client.hmset(sessionKey, "id", sessionId);
         if (name) { await this.client.hmset(sessionKey, "name", name); }
+        if (isTeacher) { await this.client.hmset(sessionKey, "isTeacher", isTeacher.toString()); }
         await this.notifyRoom(roomId, { join: { id: sessionId, name } });
     }
 

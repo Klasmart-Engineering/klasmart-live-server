@@ -76,6 +76,7 @@ export const schema = gql`
     id: ID!,
     name: String,
     streamId: ID
+    isTeacher: Boolean
   }
 
   enum ContentType {
