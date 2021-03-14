@@ -1,6 +1,7 @@
 import { gql } from "apollo-server";
+import { typeDefs } from "graphql-scalars";
 
-export const schema = gql`
+const customSchema = gql`
   type Query {
     ready: Boolean
     sfuAddress(roomId: ID!): String
@@ -10,6 +11,7 @@ export const schema = gql`
   type Mutation {
     endClass(roomId: ID!): Boolean,
     setSessionStreamId(roomId: ID!, streamId: ID!): Boolean
+    setHost(roomId: ID!, hostId: ID!): Boolean
     showContent(roomId: ID!, type: ContentType!, contentId: ID): Boolean
     sendMessage(roomId: ID!, message: String): Message
     postPageEvent(streamId: ID!, pageEvents: [PageEventIn]): Boolean
@@ -77,6 +79,8 @@ export const schema = gql`
     name: String,
     streamId: ID
     isTeacher: Boolean
+    isHost: Boolean
+    joinedAt: Timestamp
   }
 
   enum ContentType {
@@ -150,3 +154,5 @@ export const schema = gql`
     offset: Float
   }
 `;
+
+export const schema = typeDefs.map(typeDef => gql`${typeDef}`).concat(customSchema);

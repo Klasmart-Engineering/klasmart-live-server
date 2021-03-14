@@ -1,3 +1,5 @@
+import { Session } from "./types";
+
 export function redisStreamDeserialize<T> (keyValues: string[]): T|undefined {
     for (let i = 0; i + 1 < keyValues.length; i += 2) {
         try {
@@ -38,4 +40,15 @@ export function toRedisKeyValueArray (obj: Record<any, any>): string[] {
         }
     }
     return result;
+}
+
+export function convertSessionRecordToSession(session: Record<string, string>): Session {
+    return {
+        id: session.id,
+        name: session.name,
+        streamId: session.streamId,
+        isTeacher: session.isTeacher === "true",
+        isHost: session.isHost === "true",
+        joinedAt: Number(session.joinedAt),
+    } as Session;
 }

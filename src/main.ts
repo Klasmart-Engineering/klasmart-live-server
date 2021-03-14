@@ -4,6 +4,7 @@ import { schema } from "./schema";
 import * as Sentry from "@sentry/node";
 import WebSocket from "ws";
 import { checkToken, JWT } from "./auth";
+import { resolvers } from "graphql-scalars";
 
 Sentry.init({
     dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
@@ -34,6 +35,7 @@ async function main() {
                 onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData as any); }
             },
             resolvers: {
+                ...resolvers,
                 Query: {
                     ready: () => true,
                     token: (_parent, _args, {token}: Context) => ({
@@ -50,6 +52,7 @@ async function main() {
                 Mutation: {
                     endClass: (_parent, { roomId }, context: Context) => model.endClass(roomId, context),
                     setSessionStreamId: (_parent, { roomId, streamId }, {sessionId}: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
+                    setHost: (_parent, { roomId, hostId }, context: Context) => model.setHost(roomId, hostId),
                     sendMessage: (_parent, { roomId, message }, {sessionId}: Context) => model.sendMessage(roomId, sessionId, message),
                     postPageEvent: async (_parent, { streamId, pageEvents }, context: Context) => {
                         const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);

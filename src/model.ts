@@ -1,17 +1,11 @@
-import { fromRedisKeyValueArray } from "./utils";
+import { convertSessionRecordToSession, fromRedisKeyValueArray } from "./utils";
 import { redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
 import Redis = require("ioredis")
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { Context } from "./main";
 import WebSocket = require("ws");
-
-interface PageEvent {
-    sequenceNumber: number
-    isKeyframe: boolean
-    eventsSinceKeyframe: number
-    eventData: string
-}
+import { PageEvent, Session } from "./types";
 
 export class Model {
     public static async create() {
@@ -34,10 +28,10 @@ export class Model {
         this.whiteboard = new WhiteboardService(client);
     }
 
-    public async getSession(roomId: string, sessionId: string) {
+    public async getSession(roomId: string, sessionId: string): Promise<Session> {
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
-        const sessionKeyValues = await this.client.hgetall(sessionKey);
-        return { ...sessionKeyValues };
+        const sessionRecord = await this.client.hgetall(sessionKey);
+        return convertSessionRecordToSession(sessionRecord);
     }
 
     public async getSfuAddress(roomId: string) {
@@ -75,6 +69,18 @@ export class Model {
             .exec();
         const session = await this.getSession(roomId, sessionId);
         this.notifyRoom(roomId, { join: session });
+    }
+
+    public async setHost(roomId: string, hostId: string ) {
+        if(!hostId) { throw new Error("Can't set the host without knowning the sessionId of the new host"); }
+        for await (const session of this.getSessions(roomId)) {
+            session.isHost = session.id === hostId;
+            const sessionKey = RedisKeys.sessionData(roomId, hostId);
+            await this.client.pipeline()
+                .hset(sessionKey, "isHost", session.isHost.toString())
+                .exec();
+            this.notifyRoom(roomId, { join: session });
+        }
     }
 
     public async showContent(roomId: string, type: string, contentId?: string) {
@@ -147,7 +153,7 @@ export class Model {
             return false;
         }
         for await (const session of this.getSessions(roomId)) {
-            this.userLeave(session);
+            this.userLeave(session.id);
         }
         return true;
     }
@@ -290,8 +296,7 @@ export class Model {
             const sessions = await pipeline.exec();
 
             for (const [, session] of sessions) {
-                session.isTeacher = session.isTeacher === "true";
-                yield session;
+                yield convertSessionRecordToSession(session);
             }
             sessionSearchCursor = newCursor;
         } while (sessionSearchCursor !== "0");
@@ -329,11 +334,16 @@ export class Model {
     }
 
     private async userJoin(roomId: string, sessionId: string, name?: string, isTeacher?: boolean) {
+        const joinedAt = new Date().getTime();
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
-        await this.client.hmset(sessionKey, "id", sessionId);
-        if (name) { await this.client.hmset(sessionKey, "name", name); }
-        if (isTeacher) { await this.client.hmset(sessionKey, "isTeacher", isTeacher.toString()); }
-        await this.notifyRoom(roomId, { join: { id: sessionId, name } });
+        const pipeline = this.client.pipeline();
+        pipeline
+            .hset(sessionKey, "id", sessionId)
+            .hset(sessionKey, "joinedAt", joinedAt);
+        if (name) { pipeline.hset(sessionKey, "name", name); }
+        if (isTeacher) { pipeline.hset(sessionKey, "isTeacher", isTeacher.toString()); }
+        await pipeline.exec();
+        this.notifyRoom(roomId, { join: {id: sessionId, name, isTeacher, joinedAt }});
     }
 
     private async userLeave(sessionId: string) {
