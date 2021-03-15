@@ -195,7 +195,12 @@ export class Model {
         }
 
         // Get all the sessions within a room
+        const sessions = [];
         for await (const session of this.getSessions(roomId)) {
+            sessions.push(session);
+        }
+        const sortedSessions = sessions.sort((a: Session) => a.isHost ? -1 : 1);
+        for (const session of sortedSessions) {
             yield { room: { join: session } };
         }
 
