@@ -75,7 +75,7 @@ export class Model {
         if(!hostId) { throw new Error("Can't set the host without knowning the sessionId of the new host"); }
         for await (const session of this.getSessions(roomId)) {
             session.isHost = session.id === hostId;
-            const sessionKey = RedisKeys.sessionData(roomId, hostId);
+            const sessionKey = RedisKeys.sessionData(roomId, session.id);
             await this.client.pipeline()
                 .hset(sessionKey, "isHost", session.isHost.toString())
                 .exec();
