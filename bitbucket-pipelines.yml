@@ -17,13 +17,21 @@ pipelines:
         script:
           - pip3 install -U awscli
 
-          - aws configure set aws_access_key_id "${AWS_KEY}"
-          - aws configure set aws_secret_access_key "${AWS_SECRET}"
-          - eval $(aws ecr get-login --no-include-email --region eu-west-2 | sed 's;https://;;g')
-
+          - export BRANCH_TAG=$(echo "$BITBUCKET_BRANCH" | sed -E 's/([^0-9a-zA-Z]+)/-/g' | awk '{print tolower($0)}')
+          - export REPO=$DOCKER_REPO_URL/kidsloop-live-backend  # DOCKER_REPO_URL is workspace wide variable
+        
+          - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $DOCKER_REPO_URL
+          
           - docker build -t live-backend deploy/
-          - docker tag live-backend:latest 942095822719.dkr.ecr.eu-west-2.amazonaws.com/kidsloop-live-backend:$BITBUCKET_BUILD_NUMBER
-          - docker push 942095822719.dkr.ecr.eu-west-2.amazonaws.com/kidsloop-live-backend:$BITBUCKET_BUILD_NUMBER
+    
+          - docker tag live-backend:latest $REPO:$BRANCH_TAG
+          - docker tag live-backend:latest $REPO:$BRANCH_TAG-latest
+          - docker tag live-backend:latest $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
+
+          - docker push $REPO:$BRANCH_TAG
+          - docker push $REPO:$BRANCH_TAG-latest
+          - docker push $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
+
         services:
           - docker
 
