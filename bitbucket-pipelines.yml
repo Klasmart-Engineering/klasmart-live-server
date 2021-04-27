@@ -22,7 +22,8 @@ pipelines:
         
           - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $DOCKER_REPO_URL
           
-          - docker build -t live-backend deploy/
+          - mv deploy/Dockerfile .
+          - docker build -t live-backend .
     
           - docker tag live-backend:latest $REPO:$BRANCH_TAG
           - docker tag live-backend:latest $REPO:$BRANCH_TAG-latest
