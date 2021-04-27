@@ -19,7 +19,8 @@ pipelines:
 
           - export BRANCH_TAG=$(echo "$BITBUCKET_BRANCH" | sed -E 's/([^0-9a-zA-Z]+)/-/g' | awk '{print tolower($0)}')
           - export REPO=$DOCKER_REPO_URL/kidsloop-live-backend  # DOCKER_REPO_URL is workspace wide variable
-        
+          - echo "$PRIVATE_KEY" > ./private_key
+
           - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $DOCKER_REPO_URL
           
           - mv deploy/Dockerfile.bitbucket-pipeline .
