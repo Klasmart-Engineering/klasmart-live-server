@@ -2,14 +2,14 @@ pipelines:
   custom:
     deploy:
     - step:
-        name: 'Install NPM Modules'
+        name: 'Build NPM'
         image: node:lts
         script:
           - npm i
         caches:
           - nodemodules
         artifacts:
-          - node_modules/*
+          - node_modules/**
 
     - step:
         name: "Build & Push Docker image"
@@ -22,8 +22,8 @@ pipelines:
         
           - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $DOCKER_REPO_URL
           
-          - mv deploy/Dockerfile .
-          - docker build -t live-backend .
+          - mv deploy/Dockerfile.bitbucket-pipeline .
+          - docker build -t live-backend -f Dockerfile.bitbucket-pipeline .
     
           - docker tag live-backend:latest $REPO:$BRANCH_TAG
           - docker tag live-backend:latest $REPO:$BRANCH_TAG-latest
