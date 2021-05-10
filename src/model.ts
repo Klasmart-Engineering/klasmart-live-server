@@ -151,14 +151,18 @@ export class Model {
         return true;
     }
 
-    public async endClass(roomId: string, context: Context): Promise<boolean> {
+    public async endClass(context: Context): Promise<boolean> {
         const {sessionId, token} = context;
         if (!token?.teacher) {
             console.log(`Session ${sessionId} attempted to end class!`);
             return false;
         }
-        for await (const session of this.getSessions(roomId)) {
-            this.userLeave(context);
+        for await (const session of this.getSessions(token.roomid)) {
+            this.userLeave({
+                sessionId: session.id,
+                joinTime: new Date(session.joinedAt),
+            });
+            this.notifyRoom(token.roomid, { leave: session});
         }
         return true;
     }
