@@ -399,11 +399,11 @@ export class Model {
         const leaveTime = Date.now();
         try {
             const attendance = new Attendance();
-            attendance.session_id = context.sessionId;
-            attendance.join_timestamp = context.joinTime;
-            attendance.leave_timestamp = new Date();
-            attendance.room_id = room_id;
-            attendance.user_id = context.token.userid;
+            attendance.sessionId = context.sessionId;
+            attendance.joinTimestamp = context.joinTime;
+            attendance.leaveTimestamp = new Date();
+            attendance.roomId = room_id;
+            attendance.userId = context.token.userid;
             await attendance.save();
         } catch(e) {
             console.log(`Unable to save attendance: ${JSON.stringify({context, leaveTime})}`);
@@ -430,24 +430,24 @@ export class Model {
 
     }
 
-    private async sendAttendance(room_id: string) {
+    private async sendAttendance(roomId: string) {
         const url = process.env.ASSESSMENT_ENDPOINT;
         if(!url) {return;}
         try {
-            const attendance = await getRepository(Attendance).find({ room_id });
-            const attendance_ids = new Set([...attendance.map((a) => a.user_id)]);
+            const attendance = await getRepository(Attendance).find({ roomId });
+            const attendance_ids = new Set([...attendance.map((a) => a.userId)]);
             const now = Number(new Date());
             const class_end_time_ms = Math.max(
-                ...attendance.map((a) => Number(a.leave_timestamp)),
+                ...attendance.map((a) => Number(a.leaveTimestamp)),
                 now,
             );
             const class_end_time = Math.round(class_end_time_ms / 1000);
             const class_start_time_ms = Math.min(
-                ...attendance.map((a) => Number(a.join_timestamp)),
+                ...attendance.map((a) => Number(a.joinTimestamp)),
                 now,
             );
             const class_start_time = Math.round(class_start_time_ms / 1000);
-            const token = await attendanceToken(room_id, [...attendance_ids], class_start_time, class_end_time);
+            const token = await attendanceToken(roomId, [...attendance_ids], class_start_time, class_end_time);
             await axios.post(url, {token});
         } catch(e) {
             console.log("Unable to post attendance");

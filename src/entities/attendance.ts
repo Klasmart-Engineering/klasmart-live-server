@@ -2,20 +2,20 @@ import { BaseEntity, Column, Entity, PrimaryColumn, Index } from "typeorm";
 
 @Entity()
 export class Attendance extends BaseEntity {    
-    @PrimaryColumn()
-    public session_id!: string
+    @PrimaryColumn({ name: "session_id" })
+    public sessionId!: string
 
-    @PrimaryColumn()
-    public join_timestamp!: Date
+    @PrimaryColumn({ name: "join_timestamp" })
+    public joinTimestamp!: Date
     
-    @PrimaryColumn()
-    public leave_timestamp!: Date
+    @PrimaryColumn({ name: "leave_timestamp" })
+    public leaveTimestamp!: Date
 
     @Index()
-    @Column()
-    public room_id?: string
+    @Column({ name: "room_id", nullable: true })
+    public roomId?: string
     
     @Index()
-    @Column({nullable: false})
-    public user_id!: string
+    @Column({ name: "user_id" })
+    public userId!: string
 }

@@ -24,7 +24,7 @@ export interface Context {
 async function connectPostgres() {
     if(!process.env.DATABASE_URL) {
         console.log("Attendance db not configured - skipping");
-        return
+        return;
     }
     const connection = await createConnection({
         name: "default",
