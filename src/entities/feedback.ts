@@ -1,4 +1,4 @@
-import { BaseEntity, Column, Entity, PrimaryColumn, Index, CreateDateColumn } from "typeorm";
+import { BaseEntity, Column, Entity, PrimaryColumn, Index, CreateDateColumn, PrimaryGeneratedColumn, OneToMany, ManyToOne } from "typeorm";
 
 enum FeedbackType {
     LeaveClass,
@@ -20,19 +20,46 @@ export class Feedback extends BaseEntity {
     @Column({ name: "user_id" })
     public userId!: string
 
-    @Index()
     @Column({
         type: "enum",
         enum: FeedbackType,
-        default: FeedbackType.LeaveClass
     })
     public feedbackType!: FeedbackType
 
-    @Index()
     @Column({ name: "stars" })
     public stars!: number
 
-    @Index()
     @Column({ name: "message", nullable: true })
     public message?: string 
+
+    @OneToMany(() => QuickFeedback, quickFeedback => quickFeedback.feedback)
+    public quickFeedback?: QuickFeedback[];
+}
+
+enum QuickFeedbackType {
+    Video,
+    Auio,
+    Presentation,
+    Other,
+}
+
+@Entity()
+export class QuickFeedback extends BaseEntity {    
+    @PrimaryGeneratedColumn()
+    public id!: number
+
+    @CreateDateColumn({ name: "created_at"})
+    public createdAt!: Date
+
+    @Column({
+        type: "enum",
+        enum: QuickFeedbackType,
+    })
+    public quickFeedbackType!: QuickFeedbackType
+
+    @Column({ name: "stars" })
+    public stars!: number
+
+    @ManyToOne(() => Feedback, feedback => feedback.quickFeedback)
+    public feedback?: Feedback;
 }
