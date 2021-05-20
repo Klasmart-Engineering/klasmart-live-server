@@ -1,8 +1,8 @@
 import { BaseEntity, Column, Entity, PrimaryColumn, Index, CreateDateColumn, PrimaryGeneratedColumn, OneToMany, ManyToOne } from "typeorm";
 
-enum FeedbackType {
-    LeaveClass,
-    EndClass,
+export enum FeedbackType {
+    LeaveClass = "leave_class",
+    EndClass = "end_class",
 }
 @Entity()
 export class Feedback extends BaseEntity {    
@@ -24,7 +24,7 @@ export class Feedback extends BaseEntity {
         type: "enum",
         enum: FeedbackType,
     })
-    public feedbackType!: FeedbackType
+    public type!: FeedbackType
 
     @Column({ name: "stars" })
     public stars!: number
@@ -36,11 +36,11 @@ export class Feedback extends BaseEntity {
     public quickFeedback?: QuickFeedback[];
 }
 
-enum QuickFeedbackType {
-    Video,
-    Auio,
-    Presentation,
-    Other,
+export enum QuickFeedbackType {
+    Video = "video",
+    Audio = "audio",
+    Presentation = "presentation",
+    Other = "other",
 }
 
 @Entity()
@@ -55,7 +55,7 @@ export class QuickFeedback extends BaseEntity {
         type: "enum",
         enum: QuickFeedbackType,
     })
-    public quickFeedbackType!: QuickFeedbackType
+    public type!: QuickFeedbackType
 
     @Column({ name: "stars" })
     public stars!: number

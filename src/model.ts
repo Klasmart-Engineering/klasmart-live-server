@@ -10,6 +10,8 @@ import { Attendance } from "./entities/attendance";
 import { getRepository } from "typeorm";
 import axios from "axios";
 import { attendanceToken } from "./jwt";
+import { Feedback, FeedbackType, QuickFeedback, QuickFeedbackType } from "./entities/feedback";
+import { UserInputError } from "apollo-server";
 
 export class Model {
     public static async create() {
@@ -393,7 +395,7 @@ export class Model {
         await this.attendenceNotify(rooms);
     }
 
-    private async logAttendance(room_id: string, context: Context) {
+    private async logAttendance(roomId: string, context: Context) {
         if(!context.token || !context.joinTime || !context.sessionId) { return; }
 
         const leaveTime = Date.now();
@@ -402,7 +404,7 @@ export class Model {
             attendance.sessionId = context.sessionId;
             attendance.joinTimestamp = context.joinTime;
             attendance.leaveTimestamp = new Date();
-            attendance.roomId = room_id;
+            attendance.roomId = roomId;
             attendance.userId = context.token.userid;
             await attendance.save();
         } catch(e) {
@@ -518,6 +520,36 @@ export class Model {
     public async rewardTrophy(roomId: string, user: string, kind: string, sessionId?: string): Promise<boolean> {
         if(!sessionId) { throw new Error("Can't reward trophy without knowning the sessionId it was from"); }
         await this.notifyRoom(roomId, { trophy: { from: sessionId, user, kind } });
+        return true;
+    }
+
+    public async saveFeedback(context: Context, stars: number, feedbackType: string, message: string, quickFeedback: {type: string, stars: number}[]) {
+        if(!context.token || !context.sessionId) { return; }
+        const feedbackArray = [];
+        for (const { type, stars } of quickFeedback) {
+            const item = new QuickFeedback();
+            const quickFeedbackType = Object.values(QuickFeedbackType).find((val: string) => val.toLowerCase() === type.toLowerCase());
+            if (!quickFeedbackType) {
+                throw new UserInputError(`invalid quick feedback type: ${type}`);
+            }
+            item.type = quickFeedbackType;
+            item.stars = stars;
+            feedbackArray.push(item);
+        }
+
+        try {
+            const feedback = new Feedback();
+            feedback.sessionId = context.sessionId;
+            feedback.roomId = context.token.roomid;
+            feedback.userId = context.token.userid;
+            feedback.type = feedbackType === "END_CLASS" ? FeedbackType.EndClass : FeedbackType.LeaveClass;
+            feedback.stars = stars;
+            feedback.message = message;
+            feedback.quickFeedback = feedbackArray;
+            await feedback.save();
+        } catch(e) {
+            console.log(e);
+        }
         return true;
     }
 
