@@ -9,7 +9,7 @@ const customSchema = gql`
   }
 
   type Mutation {
-    endClass(roomId: ID!): Boolean,
+    endClass: Boolean,
     setSessionStreamId(roomId: ID!, streamId: ID!): Boolean
     setHost(roomId: ID!, hostId: ID!): Boolean
     showContent(roomId: ID!, type: ContentType!, contentId: ID): Boolean

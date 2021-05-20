@@ -75,7 +75,7 @@ async function main() {
                     sfuAddress: (_parent, { roomId }, context: Context) => model.getSfuAddress(roomId),
                 },
                 Mutation: {
-                    endClass: (_parent, context: Context) => model.endClass(context),
+                    endClass: (_parent, args, context: Context) => model.endClass(context),
                     setSessionStreamId: (_parent, { roomId, streamId }, {sessionId}: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
                     setHost: (_parent, { roomId, hostId }, context: Context) => model.setHost(roomId, hostId),
                     sendMessage: (_parent, { roomId, message }, {sessionId}: Context) => model.sendMessage(roomId, sessionId, message),
