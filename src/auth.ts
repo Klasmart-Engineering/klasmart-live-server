@@ -112,13 +112,15 @@ export async function checkToken(token?: string) {
             throw new Error("JWT IssuerOptions are incorrect");
         }
         const {options, secretOrPublicKey} = issuerOptions;
-        return await new Promise<JWT>((resolve, reject) => {
+        const verifiedToken = await new Promise<JWT>((resolve, reject) => {
             verify(token, secretOrPublicKey, options, (err, decoded) => {
                 if (err) { reject(err); return; }
                 if (decoded) { resolve(<JWT>decoded); return; }
                 reject(new Error("Unexpected authorization error"));
             });
         });
+        verifiedToken.userid = verifiedToken.userid || (verifiedToken as any).user_id;
+        return verifiedToken;
     } catch(e) {
         console.error(e);
     }
