@@ -76,6 +76,7 @@ async function main() {
                 },
                 Mutation: {
                     endClass: (_parent, args, context: Context) => model.endClass(context),
+                    leaveClass: (_parent, args, context: Context) => model.disconnect(context),
                     setSessionStreamId: (_parent, { roomId, streamId }, {sessionId}: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
                     setHost: (_parent, { roomId, hostId }, context: Context) => model.setHost(roomId, hostId),
                     sendMessage: (_parent, { roomId, message }, {sessionId}: Context) => model.sendMessage(roomId, sessionId, message),
