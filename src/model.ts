@@ -172,6 +172,7 @@ export class Model {
     public async disconnect(context: Context | any) {
         console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
         await this.userLeave(context);
+        return true;
     }
 
     public async * room(context: Context, roomId: string, name?: string) {
