@@ -23,7 +23,7 @@ const customSchema = gql`
     mute(roomId: ID!, sessionId: ID!, audio: Boolean, video: Boolean): Boolean
     video(roomId: ID!, sessionId: ID!, src: String, play: Boolean, offset: Float): Boolean
     rewardTrophy(roomId: ID!, user: ID!, kind: String): Boolean
-    saveFeedback(stars: Int!, feedbackType: FeedbackType!, message: String, quickFeedback: [QuickFeedbackInput]): Boolean
+    saveFeedback(stars: Int!, feedbackType: FeedbackType!, comment: String, quickFeedback: [QuickFeedbackInput]): Boolean
   }
 
   type Subscription {

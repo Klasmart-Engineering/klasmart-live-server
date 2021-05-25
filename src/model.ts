@@ -524,7 +524,7 @@ export class Model {
         return true;
     }
 
-    public async saveFeedback(context: Context, stars: number, feedbackType: string, message: string, quickFeedback: {type: string, stars: number}[]) {
+    public async saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string, stars: number}[]) {
         if(!context.token || !context.sessionId) { return; }
         const feedbackArray = [];
         for (const { type, stars } of quickFeedback) {
@@ -545,7 +545,7 @@ export class Model {
             feedback.userId = context.token.userid;
             feedback.type = feedbackType === "END_CLASS" ? FeedbackType.EndClass : FeedbackType.LeaveClass;
             feedback.stars = stars;
-            feedback.message = message;
+            feedback.comment = comment;
             feedback.quickFeedback = feedbackArray;
             await feedback.save();
         } catch(e) {
