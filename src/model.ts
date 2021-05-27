@@ -166,7 +166,7 @@ export class Model {
             await this.logAttendance(token.roomid, session);
         }
         await pipeline.exec();
-        await this.attendanceNotify(new Set<string>(token.roomid));
+        await this.sendAttendance(token.roomid);
         return true;
     }
 
@@ -409,6 +409,7 @@ export class Model {
             attendance.roomId = roomId;
             attendance.userId = session.userId;
             await attendance.save();
+            console.log("attendance", attendance);
         } catch(e) {
             console.log(`Unable to save attendance: ${JSON.stringify({context, leaveTime: Date.now()})}`);
             console.log(e);
@@ -451,6 +452,7 @@ export class Model {
                 now,
             );
             const class_start_time = Math.round(class_start_time_ms / 1000);
+            console.log("sendAttendance", {roomId, attendance_ids: [...attendance_ids], class_start_time, class_end_time});
             const token = await attendanceToken(roomId, [...attendance_ids], class_start_time, class_end_time);
             await axios.post(url, {token});
         } catch(e) {
