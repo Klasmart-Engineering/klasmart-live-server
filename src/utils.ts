@@ -45,6 +45,7 @@ export function toRedisKeyValueArray (obj: Record<any, any>): string[] {
 export function convertSessionRecordToSession(session: Record<string, string>): Session {
     return {
         id: session.id,
+        userId: session.userId,
         name: session.name,
         streamId: session.streamId,
         isTeacher: session.isTeacher === "true",

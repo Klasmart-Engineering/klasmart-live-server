@@ -177,12 +177,13 @@ export class Model {
 
     public async * room(context: Context, roomId: string, name?: string) {
         const { sessionId, websocket, token } = context;
+        if(!token) {throw new Error("Can't subscribe to a room without a token");}
         if(!sessionId) {throw new Error("Can't subscribe to a room without a sessionId");}
         if(!websocket) {throw new Error("Can't subscribe to a room without a websocket");}
         if(context.roomId) { console.error(`Session(${sessionId}) already subscribed to Room(${context.roomId}) and will now subscribe to Room(${roomId}) attendance records do not support multiple rooms`); }
         context.roomId = roomId;
         // TODO: Pipeline initial operations
-        await this.userJoin(roomId, sessionId, name, token?.teacher);
+        await this.userJoin(roomId, sessionId, token.userid, name ?? token.name, token.teacher);
 
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
@@ -352,17 +353,18 @@ export class Model {
         );
     }
 
-    private async userJoin(roomId: string, sessionId: string, name?: string, isTeacher?: boolean) {
+    private async userJoin(roomId: string, sessionId: string, userId: string, name?: string, isTeacher?: boolean) {
         const joinedAt = new Date().getTime();
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         const pipeline = this.client.pipeline();
         pipeline
             .hset(sessionKey, "id", sessionId)
+            .hset(sessionKey, "userId", userId)
             .hset(sessionKey, "joinedAt", joinedAt);
         if (name) { pipeline.hset(sessionKey, "name", name); }
         if (isTeacher) { pipeline.hset(sessionKey, "isTeacher", isTeacher.toString()); }
         await pipeline.exec();
-        this.notifyRoom(roomId, { join: {id: sessionId, name, isTeacher, joinedAt }});
+        this.notifyRoom(roomId, { join: {id: sessionId, userId, name, isTeacher, joinedAt }});
     }
 
     private async userLeave(context: Context) {
