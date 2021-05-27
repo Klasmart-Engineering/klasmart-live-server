@@ -163,6 +163,7 @@ export class Model {
         for await (const session of this.getSessions(token.roomid)) {
             const sessionKey = RedisKeys.sessionData(token.roomid, session.id);
             pipeline.del(sessionKey);
+            await this.notifyRoom(token.roomid, { leave: session});
             await this.logAttendance(token.roomid, session);
         }
         await pipeline.exec();
@@ -409,7 +410,7 @@ export class Model {
             attendance.roomId = roomId;
             attendance.userId = session.userId;
             await attendance.save();
-            console.log("attendance", attendance);
+            console.log("logAttendance", attendance);
         } catch(e) {
             console.log(`Unable to save attendance: ${JSON.stringify({context, leaveTime: Date.now()})}`);
             console.log(e);
