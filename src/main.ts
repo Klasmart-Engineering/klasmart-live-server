@@ -92,7 +92,7 @@ async function main() {
                     mute: (_parent, { roomId, sessionId, audio, video }, _context: Context) => model.mute(roomId, sessionId, audio, video),
                     video: (_parent, { roomId, sessionId, src, play, offset }, _context: Context) => model.video(roomId, sessionId, src, play, offset),
                     rewardTrophy: (_parent, { roomId, user, kind }, {sessionId}: Context) => model.rewardTrophy(roomId, user, kind, sessionId),
-                    saveFeedback: (_parent, { stars, feedbackType, message, quickFeedback }, context: Context) => model.saveFeedback(context, stars, feedbackType, message, quickFeedback),
+                    saveFeedback: (_parent, { stars, feedbackType, comment, quickFeedback }, context: Context) => model.saveFeedback(context, stars, feedbackType, comment, quickFeedback),
                 },
                 Subscription: {
                     room: {

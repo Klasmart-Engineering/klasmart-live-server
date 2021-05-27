@@ -29,10 +29,10 @@ export class Feedback extends BaseEntity {
     @Column({ name: "stars" })
     public stars!: number
 
-    @Column({ name: "message", nullable: true })
-    public message?: string 
+    @Column({ name: "comment", nullable: true })
+    public comment?: string 
 
-    @OneToMany(() => QuickFeedback, quickFeedback => quickFeedback.feedback)
+    @OneToMany(() => QuickFeedback, quickFeedback => quickFeedback.feedback, { cascade: true })
     public quickFeedback?: QuickFeedback[];
 }
 
