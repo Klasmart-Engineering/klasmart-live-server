@@ -412,7 +412,7 @@ export class Model {
             await attendance.save();
             console.log("logAttendance", attendance);
         } catch(e) {
-            console.log(`Unable to save attendance: ${JSON.stringify({context, leaveTime: Date.now()})}`);
+            console.log(`Unable to save attendance: ${JSON.stringify({session, leaveTime: Date.now()})}`);
             console.log(e);
         }
     }
