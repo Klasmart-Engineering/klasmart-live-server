@@ -8,6 +8,7 @@ export interface PageEvent {
 
 export interface Session {
     id: string
+    userId: string
     name: string
     streamId: string
     isTeacher: boolean

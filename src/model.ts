@@ -159,13 +159,15 @@ export class Model {
             console.log(`Session ${sessionId} attempted to end class!`);
             return false;
         }
+        const pipeline = this.client.pipeline();
         for await (const session of this.getSessions(token.roomid)) {
-            this.userLeave({
-                sessionId: session.id,
-                joinTime: new Date(session.joinedAt),
-            });
-            this.notifyRoom(token.roomid, { leave: session});
+            const sessionKey = RedisKeys.sessionData(token.roomid, session.id);
+            pipeline.del(sessionKey);
+            await this.notifyRoom(token.roomid, { leave: session});
+            await this.logAttendance(token.roomid, session);
         }
+        await pipeline.exec();
+        await this.sendAttendance(token.roomid);
         return true;
     }
 
@@ -177,12 +179,13 @@ export class Model {
 
     public async * room(context: Context, roomId: string, name?: string) {
         const { sessionId, websocket, token } = context;
+        if(!token) {throw new Error("Can't subscribe to a room without a token");}
         if(!sessionId) {throw new Error("Can't subscribe to a room without a sessionId");}
         if(!websocket) {throw new Error("Can't subscribe to a room without a websocket");}
         if(context.roomId) { console.error(`Session(${sessionId}) already subscribed to Room(${context.roomId}) and will now subscribe to Room(${roomId}) attendance records do not support multiple rooms`); }
         context.roomId = roomId;
         // TODO: Pipeline initial operations
-        await this.userJoin(roomId, sessionId, name, token?.teacher);
+        await this.userJoin(roomId, sessionId, token.userid, name ?? token.name, token.teacher);
 
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
@@ -352,17 +355,18 @@ export class Model {
         );
     }
 
-    private async userJoin(roomId: string, sessionId: string, name?: string, isTeacher?: boolean) {
+    private async userJoin(roomId: string, sessionId: string, userId: string, name?: string, isTeacher?: boolean) {
         const joinedAt = new Date().getTime();
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         const pipeline = this.client.pipeline();
         pipeline
             .hset(sessionKey, "id", sessionId)
+            .hset(sessionKey, "userId", userId)
             .hset(sessionKey, "joinedAt", joinedAt);
         if (name) { pipeline.hset(sessionKey, "name", name); }
         if (isTeacher) { pipeline.hset(sessionKey, "isTeacher", isTeacher.toString()); }
         await pipeline.exec();
-        this.notifyRoom(roomId, { join: {id: sessionId, name, isTeacher, joinedAt }});
+        this.notifyRoom(roomId, { join: {id: sessionId, userId, name, isTeacher, joinedAt }});
     }
 
     private async userLeave(context: Context) {
@@ -378,7 +382,8 @@ export class Model {
             for (const key of keys) {
                 const params = RedisKeys.parseSessionDataKey(key);
                 if (!params) { continue; }
-                await this.logAttendance(params.roomId, context);
+                const session = await this.getSession(params.roomId, params.sessionId);
+                await this.logAttendance(params.roomId, session);
                 const notify = RedisKeys.roomNotify(params.roomId);
                 rooms.add(params.roomId);
                 count++;
@@ -393,28 +398,26 @@ export class Model {
             sessionSearchCursor = newCursor;
         } while (sessionSearchCursor !== "0");
         await pipeline.exec();
-        await this.attendenceNotify(rooms);
+        await this.attendanceNotify(rooms);
     }
 
-    private async logAttendance(roomId: string, context: Context) {
-        if(!context.token || !context.joinTime || !context.sessionId) { return; }
-
-        const leaveTime = Date.now();
+    private async logAttendance(roomId: string, session: Session) {
         try {
             const attendance = new Attendance();
-            attendance.sessionId = context.sessionId;
-            attendance.joinTimestamp = context.joinTime;
+            attendance.sessionId = session.id;
+            attendance.joinTimestamp = new Date(session.joinedAt);
             attendance.leaveTimestamp = new Date();
             attendance.roomId = roomId;
-            attendance.userId = context.token.userid;
+            attendance.userId = session.userId;
             await attendance.save();
+            console.log("logAttendance", attendance);
         } catch(e) {
-            console.log(`Unable to save attendance: ${JSON.stringify({context, leaveTime})}`);
+            console.log(`Unable to save attendance: ${JSON.stringify({context, leaveTime: Date.now()})}`);
             console.log(e);
         }
     }
 
-    private async attendenceNotify(rooms: Set<string>) {
+    private async attendanceNotify(rooms: Set<string>) {
         nextRoom:
         for(const roomId of rooms) {
             const sessionSearchKey = RedisKeys.sessionData(roomId, "*");
@@ -450,6 +453,7 @@ export class Model {
                 now,
             );
             const class_start_time = Math.round(class_start_time_ms / 1000);
+            console.log("sendAttendance", {roomId, attendance_ids: [...attendance_ids], class_start_time, class_end_time});
             const token = await attendanceToken(roomId, [...attendance_ids], class_start_time, class_end_time);
             await axios.post(url, {token});
         } catch(e) {
