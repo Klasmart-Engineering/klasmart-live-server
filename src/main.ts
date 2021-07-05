@@ -117,7 +117,12 @@ async function main() {
             },
             context: async ({ req, connection }) => {
                 if (connection) { return connection.context; }
-                const token = await checkToken(req.headers.authorization);
+                
+                const authHeader = req.headers.authorization;
+                if(!authHeader) { throw new Error("No authorization header"); }
+
+                const rawToken = authHeader.substr(0,7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
+                const token = await checkToken(rawToken);
                 return { token };
             }
         });
