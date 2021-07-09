@@ -1,11 +1,13 @@
-import { ApolloServer } from "apollo-server";
+import { ApolloServer, ForbiddenError, AuthenticationError } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
 import { createConnection } from "typeorm";
 import * as Sentry from "@sentry/node";
 import WebSocket from "ws";
-import { checkToken, JWT } from "./auth";
+import { checkAuthorizationToken, JWT } from "./auth";
 import { resolvers } from "graphql-scalars";
+import cookie from "cookie";
+import { checkToken } from "kidsloop-token-validation";
 
 Sentry.init({
     dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
@@ -48,14 +50,30 @@ async function main() {
             typeDefs: schema,
             subscriptions: {
                 keepAlive: 1000,
-                onConnect: async ({ authToken, sessionId }: any, websocket, connectionData: any): Promise<Context> => {
-                    const token = await checkToken(authToken);
-                    const joinTime = new Date();
-
-                    connectionData.sessionId = sessionId;
-                    connectionData.token = token;
-                    connectionData.joinTime = joinTime;
-                    return { token, sessionId, websocket, joinTime };
+                onConnect: async ({ authToken, sessionId }: any, websocket, connectionData): Promise<Context> => {
+                    try {
+                        
+                        console.log("authToken", authToken)
+                        const token = await checkAuthorizationToken(authToken).catch((e) => {throw new ForbiddenError(e); });
+                        console.log("token", token)
+                        
+                        const rawCookies = connectionData.request.headers.cookie;
+                        const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+                        console.log("cookies", cookies)
+                        const authenticationToken = await (checkToken(cookies?.access).catch((e) => { console.log(e);throw new AuthenticationError(e); }));
+                        console.log("authenticationToken", authenticationToken)
+                        if(!authenticationToken.id || authenticationToken.id !== token.userid) {
+                            throw new ForbiddenError("The authorization token does not match your session token");
+                        }
+                        
+                        const joinTime = new Date();
+                        (connectionData as any).sessionId = sessionId;
+                        (connectionData as any).token = token;
+                        (connectionData as any).joinTime = joinTime;
+                        return { token, sessionId, websocket, joinTime };
+                    } catch(e) {
+                        console.log(e)
+                    }
                 },
                 onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData as any); }
             },
@@ -119,10 +137,14 @@ async function main() {
                 if (connection) { return connection.context; }
                 
                 const authHeader = req.headers.authorization;
-                if(!authHeader) { throw new Error("No authorization header"); }
+                const rawAuthorizationToken = authHeader?.substr(0,7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
+                const token = await checkAuthorizationToken(rawAuthorizationToken).catch((e) => {throw new ForbiddenError(e); });
+                
+                const authenticationToken = await checkToken(req.cookies.access).catch((e) => { throw new AuthenticationError(e); });
+                if(!authenticationToken.id || authenticationToken.id !== token.userid) {
+                    throw new ForbiddenError("The authorization token does not match your session token");
+                }
 
-                const rawToken = authHeader.substr(0,7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
-                const token = await checkToken(rawToken);
                 return { token };
             }
         });

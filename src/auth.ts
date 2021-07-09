@@ -94,7 +94,7 @@ export type JWT = {
     materials?: unknown,
 }
 
-export async function checkToken(token?: string) {
+export async function checkAuthorizationToken(token?: string) {
     try {
         if (!token) {
             throw new Error("Missing JWT token");
