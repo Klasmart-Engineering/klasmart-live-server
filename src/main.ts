@@ -24,7 +24,7 @@ export interface Context {
 }
 
 async function connectPostgres() {
-    if(!process.env.DATABASE_URL) {
+    if (!process.env.DATABASE_URL) {
         console.log("Attendance db not configured - skipping");
         return;
     }
@@ -51,34 +51,23 @@ async function main() {
             subscriptions: {
                 keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, websocket, connectionData): Promise<Context> => {
-                    try {
-                        
-                        console.log("authToken", authToken)
-                        const token = await checkAuthorizationToken(authToken).catch((e) => {throw new ForbiddenError(e); });
-                        console.log("token", token)
-                        
-                        const rawCookies = connectionData.request.headers.cookie;
-                        const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
-                        console.log("cookies", cookies)
-                        const authenticationToken = await (checkToken(cookies?.access).catch((e) => {
-                            console.log("checkAuthenticationToken", JSON.stringify(e), e);
-                            if(e.name === "TokenExpiredError") { throw new AuthenticationError("AuthenticationExpired")}
-                            throw new AuthenticationError("AuthenticationInvalid")
-                        }));
-                        console.log("authenticationToken", authenticationToken)
-                        if(!authenticationToken.id || authenticationToken.id !== token.userid) {
-                            throw new ForbiddenError("The authorization token does not match your session token");
-                        }
-                        
-                        const joinTime = new Date();
-                        (connectionData as any).sessionId = sessionId;
-                        (connectionData as any).token = token;
-                        (connectionData as any).joinTime = joinTime;
-                        return { token, sessionId, websocket, joinTime };
-                    } catch(e) {
-                        console.log(e)
-                        throw e
+                    const token = await checkAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e) });
+                    const rawCookies = connectionData.request.headers.cookie;
+                    const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+
+                    const authenticationToken = await (checkToken(cookies?.access).catch((e) => {
+                        if (e.name === "TokenExpiredError") { throw new AuthenticationError("AuthenticationExpired") }
+                        throw new AuthenticationError("AuthenticationInvalid")
+                    }));
+                    if (!authenticationToken.id || authenticationToken.id !== token.userid) {
+                        throw new ForbiddenError("The authorization token does not match your session token");
                     }
+
+                    const joinTime = new Date();
+                    (connectionData as any).sessionId = sessionId;
+                    (connectionData as any).token = token;
+                    (connectionData as any).joinTime = joinTime;
+                    return { token, sessionId, websocket, joinTime };
                 },
                 onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData as any); }
             },
@@ -86,7 +75,7 @@ async function main() {
                 ...resolvers,
                 Query: {
                     ready: () => true,
-                    token: (_parent, _args, {token}: Context) => ({
+                    token: (_parent, _args, { token }: Context) => ({
                         subject: token?.sub,
                         audience: token?.aud,
                         userId: token?.userid,
@@ -100,21 +89,21 @@ async function main() {
                 Mutation: {
                     endClass: (_parent, _, context: Context) => model.endClass(context),
                     leaveClass: (_parent, _, context: Context) => model.disconnect(context),
-                    setSessionStreamId: (_parent, { roomId, streamId }, {sessionId}: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
+                    setSessionStreamId: (_parent, { roomId, streamId }, { sessionId }: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
                     setHost: (_parent, { roomId, hostId }, context: Context) => model.setHost(roomId, hostId),
-                    sendMessage: (_parent, { roomId, message }, {sessionId}: Context) => model.sendMessage(roomId, sessionId, message),
+                    sendMessage: (_parent, { roomId, message }, { sessionId }: Context) => model.sendMessage(roomId, sessionId, message),
                     postPageEvent: async (_parent, { streamId, pageEvents }, context: Context) => {
                         const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
                         return a;
                     },
                     showContent: (_parent, { roomId, type, contentId }, context: Context) => model.showContent(roomId, type, contentId),
-                    webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, {sessionId}: Context) => model.webRTCSignal(roomId, toSessionId, sessionId, webrtc),
+                    webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, { sessionId }: Context) => model.webRTCSignal(roomId, toSessionId, sessionId, webrtc),
                     whiteboardSendEvent: (_parent, { roomId, event }, _context: Context) => model.whiteboardSendEvent(roomId, event),
                     whiteboardSendDisplay: (_parent, { roomId, display }, _context: Context) => model.whiteboardSendDisplay(roomId, display),
                     whiteboardSendPermissions: (_parent, { roomId, userId, permissions }, _context: Context) => model.whiteboardSendPermissions(roomId, userId, permissions),
                     mute: (_parent, { roomId, sessionId, audio, video }, _context: Context) => model.mute(roomId, sessionId, audio, video),
                     video: (_parent, { roomId, sessionId, src, play, offset }, _context: Context) => model.video(roomId, sessionId, src, play, offset),
-                    rewardTrophy: (_parent, { roomId, user, kind }, {sessionId}: Context) => model.rewardTrophy(roomId, user, kind, sessionId),
+                    rewardTrophy: (_parent, { roomId, user, kind }, { sessionId }: Context) => model.rewardTrophy(roomId, user, kind, sessionId),
                     saveFeedback: (_parent, { stars, feedbackType, comment, quickFeedback }, context: Context) => model.saveFeedback(context, stars, feedbackType, comment, quickFeedback),
                 },
                 Subscription: {
@@ -140,13 +129,13 @@ async function main() {
             },
             context: async ({ req, connection }) => {
                 if (connection) { return connection.context; }
-                
+
                 const authHeader = req.headers.authorization;
-                const rawAuthorizationToken = authHeader?.substr(0,7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
-                const token = await checkAuthorizationToken(rawAuthorizationToken).catch((e) => {throw new ForbiddenError(e); });
-                
+                const rawAuthorizationToken = authHeader?.substr(0, 7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
+                const token = await checkAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
+
                 const authenticationToken = await checkToken(req.cookies.access).catch((e) => { throw new AuthenticationError(e); });
-                if(!authenticationToken.id || authenticationToken.id !== token.userid) {
+                if (!authenticationToken.id || authenticationToken.id !== token.userid) {
                     throw new ForbiddenError("The authorization token does not match your session token");
                 }
 
