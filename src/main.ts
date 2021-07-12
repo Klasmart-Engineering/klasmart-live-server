@@ -73,6 +73,7 @@ async function main() {
                         return { token, sessionId, websocket, joinTime };
                     } catch(e) {
                         console.log(e)
+                        throw e
                     }
                 },
                 onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData as any); }
