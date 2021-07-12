@@ -60,7 +60,11 @@ async function main() {
                         const rawCookies = connectionData.request.headers.cookie;
                         const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
                         console.log("cookies", cookies)
-                        const authenticationToken = await (checkToken(cookies?.access).catch((e) => { console.log(e);throw new AuthenticationError(e); }));
+                        const authenticationToken = await (checkToken(cookies?.access).catch((e) => {
+                            console.log("checkAuthenticationToken", JSON.stringify(e), e);
+                            if(e.name === "TokenExpiredError") { throw new AuthenticationError("AuthenticationExpired")}
+                            throw new AuthenticationError("AuthenticationInvalid")
+                        }));
                         console.log("authenticationToken", authenticationToken)
                         if(!authenticationToken.id || authenticationToken.id !== token.userid) {
                             throw new ForbiddenError("The authorization token does not match your session token");
