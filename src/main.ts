@@ -134,7 +134,7 @@ async function main() {
                 const rawAuthorizationToken = authHeader?.substr(0, 7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
                 const token = await checkAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
 
-                const authenticationToken = await checkToken(req.cookies.access).catch((e) => { throw new AuthenticationError(e); });
+                const authenticationToken = await checkToken(req.cookies?.access).catch((e) => { throw new AuthenticationError(e); });
                 if (!authenticationToken.id || authenticationToken.id !== token.userid) {
                     throw new ForbiddenError("The authorization token does not match your session token");
                 }
