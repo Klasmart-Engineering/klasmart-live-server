@@ -1,4 +1,4 @@
-import { ApolloServer, ForbiddenError, AuthenticationError } from "apollo-server";
+import { ApolloServer, ForbiddenError, ApolloError } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
 import { createConnection } from "typeorm";
@@ -51,14 +51,14 @@ async function main() {
             subscriptions: {
                 keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, websocket, connectionData): Promise<Context> => {
-                    const token = await checkAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e) });
+                    const token = await checkAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e); });
                     const rawCookies = connectionData.request.headers.cookie;
                     const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
 
-                    const authenticationToken = await (checkToken(cookies?.access).catch((e) => {
-                        if (e.name === "TokenExpiredError") { throw new AuthenticationError("AuthenticationExpired") }
-                        throw new AuthenticationError("AuthenticationInvalid")
-                    }));
+                    const authenticationToken = await checkToken(cookies?.access).catch((e) => {
+                        if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                        throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                    });
                     if (!authenticationToken.id || authenticationToken.id !== token.userid) {
                         throw new ForbiddenError("The authorization token does not match your session token");
                     }
@@ -136,7 +136,10 @@ async function main() {
                 
                 const rawCookies = req.headers.cookie;
                 const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
-                const authenticationToken = await checkToken(cookies?.access).catch((e) => { throw new AuthenticationError(e); });
+                const authenticationToken = await checkToken(cookies?.access).catch((e) => {
+                    if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                    throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                });
                 if (!authenticationToken.id || authenticationToken.id !== token.userid) {
                     throw new ForbiddenError("The authorization token does not match your session token");
                 }
