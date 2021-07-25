@@ -1,3 +1,4 @@
+import cluster from "cluster";
 import { ApolloServer, ForbiddenError, ApolloError } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
@@ -8,6 +9,27 @@ import { checkAuthorizationToken, JWT } from "./auth";
 import { resolvers } from "graphql-scalars";
 import cookie from "cookie";
 import { checkToken } from "kidsloop-token-validation";
+import { cpus } from "os";
+import process from "process";
+
+const numCPUs =cpus().length;
+// if(cluster.isMaster){
+
+//     console.log(`Primary ${process.pid} is running`);
+
+//     // Fork workers.
+//     for (let i = 0; i < numCPUs-8; i++) {
+//         cluster.fork();
+//     }
+
+//     cluster.on("exit", (worker, code, signal) => {
+//         console.log(`worker ${worker.process.pid} died`);
+//     });
+
+// }else{
+main();
+// }
+
 
 Sentry.init({
     dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
@@ -90,7 +112,7 @@ async function main() {
                     endClass: (_parent, _, context: Context) => model.endClass(context),
                     leaveClass: (_parent, _, context: Context) => model.disconnect(context),
                     setSessionStreamId: (_parent, { roomId, streamId }, { sessionId }: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
-                    setHost: (_parent, { roomId, hostId }, context: Context) => model.setHost(roomId, hostId),
+                    setHost: (_parent, { roomId, curHostId, nextHostId}, context: Context) => model.setHost(roomId, nextHostId, curHostId),
                     sendMessage: (_parent, { roomId, message }, { sessionId }: Context) => model.sendMessage(roomId, sessionId, message),
                     postPageEvent: async (_parent, { streamId, pageEvents }, context: Context) => {
                         const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
@@ -156,4 +178,3 @@ async function main() {
         process.exit(-1);
     }
 }
-main();

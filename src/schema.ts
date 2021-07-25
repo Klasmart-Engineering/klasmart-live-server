@@ -12,7 +12,7 @@ const customSchema = gql`
     endClass: Boolean,
     leaveClass: Boolean,
     setSessionStreamId(roomId: ID!, streamId: ID!): Boolean
-    setHost(roomId: ID!, hostId: ID!): Boolean
+    setHost(roomId: ID!, nextHostId: ID!, curHostId: ID!): Boolean
     showContent(roomId: ID!, type: ContentType!, contentId: ID): Boolean
     sendMessage(roomId: ID!, message: String): Message
     postPageEvent(streamId: ID!, pageEvents: [PageEventIn]): Boolean
