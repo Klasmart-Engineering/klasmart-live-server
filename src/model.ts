@@ -74,7 +74,7 @@ export class Model {
             .hset(sessionKey, "streamId", streamId)
             .exec();
         const session = await this.getSession(roomId, sessionId);
-        this.notifyRoom(roomId, { join: session }, "setSessionSteramId");
+        this.notifyRoom(roomId, { join: session });
     }
 
     public async setHost(roomId: string, nextHostId: string, curHostId?: string ) {
@@ -93,7 +93,7 @@ export class Model {
                 await this.client.pipeline()
                     .hset(curHostSessKey, "isHost", "false")
                     .exec();
-                this.notifyRoom(roomId, { join: curHostSession }, "setHost");
+                this.notifyRoom(roomId, { join: curHostSession });
             }
 
         }else{
@@ -106,7 +106,7 @@ export class Model {
             await this.client.pipeline()
                 .hset(nextHostSessKey, "isHost", "true")
                 .exec();
-            this.notifyRoom(roomId, { join: nextHostSession }, "setHost");
+            this.notifyRoom(roomId, { join: nextHostSession });
             await this.client.expire(roomHostKey.key, roomHostKey.ttl);
         }
     }
@@ -114,7 +114,7 @@ export class Model {
     public async showContent(roomId: string, type: string, contentId?: string) {
         const roomContent = RedisKeys.roomContent(roomId);
         const content = { type, contentId };
-        await this.notifyRoom(roomId, { content }, "showContent");
+        await this.notifyRoom(roomId, { content });
         await this.client.set(roomContent.key, JSON.stringify(content));
         await this.client.expire(roomContent.key, roomContent.ttl);
     }
@@ -171,7 +171,7 @@ export class Model {
     }
 
     public async mute(roomId: string, sessionId: string, audio?: boolean, video?: boolean): Promise<boolean> {
-        await this.notifyRoom(roomId, { mute: { sessionId, audio, video } }, "mute");
+        await this.notifyRoom(roomId, { mute: { sessionId, audio, video } });
         return true;
     }
 
@@ -185,7 +185,7 @@ export class Model {
         for await (const session of this.getSessions(token.roomid)) {
             const sessionKey = RedisKeys.sessionData(token.roomid, session.id);
             pipeline.del(sessionKey);
-            await this.notifyRoom(token.roomid, { leave: session}, "endClass");
+            await this.notifyRoom(token.roomid, { leave: session});
             await this.logAttendance(token.roomid, session);
         }
         await pipeline.exec();
@@ -359,7 +359,7 @@ export class Model {
         return this.whiteboard.whiteboardPermissionsStream(context, roomId, userId);
     }
 
-    private async notifyRoom(roomId: string, message: any, from?: string): Promise<string> {
+    private async notifyRoom(roomId: string, message: any): Promise<string> {
         
         const notify = RedisKeys.roomNotify(roomId);
         await this.client.expire(notify.key, notify.ttl);
@@ -397,7 +397,7 @@ export class Model {
         if (isTeacher){ // set host if is not set already
             await this.setHost(roomId, sessionId);
         }
-        this.notifyRoom(roomId, { join: {id: sessionId, userId, name, isTeacher, joinedAt }}, "userJoin");
+        this.notifyRoom(roomId, { join: {id: sessionId, userId, name, isTeacher, joinedAt }});
     }
 
     private async userLeave(context: Context) {
@@ -572,7 +572,7 @@ export class Model {
 
     public async rewardTrophy(roomId: string, user: string, kind: string, sessionId?: string): Promise<boolean> {
         if(!sessionId) { throw new Error("Can't reward trophy without knowning the sessionId it was from"); }
-        await this.notifyRoom(roomId, { trophy: { from: sessionId, user, kind } }, "rewardTrophy");
+        await this.notifyRoom(roomId, { trophy: { from: sessionId, user, kind } });
         return true;
     }
 
