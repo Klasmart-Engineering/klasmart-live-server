@@ -382,22 +382,24 @@ export class Model {
     private async userJoin(roomId: string, sessionId: string, userId: string, name?: string, isTeacher?: boolean) {
         const joinedAt = new Date().getTime();
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
-        const pipeline = this.client.pipeline();
-        pipeline
+        const roomHostKey = RedisKeys.roomHost(roomId);
+        
+        await this.client.pipeline()
             .hset(sessionKey, "id", sessionId)
+            .hset(sessionKey, "name", name||"")
             .hset(sessionKey, "userId", userId)
-            .hset(sessionKey, "joinedAt", joinedAt);
-        if (name) { pipeline.hset(sessionKey, "name", name); }
-        if (isTeacher) { 
-            pipeline.hset(sessionKey, "isTeacher", isTeacher.toString());
-        }
-        await pipeline.exec();
+            .hset(sessionKey, "joinedAt", joinedAt)
+            .hset(sessionKey, "isTeacher", Boolean(isTeacher).toString())
+            .hset(sessionKey, "isHost", "false")
+            .exec();
 
-
-        if (isTeacher){ // set host if is not set already
-            await this.setHost(roomId, sessionId);
+        if(isTeacher) {
+            const becameHost = await this.client.set(roomHostKey.key, sessionId, "EX", roomHostKey.ttl, "NX");
+            if(becameHost) { await this.client.hset(sessionKey, "isHost", "true"); }
         }
-        this.notifyRoom(roomId, { join: {id: sessionId, userId, name, isTeacher, joinedAt }});
+
+        const join = await this.getSession(roomId, sessionId);
+        this.notifyRoom(roomId, { join });
     }
 
     private async userLeave(context: Context) {
