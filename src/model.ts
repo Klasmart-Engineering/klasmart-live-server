@@ -614,8 +614,8 @@ export class Model {
     public async getRoomTeachers(roomId: string){
         const sessions = [];
         for await (const session of this.getSessions(roomId)) {
-            sessions.push(session);
+            if(session.isTeacher) { sessions.push(session); }
         }
-        return sessions.sort((a: Session, b: Session) => a.joinedAt - b.joinedAt);
+        return sessions;
     }
 }
