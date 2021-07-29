@@ -448,9 +448,7 @@ export class Model {
 
             //Select new host
             if (changeRoomHost) { 
-                const teachers = await this.getRoomTeachers(roomId);
-                teachers.sort((a: Session, b: Session) => a.joinedAt - b.joinedAt);
-                
+                const teachers = await this.getRoomTeachers(roomId, true);
                 if(teachers.length > 0){
                     const firstJoinedTeacher = teachers[0];
                     await this.setHost(roomId, firstJoinedTeacher.id);
@@ -626,10 +624,13 @@ export class Model {
         return Number(seconds) + Number(microseconds) / 1e6;
     }
 
-    public async getRoomTeachers(roomId: string){
+    public async getRoomTeachers(roomId: string, sort = false){
         const sessions = [];
         for await (const session of this.getSessions(roomId)) {
             if(session.isTeacher) { sessions.push(session); }
+        }
+        if (sort) {
+            sessions.sort((a: Session, b: Session) => a.joinedAt - b.joinedAt);
         }
         return sessions;
     }
