@@ -386,7 +386,6 @@ export class Model {
             .hset(sessionKey, "userId", userId)
             .hset(sessionKey, "joinedAt", joinedAt)
             .hset(sessionKey, "isTeacher", Boolean(isTeacher).toString())
-            .hset(sessionKey, "isHost", "false")
             .exec();
 
         if(isTeacher) {
@@ -395,6 +394,7 @@ export class Model {
         }
 
         const join = await this.getSession(roomId, sessionId);
+        console.log("session: ", join);
         this.notifyRoom(roomId, { join });
     }
 
