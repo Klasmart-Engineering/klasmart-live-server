@@ -52,16 +52,16 @@ async function main() {
                 keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, websocket, connectionData): Promise<Context> => {
                     const token = await checkAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e); });
-                    // const rawCookies = connectionData.request.headers.cookie;
-                    // const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+                    const rawCookies = connectionData.request.headers.cookie;
+                    const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
 
-                    // const authenticationToken = await checkToken(cookies?.access).catch((e) => {
-                    //     if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
-                    //     throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
-                    // });
-                    // if (!authenticationToken.id || authenticationToken.id !== token.userid) {
-                    //     throw new ForbiddenError("The authorization token does not match your session token");
-                    // }
+                    const authenticationToken = await checkToken(cookies?.access).catch((e) => {
+                        if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                        throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                    });
+                    if (!authenticationToken.id || authenticationToken.id !== token.userid) {
+                        throw new ForbiddenError("The authorization token does not match your session token");
+                    }
 
                     const joinTime = new Date();
                     (connectionData as any).sessionId = sessionId;
@@ -134,15 +134,15 @@ async function main() {
                 const rawAuthorizationToken = authHeader?.substr(0, 7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
                 const token = await checkAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
                 
-                // const rawCookies = req.headers.cookie;
-                // const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
-                // const authenticationToken = await checkToken(cookies?.access).catch((e) => {
-                //     if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
-                //     throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
-                // });
-                // if (!authenticationToken.id || authenticationToken.id !== token.userid) {
-                //     throw new ForbiddenError("The authorization token does not match your session token");
-                // }
+                const rawCookies = req.headers.cookie;
+                const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+                const authenticationToken = await checkToken(cookies?.access).catch((e) => {
+                    if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                    throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                });
+                if (!authenticationToken.id || authenticationToken.id !== token.userid) {
+                    throw new ForbiddenError("The authorization token does not match your session token");
+                }
 
                 return { token };
             }
