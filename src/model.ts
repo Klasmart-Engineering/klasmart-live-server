@@ -449,7 +449,9 @@ export class Model {
                 "MAXLEN", "~", "64", "*",
                 ...redisStreamSerialize({ leave: { id: sessionId } })
             );
-
+            
+            //Log Attendance
+            await this.logAttendance(roomId, session);
             await pipeline.exec();
 
             //Select new host
@@ -459,10 +461,7 @@ export class Model {
                     const firstJoinedTeacher = teachers[0];
                     await this.setHost(roomId, firstJoinedTeacher.id);
                 }
-            }
-            
-            //Log Attendance
-            await this.logAttendance(roomId, session);
+            } 
         }
         await this.attendanceNotify(roomIds);     
 
@@ -477,7 +476,7 @@ export class Model {
             attendance.roomId = roomId;
             attendance.userId = session.userId;
             await attendance.save();
-            // console.log("logAttendance", attendance);
+            console.log("logAttendance", attendance);
         } catch(e) {
             console.log(`Unable to save attendance: ${JSON.stringify({session, leaveTime: Date.now()})}`);
             console.log(e);
