@@ -1,6 +1,10 @@
 pipelines:
-  custom:
-    deploy:
+  branches:
+    master:
+    - step:
+        name: Atlassian Security Secrets Scan
+        script:
+          - pipe: atlassian/git-secrets-scan:0.5.1
     - step:
         name: 'Build NPM'
         image: node:lts
