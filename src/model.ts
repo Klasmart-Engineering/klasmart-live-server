@@ -178,6 +178,11 @@ export class Model {
             return false;
         }
         const pipeline = this.client.pipeline();
+
+        // delete class host
+        const roomHost = RedisKeys.roomHost(token.roomid);
+        pipeline.del(roomHost.key);
+        
         for await (const session of this.getSessions(token.roomid)) {
             const sessionKey = RedisKeys.sessionData(token.roomid, session.id);
             pipeline.del(sessionKey);
