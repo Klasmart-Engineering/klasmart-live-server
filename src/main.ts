@@ -1,11 +1,13 @@
-import { ApolloServer } from "apollo-server";
+import { ApolloServer, ForbiddenError, ApolloError } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
 import { createConnection } from "typeorm";
 import * as Sentry from "@sentry/node";
 import WebSocket from "ws";
-import { checkToken, JWT } from "./auth";
+import { checkAuthorizationToken, JWT } from "./auth";
 import { resolvers } from "graphql-scalars";
+import cookie from "cookie";
+import { checkToken } from "kidsloop-token-validation";
 
 Sentry.init({
     dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
@@ -22,7 +24,7 @@ export interface Context {
 }
 
 async function connectPostgres() {
-    if(!process.env.DATABASE_URL) {
+    if (!process.env.DATABASE_URL) {
         console.log("Attendance db not configured - skipping");
         return;
     }
@@ -48,13 +50,23 @@ async function main() {
             typeDefs: schema,
             subscriptions: {
                 keepAlive: 1000,
-                onConnect: async ({ authToken, sessionId }: any, websocket, connectionData: any): Promise<Context> => {
-                    const token = await checkToken(authToken);
-                    const joinTime = new Date();
+                onConnect: async ({ authToken, sessionId }: any, websocket, connectionData): Promise<Context> => {
+                    const token = await checkAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e); });
+                    const rawCookies = connectionData.request.headers.cookie;
+                    const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
 
-                    connectionData.sessionId = sessionId;
-                    connectionData.token = token;
-                    connectionData.joinTime = joinTime;
+                    const authenticationToken = await checkToken(cookies?.access).catch((e) => {
+                        if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                        throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                    });
+                    if (!authenticationToken.id || authenticationToken.id !== token.userid) {
+                        throw new ForbiddenError("The authorization token does not match your session token");
+                    }
+
+                    const joinTime = new Date();
+                    (connectionData as any).sessionId = sessionId;
+                    (connectionData as any).token = token;
+                    (connectionData as any).joinTime = joinTime;
                     return { token, sessionId, websocket, joinTime };
                 },
                 onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData as any); }
@@ -63,7 +75,7 @@ async function main() {
                 ...resolvers,
                 Query: {
                     ready: () => true,
-                    token: (_parent, _args, {token}: Context) => ({
+                    token: (_parent, _args, { token }: Context) => ({
                         subject: token?.sub,
                         audience: token?.aud,
                         userId: token?.userid,
@@ -77,21 +89,21 @@ async function main() {
                 Mutation: {
                     endClass: (_parent, _, context: Context) => model.endClass(context),
                     leaveClass: (_parent, _, context: Context) => model.disconnect(context),
-                    setSessionStreamId: (_parent, { roomId, streamId }, {sessionId}: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
-                    setHost: (_parent, { roomId, hostId }, context: Context) => model.setHost(roomId, hostId),
-                    sendMessage: (_parent, { roomId, message }, {sessionId}: Context) => model.sendMessage(roomId, sessionId, message),
+                    setSessionStreamId: (_parent, { roomId, streamId }, { sessionId }: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
+                    setHost: (_parent, { roomId, nextHostId}, context: Context) => model.setHost(roomId, nextHostId),
+                    sendMessage: (_parent, { roomId, message }, { sessionId }: Context) => model.sendMessage(roomId, sessionId, message),
                     postPageEvent: async (_parent, { streamId, pageEvents }, context: Context) => {
                         const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
                         return a;
                     },
                     showContent: (_parent, { roomId, type, contentId }, context: Context) => model.showContent(roomId, type, contentId),
-                    webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, {sessionId}: Context) => model.webRTCSignal(roomId, toSessionId, sessionId, webrtc),
+                    webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, { sessionId }: Context) => model.webRTCSignal(roomId, toSessionId, sessionId, webrtc),
                     whiteboardSendEvent: (_parent, { roomId, event }, _context: Context) => model.whiteboardSendEvent(roomId, event),
                     whiteboardSendDisplay: (_parent, { roomId, display }, _context: Context) => model.whiteboardSendDisplay(roomId, display),
                     whiteboardSendPermissions: (_parent, { roomId, userId, permissions }, _context: Context) => model.whiteboardSendPermissions(roomId, userId, permissions),
                     mute: (_parent, { roomId, sessionId, audio, video }, _context: Context) => model.mute(roomId, sessionId, audio, video),
                     video: (_parent, { roomId, sessionId, src, play, offset }, _context: Context) => model.video(roomId, sessionId, src, play, offset),
-                    rewardTrophy: (_parent, { roomId, user, kind }, {sessionId}: Context) => model.rewardTrophy(roomId, user, kind, sessionId),
+                    rewardTrophy: (_parent, { roomId, user, kind }, { sessionId }: Context) => model.rewardTrophy(roomId, user, kind, sessionId),
                     saveFeedback: (_parent, { stars, feedbackType, comment, quickFeedback }, context: Context) => model.saveFeedback(context, stars, feedbackType, comment, quickFeedback),
                 },
                 Subscription: {
@@ -117,12 +129,21 @@ async function main() {
             },
             context: async ({ req, connection }) => {
                 if (connection) { return connection.context; }
-                
-                const authHeader = req.headers.authorization;
-                if(!authHeader) { throw new Error("No authorization header"); }
 
-                const rawToken = authHeader.substr(0,7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
-                const token = await checkToken(rawToken);
+                const authHeader = req.headers.authorization;
+                const rawAuthorizationToken = authHeader?.substr(0, 7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
+                const token = await checkAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
+                
+                const rawCookies = req.headers.cookie;
+                const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+                const authenticationToken = await checkToken(cookies?.access).catch((e) => {
+                    if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                    throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                });
+                if (!authenticationToken.id || authenticationToken.id !== token.userid) {
+                    throw new ForbiddenError("The authorization token does not match your session token");
+                }
+
                 return { token };
             }
         });
@@ -135,4 +156,5 @@ async function main() {
         process.exit(-1);
     }
 }
+
 main();
