@@ -7,6 +7,9 @@ export class RedisKeys {
         return `user:${userId}`;
     }
 
+    public static roomHost(roomId: string) {
+        return { key: `${RedisKeys.room(roomId)}:host`, ttl: 3600 };
+    }
     public static roomContent(roomId: string) {
         return { key: `${RedisKeys.room(roomId)}:content`, ttl: 3600 };
     }

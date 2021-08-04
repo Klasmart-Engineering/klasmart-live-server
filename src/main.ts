@@ -90,7 +90,7 @@ async function main() {
                     endClass: (_parent, _, context: Context) => model.endClass(context),
                     leaveClass: (_parent, _, context: Context) => model.disconnect(context),
                     setSessionStreamId: (_parent, { roomId, streamId }, { sessionId }: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
-                    setHost: (_parent, { roomId, hostId }, context: Context) => model.setHost(roomId, hostId),
+                    setHost: (_parent, { roomId, nextHostId}, context: Context) => model.setHost(roomId, nextHostId),
                     sendMessage: (_parent, { roomId, message }, { sessionId }: Context) => model.sendMessage(roomId, sessionId, message),
                     postPageEvent: async (_parent, { streamId, pageEvents }, context: Context) => {
                         const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
@@ -156,4 +156,5 @@ async function main() {
         process.exit(-1);
     }
 }
+
 main();
