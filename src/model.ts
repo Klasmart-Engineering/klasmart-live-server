@@ -144,7 +144,7 @@ export class Model {
         const chatMessages = RedisKeys.roomMessages(roomId);
         const session = await this.getSession(roomId, sessionId);
         await this.client.expire(chatMessages.key, chatMessages.ttl);
-        const id = await this.client.xadd(chatMessages.key, "MAXLEN", "~", 32, "*", "json", JSON.stringify({ session, message }));
+        const id = await this.client.xadd(chatMessages.key, "MAXLEN", "~", 256, "*", "json", JSON.stringify({ session, message }));
         return { id, session, message };
     }
 
@@ -178,6 +178,11 @@ export class Model {
             return false;
         }
         const pipeline = this.client.pipeline();
+
+        // delete class host
+        const roomHost = RedisKeys.roomHost(token.roomid);
+        pipeline.del(roomHost.key);
+        
         for await (const session of this.getSessions(token.roomid)) {
             const sessionKey = RedisKeys.sessionData(token.roomid, session.id);
             pipeline.del(sessionKey);
@@ -444,7 +449,9 @@ export class Model {
                 "MAXLEN", "~", "64", "*",
                 ...redisStreamSerialize({ leave: { id: sessionId } })
             );
-
+            
+            //Log Attendance
+            await this.logAttendance(roomId, session);
             await pipeline.exec();
 
             //Select new host
@@ -454,10 +461,7 @@ export class Model {
                     const firstJoinedTeacher = teachers[0];
                     await this.setHost(roomId, firstJoinedTeacher.id);
                 }
-            }
-            
-            //Log Attendance
-            await this.logAttendance(roomId, session);
+            } 
         }
         await this.attendanceNotify(roomIds);     
 
@@ -472,7 +476,7 @@ export class Model {
             attendance.roomId = roomId;
             attendance.userId = session.userId;
             await attendance.save();
-            // console.log("logAttendance", attendance);
+            console.log("logAttendance", attendance);
         } catch(e) {
             console.log(`Unable to save attendance: ${JSON.stringify({session, leaveTime: Date.now()})}`);
             console.log(e);
