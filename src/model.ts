@@ -144,7 +144,7 @@ export class Model {
         const chatMessages = RedisKeys.roomMessages(roomId);
         const session = await this.getSession(roomId, sessionId);
         await this.client.expire(chatMessages.key, chatMessages.ttl);
-        const id = await this.client.xadd(chatMessages.key, "MAXLEN", "~", 32, "*", "json", JSON.stringify({ session, message }));
+        const id = await this.client.xadd(chatMessages.key, "MAXLEN", "~", 256, "*", "json", JSON.stringify({ session, message }));
         return { id, session, message };
     }
 
