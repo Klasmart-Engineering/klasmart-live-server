@@ -34,6 +34,10 @@ export class RedisKeys {
         return `${RedisKeys.session(roomId, sessionId)}:data`;
     }
 
+    public static activityType(roomId: string) {
+        return { key: `${RedisKeys.room(roomId)}:type`, ttl: 3600};
+    }
+
     public static sfuRequest() {
         return "sfu:request";
     }

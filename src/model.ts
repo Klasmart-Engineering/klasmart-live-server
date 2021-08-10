@@ -362,7 +362,10 @@ export class Model {
     }
 
     private async notifyRoom(roomId: string, message: any): Promise<string> {
-        
+        const activityType = message?.content?.type;
+        if (activityType === "Activity" || activityType === "Stream") { //delete old Streams
+            await this.deleteOldStreamId(roomId, activityType);
+        }
         const notify = RedisKeys.roomNotify(roomId);
         await this.client.expire(notify.key, notify.ttl);
         return await this.client.xadd(
@@ -456,7 +459,7 @@ export class Model {
 
             //Select new host
             if (changeRoomHost) { 
-                const teachers = await this.getRoomTeachers(roomId, true);
+                const teachers = await this.getRoomParticipants(roomId, true, true);
                 if(teachers.length > 0){
                     const firstJoinedTeacher = teachers[0];
                     await this.setHost(roomId, firstJoinedTeacher.id);
@@ -523,7 +526,7 @@ export class Model {
             const token = await attendanceToken(roomId, [...attendance_ids], class_start_time, class_end_time);
             await axios.post(url, {token});
         } catch(e) {
-            // console.log("Unable to post attendance");
+            console.log("Unable to post attendance");
             console.error(e);
         }
     }
@@ -629,14 +632,44 @@ export class Model {
         return Number(seconds) + Number(microseconds) / 1e6;
     }
 
-    public async getRoomTeachers(roomId: string, sort = false){
+    public async getRoomParticipants(roomId: string, isTeacher = true,  sort = false){
         const sessions = [];
         for await (const session of this.getSessions(roomId)) {
-            if(session.isTeacher) { sessions.push(session); }
+            if(session.isTeacher === isTeacher) { sessions.push(session); }
         }
         if (sort) {
             sessions.sort((a: Session, b: Session) => a.joinedAt - b.joinedAt);
         }
         return sessions;
+    }
+
+    private async deleteOldStreamId(roomId: string, activityType: string) {
+        
+        const roomActivityTypeKey = RedisKeys.activityType(roomId);
+        const roomActivityType = await this.client.get(roomActivityTypeKey.key);
+
+        if(!roomActivityType) {
+            await this.client.set(roomActivityTypeKey.key, activityType);
+        }else{
+            await this.client.set(roomActivityTypeKey.key, activityType);
+            if(roomActivityType !== activityType){
+                const studentSessions = await this.getRoomParticipants(roomId, false);
+                for await (const studentSession of studentSessions) {
+                    if (studentSession.streamId){
+                        const studentSessionKey = RedisKeys.sessionData(roomId, studentSession.id);
+                        await this.client
+                            .hset(studentSessionKey, "streamId", "" );
+                        
+                        const session = await this.getSession(roomId, studentSession.id);
+                        await this.notifyRoom(roomId, {join: session });   
+                    }         
+                }
+            }
+
+        }
+        
+        
+        
+
     }
 }
