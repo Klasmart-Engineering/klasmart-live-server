@@ -1,11 +1,11 @@
 pipelines:
   branches:
     master:
-    - step:
+    - step: &step-secret-check
         name: Atlassian Security Secrets Scan
         script:
           - pipe: atlassian/git-secrets-scan:0.5.1
-    - step:
+    - step: &step-build-npm
         name: 'Build NPM'
         image: node:lts
         script:
@@ -14,8 +14,7 @@ pipelines:
           - nodemodules
         artifacts:
           - node_modules/**
-
-    - step:
+    - step: &step-build-docker
         name: "Build & Push Docker image"
         image: python:3.7.4-alpine3.10
         script:
@@ -43,6 +42,10 @@ pipelines:
 
         services:
           - docker
+    alpha:
+    - step: *step-secret-check
+    - step: *step-build-npm
+    - step: *step-build-docker
 
 definitions:
   caches:
