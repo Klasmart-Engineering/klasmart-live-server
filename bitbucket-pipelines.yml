@@ -39,8 +39,9 @@ pipelines:
           - docker push $REPO:$BRANCH_TAG-latest
           - docker push $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
           - docker push $REPO:$BRANCH_TAG-$COMMIT_TAG
-
         services:
+          - docker
+        caches:
           - docker
     alpha:
     - step: *step-secret-check
