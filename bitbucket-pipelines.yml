@@ -9,7 +9,7 @@ pipelines:
         name: 'Build NPM'
         image: node:lts
         script:
-          - npm i
+          - npm ci
         caches:
           - nodemodules
         artifacts:
