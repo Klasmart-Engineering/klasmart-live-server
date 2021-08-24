@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import { ApolloServer, ForbiddenError, ApolloError } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
@@ -9,6 +10,7 @@ import { resolvers } from "graphql-scalars";
 import cookie from "cookie";
 import { checkToken } from "kidsloop-token-validation";
 
+dotenv.config();
 Sentry.init({
     dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
     environment: process.env.NODE_ENV || "not-specified",
@@ -52,15 +54,20 @@ async function main() {
                 keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, websocket, connectionData): Promise<Context> => {
                     const token = await checkAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e); });
-                    const rawCookies = connectionData.request.headers.cookie;
-                    const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+                    
+                    if(!process.env.DISABLE_AUTH){
+                        const rawCookies = connectionData.request.headers.cookie;
+                        const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
 
-                    const authenticationToken = await checkToken(cookies?.access).catch((e) => {
-                        if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
-                        throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
-                    });
-                    if (!authenticationToken.id || authenticationToken.id !== token.userid) {
-                        throw new ForbiddenError("The authorization token does not match your session token");
+                        const authenticationToken = await checkToken(cookies?.access).catch((e) => {
+                            if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                            throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                        });
+                        if (!authenticationToken.id || authenticationToken.id !== token.userid) {
+                            throw new ForbiddenError("The authorization token does not match your session token");
+                        }
+                    }else{
+                        console.warn("skipping AUTHENTICATION");
                     }
 
                     const joinTime = new Date();
@@ -134,15 +141,19 @@ async function main() {
                 const rawAuthorizationToken = authHeader?.substr(0, 7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
                 const token = await checkAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
                 
-                const rawCookies = req.headers.cookie;
-                const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
-                const authenticationToken = await checkToken(cookies?.access).catch((e) => {
-                    if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
-                    throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
-                });
-                if (!authenticationToken.id || authenticationToken.id !== token.userid) {
-                    throw new ForbiddenError("The authorization token does not match your session token");
-                }
+                if(!process.env.DISABLE_AUTH){
+                    const rawCookies = req.headers.cookie;
+                    const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+                    const authenticationToken = await checkToken(cookies?.access).catch((e) => {
+                        if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                        throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                    });
+                    if (!authenticationToken.id || authenticationToken.id !== token.userid) {
+                        throw new ForbiddenError("The authorization token does not match your session token");
+                    }
+                }else{
+                    console.warn("skipping AUTHENTICATION");
+                }       
 
                 return { token };
             }

@@ -53,6 +53,7 @@
     "aws-sdk": "^2.926.0",
     "axios": "^0.21.1",
     "cookie": "^0.4.1",
+    "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "graphql": "^15.1.0",
     "graphql-scalars": "^1.8.0",
