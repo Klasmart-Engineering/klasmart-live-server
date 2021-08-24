@@ -50,15 +50,11 @@ pipelines:
     - step: &step-deploy-alpha
         name: Deploy to alpha
         deployment: alpha
+        image: python:3.7.4-alpine3.10
         script:
-        - pipe: atlassian/aws-ecs-deploy:1.6.0
-          variables:
-            AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID_ALPHA_OLD
-            AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY_ALPHA_OLD
-            AWS_DEFAULT_REGION: 'ap-northeast-2' # Optional if already defined in the context.
-            CLUSTER_NAME: 'kidsloop-alpha'
-            SERVICE_NAME: 'kidsloop-alpha-live-graphql'
-            FORCE_NEW_DEPLOYMENT: 'true'
+          - pip3 install -U awscli
+          -  AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY_ALPHA_OLD" AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID_ALPHA_OLD" aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
+
 
 definitions:
   caches:
