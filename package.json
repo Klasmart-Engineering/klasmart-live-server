@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node src/main.ts",
-    "start-local": "ts-node src/main.ts true",
     "build": "webpack",
     "test": "mocha -r ts-node/register tests/**/*[Tt]est.ts",
     "coverage": "nyc -r lcov -e .ts -x \"*[Tt]est.ts\" npm run test"
@@ -54,6 +53,7 @@
     "aws-sdk": "^2.926.0",
     "axios": "^0.21.1",
     "cookie": "^0.4.1",
+    "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "graphql": "^15.1.0",
     "graphql-scalars": "^1.8.0",

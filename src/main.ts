@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import { ApolloServer, ForbiddenError, ApolloError } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
@@ -9,10 +10,7 @@ import { resolvers } from "graphql-scalars";
 import cookie from "cookie";
 import { checkToken } from "kidsloop-token-validation";
 
-const AUTHENTICATE = !process.argv[2];
-if(!AUTHENTICATE){
-    console.warn("\nServer running on local, skipping authentication");
-}
+dotenv.config();
 Sentry.init({
     dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
     environment: process.env.NODE_ENV || "not-specified",
@@ -57,7 +55,7 @@ async function main() {
                 onConnect: async ({ authToken, sessionId }: any, websocket, connectionData): Promise<Context> => {
                     const token = await checkAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e); });
                     
-                    if(AUTHENTICATE){
+                    if(!process.env.DISABLE_AUTH){
                         const rawCookies = connectionData.request.headers.cookie;
                         const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
 
@@ -143,7 +141,7 @@ async function main() {
                 const rawAuthorizationToken = authHeader?.substr(0, 7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
                 const token = await checkAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
                 
-                if(AUTHENTICATE){
+                if(!process.env.DISABLE_AUTH){
                     const rawCookies = req.headers.cookie;
                     const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
                     const authenticationToken = await checkToken(cookies?.access).catch((e) => {
