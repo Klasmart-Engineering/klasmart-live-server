@@ -1,21 +1,20 @@
 pipelines:
   branches:
     master:
-    - step:
+    - step: &step-secret-check
         name: Atlassian Security Secrets Scan
         script:
           - pipe: atlassian/git-secrets-scan:0.5.1
-    - step:
+    - step: &step-build-npm
         name: 'Build NPM'
         image: node:lts
         script:
-          - npm i
+          - npm ci
         caches:
           - nodemodules
         artifacts:
           - node_modules/**
-
-    - step:
+    - step: &step-build-docker
         name: "Build & Push Docker image"
         image: python:3.7.4-alpine3.10
         script:
@@ -40,9 +39,24 @@ pipelines:
           - docker push $REPO:$BRANCH_TAG-latest
           - docker push $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
           - docker push $REPO:$BRANCH_TAG-$COMMIT_TAG
-
         services:
           - docker
+        caches:
+          - docker
+    alpha:
+    - step: *step-secret-check
+    - step: *step-build-npm
+    - step: *step-build-docker
+    - step: &step-deploy-alpha
+        name: Deploy to alpha
+        deployment: alpha
+        image: python:3.7.4-alpine3.10
+        script:
+          - pip3 install -U awscli
+          -  AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY_ALPHA_OLD" AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID_ALPHA_OLD" aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
+  custom:
+    deploy-alpha:
+      - step: *step-deploy-alpha
 
 definitions:
   caches:
