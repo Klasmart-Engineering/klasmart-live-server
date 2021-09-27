@@ -66,10 +66,10 @@ const issuers = new Map<
     ]);
 
 if (process.env.NODE_ENV !== "production") {
-    console.warn(`NODE_ENV is not set to 'production'`)
-    const issuer = "calmid-debug"
-    const secretOrPublicKey = process.env.DEV_SECRET || "iXtZx1D5AqEB0B9pfn+hRQ=="
-    console.warn(`Allowing debug JWTs signed by '${issuer}' using secret '${secretOrPublicKey}'`)
+    console.warn("NODE_ENV is not set to 'production'");
+    const issuer = "calmid-debug";
+    const secretOrPublicKey = process.env.DEV_SECRET || "iXtZx1D5AqEB0B9pfn+hRQ==";
+    console.warn(`Allowing debug JWTs signed by '${issuer}' using secret '${secretOrPublicKey}'`);
 
     issuers.set("calmid-debug",
         {
@@ -96,6 +96,7 @@ export type JWT = {
     userid: string,
     name?: string,
     teacher?: boolean,
+    classtype: string,
     materials?: unknown,
 }
 

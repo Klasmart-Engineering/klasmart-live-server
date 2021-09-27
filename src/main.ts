@@ -8,7 +8,7 @@ import WebSocket from "ws";
 import { checkAuthorizationToken, JWT } from "./auth";
 import { resolvers } from "graphql-scalars";
 import cookie from "cookie";
-import { checkToken } from "kidsloop-token-validation";
+import { checkToken, KidsloopAuthenticationToken } from "kidsloop-token-validation";
 
 dotenv.config();
 Sentry.init({
@@ -23,6 +23,7 @@ export interface Context {
     roomId?: string
     websocket?: WebSocket
     joinTime?: Date
+    authenticationToken?: KidsloopAuthenticationToken
 }
 
 async function connectPostgres() {
@@ -54,11 +55,13 @@ async function main() {
                 keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, websocket, connectionData): Promise<Context> => {
                     const token = await checkAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e); });
-                    
+                    const rawCookies = connectionData.request.headers.cookie;
+                    const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+                    const joinTime = new Date();
+                    (connectionData as any).sessionId = sessionId;
+                    (connectionData as any).token = token;
+                    (connectionData as any).joinTime = joinTime;
                     if(!process.env.DISABLE_AUTH){
-                        const rawCookies = connectionData.request.headers.cookie;
-                        const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
-
                         const authenticationToken = await checkToken(cookies?.access).catch((e) => {
                             if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
                             throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
@@ -66,15 +69,15 @@ async function main() {
                         if (!authenticationToken.id || authenticationToken.id !== token.userid) {
                             throw new ForbiddenError("The authorization token does not match your session token");
                         }
+                        (connectionData as any).authenticationToken = authenticationToken;
+                        return { token, sessionId, websocket, joinTime, authenticationToken };
                     }else{
                         console.warn("skipping AUTHENTICATION");
+                        return { token, sessionId, websocket, joinTime };
                     }
 
-                    const joinTime = new Date();
-                    (connectionData as any).sessionId = sessionId;
-                    (connectionData as any).token = token;
-                    (connectionData as any).joinTime = joinTime;
-                    return { token, sessionId, websocket, joinTime };
+                    
+                    
                 },
                 onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData as any); }
             },
@@ -89,7 +92,8 @@ async function main() {
                         userName: token?.name,
                         isTeacher: token?.teacher,
                         roomId: token?.roomid,
-                        materials: token?.materials
+                        materials: token?.materials,
+                        classType: token?.classtype,
                     }),
                     sfuAddress: (_parent, { roomId }, context: Context) => model.getSfuAddress(roomId),
                 },
@@ -103,7 +107,7 @@ async function main() {
                         const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
                         return a;
                     },
-                    showContent: (_parent, { roomId, type, contentId }, context: Context) => model.showContent(roomId, type, contentId),
+                    showContent: (_parent, { roomId, type, contentId}) => model.showContent(roomId, type, contentId),
                     webRTCSignal: (_parent, { roomId, toSessionId, webrtc }, { sessionId }: Context) => model.webRTCSignal(roomId, toSessionId, sessionId, webrtc),
                     whiteboardSendEvent: (_parent, { roomId, event }, _context: Context) => model.whiteboardSendEvent(roomId, event),
                     whiteboardSendDisplay: (_parent, { roomId, display }, _context: Context) => model.whiteboardSendDisplay(roomId, display),
@@ -112,6 +116,7 @@ async function main() {
                     video: (_parent, { roomId, sessionId, src, play, offset }, _context: Context) => model.video(roomId, sessionId, src, play, offset),
                     rewardTrophy: (_parent, { roomId, user, kind }, { sessionId }: Context) => model.rewardTrophy(roomId, user, kind, sessionId),
                     saveFeedback: (_parent, { stars, feedbackType, comment, quickFeedback }, context: Context) => model.saveFeedback(context, stars, feedbackType, comment, quickFeedback),
+                    studentReport: (_parent, { roomId, materialUrl, activityTypeName }, _context: Context) => model.studentReport(roomId, _context, materialUrl, activityTypeName),
                 },
                 Subscription: {
                     room: {
