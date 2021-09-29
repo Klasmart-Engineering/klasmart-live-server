@@ -24,6 +24,7 @@ const customSchema = gql`
     video(roomId: ID!, sessionId: ID!, src: String, play: Boolean, offset: Float): Boolean
     rewardTrophy(roomId: ID!, user: ID!, kind: String): Boolean
     saveFeedback(stars: Int!, feedbackType: FeedbackType!, comment: String, quickFeedback: [QuickFeedbackInput]): Boolean
+    studentReport(roomId: ID!, , materialUrl: String, activityTypeName:String): Boolean
   }
 
   type Subscription {

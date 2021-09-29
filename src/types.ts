@@ -13,5 +13,24 @@ export interface Session {
     streamId: string
     isTeacher: boolean
     isHost: boolean
-    joinedAt: number
+    joinedAt: number,
+    email: string,
+}
+
+export interface StudentReport {
+    classType: string,
+    lessonMaterialUrl: string,
+    contentType: string,
+    actionType: StudentReportActionType
+}
+
+export enum ClassType {
+    LIVE = "live",
+    CLASSES = "class",
+    STUDY = "study",
+    TASK = "task"
+}
+
+export enum StudentReportActionType {
+    VIEWED = "viewed"
 }
