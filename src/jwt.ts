@@ -24,6 +24,21 @@ export async function attendanceToken(room_id: string, attendance_ids: string[],
         );
     });
 }
+export async function studentReportToken(requestBody: any) {
+    const {secretOrPrivateKey, options} = await jwtConfig();
+    return new Promise<string>((resolve, reject) => {
+        sign(
+            requestBody,
+            secretOrPrivateKey,
+            options,
+            (err, token) => {
+                if(err) { reject(err); }
+                else if(token) { resolve(token); }
+                else { reject(new Error("Signing attendance token failed without explicit error")); }
+            }
+        );
+    });
+}
 let config: { options: SignOptions, secretOrPrivateKey: Secret, secretOrPublicKey: Secret } | undefined;
 async function jwtConfig() {
     if(config) { return config; }

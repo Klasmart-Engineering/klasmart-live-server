@@ -48,6 +48,7 @@ export function convertSessionRecordToSession(session: Record<string, string>): 
         userId: session.userId,
         name: session.name,
         streamId: session.streamId,
+        email: session.email,
         isTeacher: session.isTeacher === "true",
         isHost: session.isHost === "true",
         joinedAt: Number(session.joinedAt),
