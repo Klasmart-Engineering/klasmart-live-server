@@ -680,7 +680,7 @@ export class Model {
             const userStatisctics: StudentReport = {
                 classType: classtype,
                 lessonMaterialUrl: materialUrl,
-                contentType: activityTypeName,
+                contentType: activityTypeName.toLowerCase(),
                 actionType: StudentReportActionType.VIEWED
             };
 
