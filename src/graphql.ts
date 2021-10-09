@@ -22,3 +22,17 @@ export const GET_ATTENDACE_QUERY = gql`
     }
   }
 `;
+
+export const SAVE_FEEDBACK_MUTATION = gql`
+mutation SaveFeedbackMutation($roomId: String!, $userId: String!, $sessionId: String!, $stars: Int!, $feedbackType: String!, $comment: String!, $quickFeedback: [QuickFeedbackInputType!]!) {
+  saveFeedback(roomId: $roomId, userId: $userId, sessionId: $sessionId, stars: $stars, feedbackType: $feedbackType, comment: $comment, quickFeedback: $quickFeedback) {
+    sessionId
+    createdAt
+    roomId
+    userId
+    type
+    stars
+    comment
+  }
+}
+`;
