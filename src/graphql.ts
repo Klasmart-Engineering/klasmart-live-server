@@ -10,3 +10,15 @@ export const SAVE_ATTENDANCE_MUTATION = gql`
       leaveTimestamp,
     }
 }`;
+
+export const GET_ATTENDACE_QUERY = gql`
+  query Query($roomId: String!) {
+    getClassAttendance(roomId: $roomId) {
+      roomId
+      userId
+      sessionId
+      joinTimestamp
+      leaveTimestamp
+    }
+  }
+`;
