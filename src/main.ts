@@ -29,26 +29,8 @@ export interface Context {
     joinTime?: Date
 }
 
-async function connectPostgres() {
-    if (!process.env.DATABASE_URL) {
-        console.log("Attendance db not configured - skipping");
-        return;
-    }
-    const connection = await createConnection({
-        name: "default",
-        type: "postgres",
-        url: process.env.DATABASE_URL || "postgres://postgres:kidsloop@localhost",
-        synchronize: true,
-        logging: Boolean(process.env.DATABASE_LOGGING),
-        entities: [Attendance, Feedback, QuickFeedback],
-    });
-    console.log("🐘 Connected to postgres");
-    return connection;
-}
-
 async function main() {
     try {
-        await connectPostgres();
         const model = await Model.create();
         const server = new ApolloServer({
             typeDefs: schema,
