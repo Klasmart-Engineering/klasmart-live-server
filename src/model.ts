@@ -697,7 +697,7 @@ export class Model {
             };
             for await (const session of studentSessions){
                 const student: any = {};
-                student["user_id"] = session.id;
+                student["user_id"] = session.userId;
                 student["email"] = session.email;
                 student["name"] = session.name;
                 students.push(student);
