@@ -1,3 +1,5 @@
+import "newrelic";
+import newRelicApolloPlugin from "@newrelic/apollo-server-plugin";
 import dotenv from "dotenv";
 import { ApolloServer, ForbiddenError, ApolloError } from "apollo-server";
 import { Model } from "./model";
@@ -161,7 +163,10 @@ async function main() {
                 }       
 
                 return { token };
-            }
+            },
+            plugins: [
+                newRelicApolloPlugin
+            ]
         });
 
         const port = process.env.PORT || 8000;
