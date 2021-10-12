@@ -59,10 +59,11 @@
     "graphql-scalars": "^1.8.0",
     "ioredis": "^4.17.3",
     "jsonwebtoken": "^8.5.1",
+    "kidsloop-token-validation": "bitbucket:calmisland/kidsloop-token-validation#v1.2.3",
     "logrocket": "^1.0.12",
+    "newrelic": "^8.4.0",
     "pg": "^8.5.1",
     "typeorm": "^0.2.29",
-    "kidsloop-token-validation": "bitbucket:calmisland/kidsloop-token-validation#v1.2.3",
     "uuid": "^8.1.0",
     "ws": "^7.4.6"
   }

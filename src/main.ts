@@ -1,3 +1,4 @@
+import "newrelic";
 import dotenv from "dotenv";
 import { ApolloServer, ForbiddenError, ApolloError } from "apollo-server";
 import { Model } from "./model";
