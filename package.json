@@ -23,6 +23,7 @@
     "@types/cookie": "^0.4.1",
     "@types/ioredis": "^4.16.4",
     "@types/mocha": "^7.0.2",
+    "@types/newrelic": "^7.0.2",
     "@types/uuid": "^7.0.4",
     "@types/ws": "^7.2.5",
     "@typescript-eslint/eslint-plugin": "^3.2.0",
@@ -46,6 +47,7 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
+    "@newrelic/apollo-server-plugin": "^1.0.2",
     "@sentry/node": "^5.20.1",
     "@types/jsonwebtoken": "^8.5.0",
     "apollo-server": "^2.14.3",
