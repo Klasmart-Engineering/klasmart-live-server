@@ -53,8 +53,6 @@ async function main() {
     try {
         await connectPostgres();
         const model = await Model.create();
-        const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || "kidsloop_live_events_alphabeta";
-
         const server = new ApolloServer({
             typeDefs: schema,
             subscriptions: {
@@ -84,7 +82,7 @@ async function main() {
                     
                     
                 },
-                onDisconnect: (websocket, connectionData) => { model.disconnect(connectionData as any); }
+                onDisconnect: (connectionData) => { model.disconnect(connectionData as any); }
             },
             resolvers: {
                 ...resolvers,
@@ -100,15 +98,15 @@ async function main() {
                         materials: authorizationToken?.materials,
                         classType: authorizationToken?.classtype,
                     }),
-                    sfuAddress: (_parent, { roomId }, context: Context) => model.getSfuAddress(roomId),
+                    sfuAddress: (_parent, { roomId }) => model.getSfuAddress(roomId),
                 },
                 Mutation: {
                     endClass: (_parent, _, context: Context) => model.endClass(context),
                     leaveClass: (_parent, _, context: Context) => model.disconnect(context),
                     setSessionStreamId: (_parent, { roomId, streamId }, { sessionId }: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
-                    setHost: (_parent, { roomId, nextHostId}, context: Context) => model.setHost(roomId, nextHostId),
+                    setHost: (_parent, { roomId, nextHostId}) => model.setHost(roomId, nextHostId),
                     sendMessage: (_parent, { roomId, message }, { sessionId }: Context) => model.sendMessage(roomId, sessionId, message),
-                    postPageEvent: async (_parent, { streamId, pageEvents }, context: Context) => {
+                    postPageEvent: async (_parent, { streamId, pageEvents }) => {
                         const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
                         return a;
                     },

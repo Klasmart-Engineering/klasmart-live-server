@@ -5,7 +5,7 @@ import Redis = require("ioredis")
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { Context } from "./main";
 import WebSocket = require("ws");
-import { PageEvent, Session, StudentReport, StudentReportActionType, ClassType } from "./types";
+import { PageEvent, Session, StudentReport, StudentReportActionType } from "./types";
 import { Attendance } from "./entities/attendance";
 import { getRepository } from "typeorm";
 import axios from "axios";
@@ -261,7 +261,6 @@ export class Model {
         const client = this.client.duplicate();
         try {
             while (websocket.readyState === WebSocket.OPEN) {
-                const timeoutMs = 1000 * Math.min(notify.ttl, chatMessages.ttl) / 2;
                 await client.expire(chatMessages.key, chatMessages.ttl);
                 await client.expire(notify.key, notify.ttl);
                 const responses = await client.xread(
@@ -710,6 +709,8 @@ export class Model {
             console.log("could not send userStatistics ");
             console.log(e);
         }
+
+        return true;
     }
 
 }
