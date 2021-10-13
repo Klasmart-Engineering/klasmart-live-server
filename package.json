@@ -1,6 +1,6 @@
 {
   "name": "kidsloop-live-webrtc-service",
-  "version": "1.0.2",
+  "version": "1.2.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -23,6 +23,7 @@
     "@types/cookie": "^0.4.1",
     "@types/ioredis": "^4.16.4",
     "@types/mocha": "^7.0.2",
+    "@types/newrelic": "^7.0.2",
     "@types/uuid": "^7.0.4",
     "@types/ws": "^7.2.5",
     "@typescript-eslint/eslint-plugin": "^3.2.0",
@@ -46,6 +47,7 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
+    "@newrelic/apollo-server-plugin": "^1.0.2",
     "@sentry/node": "^5.20.1",
     "@types/jsonwebtoken": "^8.5.0",
     "apollo-server": "^2.14.3",
@@ -59,10 +61,11 @@
     "graphql-scalars": "^1.8.0",
     "ioredis": "^4.17.3",
     "jsonwebtoken": "^8.5.1",
+    "kidsloop-token-validation": "bitbucket:calmisland/kidsloop-token-validation#v1.2.3",
     "logrocket": "^1.0.12",
+    "newrelic": "^8.4.0",
     "pg": "^8.5.1",
     "typeorm": "^0.2.29",
-    "kidsloop-token-validation": "bitbucket:calmisland/kidsloop-token-validation#v1.2.3",
     "uuid": "^8.1.0",
     "ws": "^7.4.6"
   }

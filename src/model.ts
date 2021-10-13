@@ -5,11 +5,11 @@ import Redis = require("ioredis")
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { Context } from "./main";
 import WebSocket = require("ws");
-import { PageEvent, Session } from "./types";
+import { PageEvent, Session, StudentReport, StudentReportActionType, ClassType } from "./types";
 import { Attendance } from "./entities/attendance";
 import { getRepository } from "typeorm";
 import axios from "axios";
-import { attendanceToken } from "./jwt";
+import { attendanceToken, studentReportToken } from "./jwt";
 import { Feedback, FeedbackType, QuickFeedback, QuickFeedbackType } from "./entities/feedback";
 import { UserInputError } from "apollo-server";
 
@@ -172,6 +172,7 @@ export class Model {
     }
 
     public async endClass(context: Context): Promise<boolean> {
+        console.log("endClass: ", context?.token?.classtype);
         const {sessionId, token} = context;
         if (!token?.teacher) {
             console.log(`Session ${sessionId} attempted to end class!`);
@@ -201,14 +202,14 @@ export class Model {
     }
 
     public async * room(context: Context, roomId: string, name?: string) {
-        const { sessionId, websocket, token } = context;
+        const { sessionId, websocket, token, authenticationToken } = context;
         if(!token) {throw new Error("Can't subscribe to a room without a token");}
         if(!sessionId) {throw new Error("Can't subscribe to a room without a sessionId");}
         if(!websocket) {throw new Error("Can't subscribe to a room without a websocket");}
         if(context.roomId) { console.error(`Session(${sessionId}) already subscribed to Room(${context.roomId}) and will now subscribe to Room(${roomId}) attendance records do not support multiple rooms`); }
         context.roomId = roomId;
         // TODO: Pipeline initial operations
-        await this.userJoin(roomId, sessionId, token.userid, name ?? token.name, token.teacher);
+        await this.userJoin(roomId, sessionId, token.userid, name ?? token.name, token.teacher, authenticationToken?.email);
 
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
@@ -384,16 +385,16 @@ export class Model {
         );
     }
 
-    private async userJoin(roomId: string, sessionId: string, userId: string, name?: string, isTeacher?: boolean) {
+    private async userJoin(roomId: string, sessionId: string, userId: string, name?: string, isTeacher?: boolean, email?: string) {
         const joinedAt = new Date().getTime();
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         const roomHostKey = RedisKeys.roomHost(roomId);
-        
         await this.client.pipeline()
             .hset(sessionKey, "id", sessionId)
             .hset(sessionKey, "name", name||"")
             .hset(sessionKey, "userId", userId)
             .hset(sessionKey, "joinedAt", joinedAt)
+            .hset(sessionKey, "email", email||"")
             .hset(sessionKey, "isTeacher", Boolean(isTeacher).toString())
             .exec();
 
@@ -426,6 +427,7 @@ export class Model {
     }
 
     private async userLeave(context: Context) {
+        console.log("userLeft: ", context?.token?.classtype);
         const { sessionId } = context;
         if(!sessionId) { return; }
         const roomIds = await this.findRooms(sessionId);
@@ -527,7 +529,7 @@ export class Model {
             await axios.post(url, {token});
         } catch(e) {
             console.log("Unable to post attendance");
-            console.error(e);
+            // console.error(e);
         }
     }
 
@@ -668,4 +670,47 @@ export class Model {
 
         }
     }
+
+    public async studentReport(roomId: string, context: Context, materialUrl: string, activityTypeName:string){
+        const url = process.env.STUDENT_REPORT_ENDPOINT;
+        const classtype = context.token?.classtype;
+        if(!url || !(materialUrl && activityTypeName && classtype)) return;
+
+        try{
+            const userStatisctics: StudentReport = {
+                classType: classtype,
+                lessonMaterialUrl: materialUrl,
+                contentType: activityTypeName.toLowerCase(),
+                actionType: StudentReportActionType.VIEWED
+            };
+
+            const studentSessions = await this.getRoomParticipants(roomId, false);
+            const students: any = [];
+            const recordedAt = new Date().getTime();
+            const requestBody: any = {
+                room_id: roomId,
+                class_type: userStatisctics.classType,
+                lesson_material_url: userStatisctics.lessonMaterialUrl,
+                content_type: userStatisctics.contentType,
+                action_type: userStatisctics.actionType,
+                timestamp: recordedAt
+            };
+            for await (const session of studentSessions){
+                const student: any = {};
+                student["user_id"] = session.userId;
+                student["email"] = session.email;
+                student["name"] = session.name;
+                students.push(student);
+            }   
+            requestBody["students"] = students;
+            console.log("log type: report", " request body:", requestBody);
+            const token = await studentReportToken(requestBody);
+            await axios.post(url, {token});
+            return true;
+        }catch(e){
+            console.log("could not send userStatistics ");
+            console.log(e);
+        }
+    }
+
 }
