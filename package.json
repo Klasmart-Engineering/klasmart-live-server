@@ -11,11 +11,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@bitbucket.org/calmisland/kidsloop-live-webrtc-service.git"
+    "url": "git+ssh://git@bitbucket.org/calmisland/kidsloop-live-server.git"
   },
   "author": "",
   "license": "ISC",
-  "homepage": "https://bitbucket.org/calmisland/kidsloop-live-webrtc-service#readme",
+  "homepage": "https://bitbucket.org/calmisland/kidsloop-live-server#readme",
   "devDependencies": {
     "@types/axios": "^0.14.0",
     "@types/chai": "^4.2.11",
