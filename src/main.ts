@@ -82,7 +82,9 @@ async function main() {
                     
                     
                 },
-                onDisconnect: (connectionData) => { model.disconnect(connectionData as any); }
+                onDisconnect: (_websocket, connectionData) => { 
+                    model.disconnect(connectionData as any);
+                }
             },
             resolvers: {
                 ...resolvers,
