@@ -5,7 +5,6 @@ import { ApolloServer, ForbiddenError, ApolloError } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
 import { createConnection } from "typeorm";
-import * as Sentry from "@sentry/node";
 import WebSocket from "ws";
 import { resolvers } from "graphql-scalars";
 import cookie from "cookie";
@@ -17,12 +16,6 @@ import {
 } from "kidsloop-token-validation";
 
 dotenv.config();
-Sentry.init({
-    dsn: "https://b78d8510ecce48dea32a0f6a6f345614@o412774.ingest.sentry.io/5388815",
-    environment: process.env.NODE_ENV || "not-specified",
-    release: "kidsloop-gql@" + process.env.npm_package_version,
-});
-
 export interface Context {
     authenticationToken?: KidsloopAuthenticationToken
     authorizationToken?: KidsloopLiveAuthorizationToken
