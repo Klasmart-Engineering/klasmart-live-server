@@ -7,6 +7,7 @@ RUN --mount=type=ssh npm audit fix
 COPY ./src ./src
 COPY ./tsconfig.json .
 COPY ./types ./types
+COPY ./dist ./dist
 
 ENV PORT=8080
 EXPOSE 8080
