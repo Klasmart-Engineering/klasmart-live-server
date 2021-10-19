@@ -1,10 +1,10 @@
 import { convertSessionRecordToSession, fromRedisKeyValueArray } from "./utils";
 import { redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
-import Redis = require("ioredis")
+import  Redis from "ioredis";
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { Context } from "./main";
-import WebSocket = require("ws");
+import WebSocket from "ws";
 import { PageEvent, Session, StudentReport, StudentReportActionType } from "./types";
 import { Attendance } from "./entities/attendance";
 import { getRepository } from "typeorm";
