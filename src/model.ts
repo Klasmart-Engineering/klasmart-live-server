@@ -172,26 +172,25 @@ export class Model {
     }
 
     public async endClass(context: Context): Promise<boolean> {
-        console.log("endClass: ", context?.token?.classtype);
-        const {sessionId, token} = context;
-        if (!token?.teacher) {
+        const {sessionId, authorizationToken} = context;
+        if (!authorizationToken?.teacher) {
             console.log(`Session ${sessionId} attempted to end class!`);
             return false;
         }
         const pipeline = this.client.pipeline();
 
         // delete class host
-        const roomHost = RedisKeys.roomHost(token.roomid);
+        const roomHost = RedisKeys.roomHost(authorizationToken.roomid);
         pipeline.del(roomHost.key);
         
-        for await (const session of this.getSessions(token.roomid)) {
-            const sessionKey = RedisKeys.sessionData(token.roomid, session.id);
+        for await (const session of this.getSessions(authorizationToken.roomid)) {
+            const sessionKey = RedisKeys.sessionData(authorizationToken.roomid, session.id);
             pipeline.del(sessionKey);
-            await this.notifyRoom(token.roomid, { leave: session});
-            await this.logAttendance(token.roomid, session);
+            await this.notifyRoom(authorizationToken.roomid, { leave: session});
+            await this.logAttendance(authorizationToken.roomid, session);
         }
         await pipeline.exec();
-        await this.sendAttendance(token.roomid);
+        await this.sendAttendance(authorizationToken.roomid);
         return true;
     }
 
@@ -202,14 +201,14 @@ export class Model {
     }
 
     public async * room(context: Context, roomId: string, name?: string) {
-        const { sessionId, websocket, token, authenticationToken } = context;
-        if(!token) {throw new Error("Can't subscribe to a room without a token");}
+        const { sessionId, websocket, authorizationToken, authenticationToken } = context;
+        if(!authorizationToken) {throw new Error("Can't subscribe to a room without a token");}
         if(!sessionId) {throw new Error("Can't subscribe to a room without a sessionId");}
         if(!websocket) {throw new Error("Can't subscribe to a room without a websocket");}
         if(context.roomId) { console.error(`Session(${sessionId}) already subscribed to Room(${context.roomId}) and will now subscribe to Room(${roomId}) attendance records do not support multiple rooms`); }
         context.roomId = roomId;
         // TODO: Pipeline initial operations
-        await this.userJoin(roomId, sessionId, token.userid, name ?? token.name, token.teacher, authenticationToken?.email);
+        await this.userJoin(roomId, sessionId, authorizationToken.userid, name ?? authorizationToken.name, authorizationToken.teacher, authenticationToken?.email);
 
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
@@ -427,7 +426,7 @@ export class Model {
     }
 
     private async userLeave(context: Context) {
-        console.log("userLeft: ", context?.token?.classtype);
+        console.log("userLeft: ", context?.authorizationToken?.classtype);
         const { sessionId } = context;
         if(!sessionId) { return; }
         const roomIds = await this.findRooms(sessionId);
@@ -600,7 +599,7 @@ export class Model {
     }
 
     public async saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string, stars: number}[]) {
-        if(!context.token || !context.sessionId) { return; }
+        if(!context.authorizationToken || !context.sessionId) { return; }
         const feedbackArray = [];
         for (const { type, stars } of quickFeedback) {
             const item = new QuickFeedback();
@@ -616,8 +615,8 @@ export class Model {
         try {
             const feedback = new Feedback();
             feedback.sessionId = context.sessionId;
-            feedback.roomId = context.token.roomid;
-            feedback.userId = context.token.userid;
+            feedback.roomId = context.authorizationToken.roomid;
+            feedback.userId = context.authorizationToken.userid;
             feedback.type = feedbackType === "END_CLASS" ? FeedbackType.EndClass : FeedbackType.LeaveClass;
             feedback.stars = stars;
             feedback.comment = comment;
@@ -673,7 +672,7 @@ export class Model {
 
     public async studentReport(roomId: string, context: Context, materialUrl: string, activityTypeName:string){
         const url = process.env.STUDENT_REPORT_ENDPOINT;
-        const classtype = context.token?.classtype;
+        const classtype = context.authorizationToken?.classtype;
         if(!url || !(materialUrl && activityTypeName && classtype)) return;
 
         try{

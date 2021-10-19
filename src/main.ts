@@ -7,10 +7,14 @@ import { schema } from "./schema";
 import { createConnection } from "typeorm";
 import * as Sentry from "@sentry/node";
 import WebSocket from "ws";
-import { checkAuthorizationToken, JWT } from "./auth";
 import { resolvers } from "graphql-scalars";
 import cookie from "cookie";
-import { checkToken, KidsloopAuthenticationToken } from "kidsloop-token-validation";
+import {
+    checkAuthenticationToken,
+    checkLiveAuthorizationToken,
+    KidsloopAuthenticationToken,
+    KidsloopLiveAuthorizationToken,
+} from "kidsloop-token-validation";
 
 dotenv.config();
 Sentry.init({
@@ -20,12 +24,12 @@ Sentry.init({
 });
 
 export interface Context {
-    token?: JWT
+    authenticationToken?: KidsloopAuthenticationToken
+    authorizationToken?: KidsloopLiveAuthorizationToken
     sessionId?: string
     roomId?: string
     websocket?: WebSocket
     joinTime?: Date
-    authenticationToken?: KidsloopAuthenticationToken
 }
 
 async function connectPostgres() {
@@ -56,28 +60,27 @@ async function main() {
             subscriptions: {
                 keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, websocket, connectionData): Promise<Context> => {
-                    const token = await checkAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e); });
+                    const authorizationToken = await checkLiveAuthorizationToken(authToken).catch((e) => { throw new ForbiddenError(e); });
                     const rawCookies = connectionData.request.headers.cookie;
                     const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
                     const joinTime = new Date();
                     (connectionData as any).sessionId = sessionId;
-                    (connectionData as any).token = token;
+                    (connectionData as any).authorizationToken = authorizationToken;
                     (connectionData as any).joinTime = joinTime;
-                    if(!process.env.DISABLE_AUTH){
-                        const authenticationToken = await checkToken(cookies?.access).catch((e) => {
-                            if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
-                            throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
-                        });
-                        if (!authenticationToken.id || authenticationToken.id !== token.userid) {
-                            throw new ForbiddenError("The authorization token does not match your session token");
-                        }
-                        (connectionData as any).authenticationToken = authenticationToken;
-                        return { token, sessionId, websocket, joinTime, authenticationToken };
-                    }else{
-                        console.warn("skipping AUTHENTICATION");
-                        return { token, sessionId, websocket, joinTime };
+                    if(process.env.DISABLE_AUTH){
+                        console.warn("SKIPPING AUTHENTICATION");
+                        return { authorizationToken, sessionId, websocket, joinTime };
                     }
 
+                    const authenticationToken = await checkAuthenticationToken(cookies?.access).catch((e) => {
+                        if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                        throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                    });
+                    if (!authenticationToken.id || authenticationToken.id !== authorizationToken.userid) {
+                        throw new ForbiddenError("The authorization token does not match your session token");
+                    }
+                    (connectionData as any).authenticationToken = authenticationToken;
+                    return { authenticationToken, authorizationToken, sessionId, websocket, joinTime  };
                     
                     
                 },
@@ -87,15 +90,15 @@ async function main() {
                 ...resolvers,
                 Query: {
                     ready: () => true,
-                    token: (_parent, _args, { token }: Context) => ({
-                        subject: token?.sub,
-                        audience: token?.aud,
-                        userId: token?.userid,
-                        userName: token?.name,
-                        isTeacher: token?.teacher,
-                        roomId: token?.roomid,
-                        materials: token?.materials,
-                        classType: token?.classtype,
+                    token: (_parent, _args, { authorizationToken }: Context) => ({
+                        subject: authorizationToken?.sub,
+                        audience: authorizationToken?.aud,
+                        userId: authorizationToken?.userid,
+                        userName: authorizationToken?.name,
+                        isTeacher: authorizationToken?.teacher,
+                        roomId: authorizationToken?.roomid,
+                        materials: authorizationToken?.materials,
+                        classType: authorizationToken?.classtype,
                     }),
                     sfuAddress: (_parent, { roomId }, context: Context) => model.getSfuAddress(roomId),
                 },
@@ -146,23 +149,23 @@ async function main() {
 
                 const authHeader = req.headers.authorization;
                 const rawAuthorizationToken = authHeader?.substr(0, 7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
-                const token = await checkAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
+                const authorizationToken = await checkLiveAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
                 
-                if(!process.env.DISABLE_AUTH){
-                    const rawCookies = req.headers.cookie;
-                    const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
-                    const authenticationToken = await checkToken(cookies?.access).catch((e) => {
-                        if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
-                        throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
-                    });
-                    if (!authenticationToken.id || authenticationToken.id !== token.userid) {
-                        throw new ForbiddenError("The authorization token does not match your session token");
-                    }
-                }else{
+                if(process.env.DISABLE_AUTH) {
                     console.warn("skipping AUTHENTICATION");
-                }       
+                    return { authorizationToken };
+                }
+                const rawCookies = req.headers.cookie;
+                const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+                const authenticationToken = await checkAuthenticationToken(cookies?.access).catch((e) => {
+                    if (e.name === "TokenExpiredError") { throw new ApolloError("AuthenticationExpired", "AuthenticationExpired"); }
+                    throw new ApolloError("AuthenticationInvalid", "AuthenticationInvalid");
+                });
+                if (!authenticationToken.id || authenticationToken.id !== authorizationToken.userid) {
+                    throw new ForbiddenError("The authorization token does not match your session token");
+                }
 
-                return { token };
+                return { authorizationToken, authenticationToken };
             },
             plugins: [
                 newRelicApolloPlugin
