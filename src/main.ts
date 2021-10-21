@@ -36,7 +36,7 @@ async function connectPostgres() {
         url: process.env.DATABASE_URL || "postgres://postgres:kidsloop@localhost",
         synchronize: true,
         logging: Boolean(process.env.DATABASE_LOGGING),
-        entities: ["src/entities/*.ts"],
+        entities: [__dirname + "/src/entities/*.ts"],
     });
     console.log("🐘 Connected to postgres");
     return connection;
