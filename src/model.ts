@@ -527,7 +527,7 @@ export class Model {
             await axios.post(url, {token});
         } catch(e) {
             console.log("Unable to post attendance");
-            // console.error(e);
+            console.error(e);
         }
     }
 
