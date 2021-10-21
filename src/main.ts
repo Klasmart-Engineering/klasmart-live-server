@@ -8,6 +8,10 @@ import { createConnection } from "typeorm";
 import WebSocket from "ws";
 import { resolvers } from "graphql-scalars";
 import cookie from "cookie";
+import { Attendance } from "./entities/attendance";
+import { Feedback, QuickFeedback } from "./entities/feedback";
+// import path from "path";
+
 import {
     checkAuthenticationToken,
     checkLiveAuthorizationToken,
@@ -36,7 +40,7 @@ async function connectPostgres() {
         url: process.env.DATABASE_URL || "postgres://postgres:kidsloop@localhost",
         synchronize: true,
         logging: Boolean(process.env.DATABASE_LOGGING),
-        entities: [__dirname + "/src/entities/*.ts"],
+        entities: [Attendance, Feedback, QuickFeedback],
     });
     console.log("🐘 Connected to postgres");
     return connection;
