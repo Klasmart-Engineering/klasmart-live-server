@@ -1,6 +1,5 @@
 /* eslint @typescript-eslint/no-var-requires: "off" */
 const path = require("path");
-const webpack = require("webpack");
 const nodeExternals = require("webpack-node-externals");
 module.exports = {
     mode: "development",
@@ -25,14 +24,5 @@ module.exports = {
         filename: "index.js",
         path: path.resolve(__dirname, "dist"),
     },
-    plugins: [
-        new webpack.BannerPlugin(
-            {
-                banner: "require(\"source-map-support\").install();",
-                raw: true,
-                entryOnly: false
-            },
-        )
-    ],
     externals: [nodeExternals()],
 };
