@@ -3,7 +3,7 @@ const path = require("path");
 const webpack = require("webpack");
 const nodeExternals = require("webpack-node-externals");
 module.exports = {
-    mode: "production",
+    mode: "development",
     target: "node",
     entry: ["./src/main.ts"],
     devtool: "source-map",
