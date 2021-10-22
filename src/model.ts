@@ -615,10 +615,10 @@ export class Model {
     public async saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string, stars: number}[]) {
         const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
 
-        if(!context.token || !context.sessionId || !url) { return; }
+        if(!context.authorizationToken || !context.sessionId || !url) { return; }
         const variables = {
-            roomId: context.token.roomid,
-            userId: context.token.userid,
+            roomId: context.authorizationToken.roomid,
+            userId: context.authorizationToken.userid,
             sessionId: context.sessionId,
             stars: stars,
             comment: comment,
