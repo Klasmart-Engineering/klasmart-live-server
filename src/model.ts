@@ -4,14 +4,13 @@ import { RedisKeys } from "./redisKeys";
 import  Redis from "ioredis";
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { Context } from "./main";
-import WebSocket from "ws";
+import WebSocket = require("ws");
+import { request } from "graphql-request";
 import { PageEvent, Session, StudentReport, StudentReportActionType } from "./types";
-import { Attendance } from "./entities/attendance";
-import { getRepository } from "typeorm";
+import { Attendance } from "./types";
 import axios from "axios";
 import { attendanceToken, studentReportToken } from "./jwt";
-import { Feedback, FeedbackType, QuickFeedback, QuickFeedbackType } from "./entities/feedback";
-import { UserInputError } from "apollo-server";
+import { SAVE_ATTENDANCE_MUTATION, GET_ATTENDACE_QUERY, SAVE_FEEDBACK_MUTATION } from "./graphql";
 
 export class Model {
     public static async create() {
@@ -471,19 +470,24 @@ export class Model {
     }
 
     private async logAttendance(roomId: string, session: Session) {
-        try {
-            const attendance = new Attendance();
-            attendance.sessionId = session.id;
-            attendance.joinTimestamp = new Date(session.joinedAt);
-            attendance.leaveTimestamp = new Date();
-            attendance.roomId = roomId;
-            attendance.userId = session.userId;
-            await attendance.save();
-            console.log("logAttendance", attendance);
-        } catch(e) {
-            console.log(`Unable to save attendance: ${JSON.stringify({session, leaveTime: Date.now()})}`);
-            console.log(e);
-        }
+        const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
+        if(!url) return;
+
+        const variables = {
+            roomId: roomId,
+            sessionId: session.id,
+            userId: session.userId,
+            joinTimestamp: new Date(session.joinedAt),
+            leaveTimestamp: new Date()
+        };
+
+        await request(url, SAVE_ATTENDANCE_MUTATION, variables).then((data) => {
+            const attendance = data.saveAttendance;
+            console.log("saved attendance: ", attendance);
+        }).catch((e) => {
+            console.log("could not save attendance: ", e);
+        });
+          
     }
 
     private async attendanceNotify(rooms: Set<string>) {
@@ -506,25 +510,36 @@ export class Model {
     }
 
     private async sendAttendance(roomId: string) {
-        const url = process.env.ASSESSMENT_ENDPOINT;
-        if(!url) {return;}
+        const assessmentUrl = process.env.ASSESSMENT_ENDPOINT;
+        const attendanceUrl = process.env.ATTENDANCE_SERVICE_ENDPOINT;
+
+        if(!assessmentUrl || !attendanceUrl) {return;}
+
         try {
-            const attendance = await getRepository(Attendance).find({ roomId });
+            let attendance: Attendance [] = [];
+
+            await request(attendanceUrl, GET_ATTENDACE_QUERY, {roomId: roomId}).then(async (data: any) => {
+                attendance = data.getClassAttendance;
+                console.log("received attendance: ", attendance);
+            }).catch((e) => {
+                console.log("could not get attendance: ", e);
+            });
+
             const attendance_ids = new Set([...attendance.map((a) => a.userId)]);
             const now = Number(new Date());
             const class_end_time_ms = Math.max(
-                ...attendance.map((a) => Number(a.leaveTimestamp)),
+                ...attendance.map((a) => Number(new Date(a.leaveTimestamp).getTime())),
                 now,
             );
             const class_end_time = Math.round(class_end_time_ms / 1000);
             const class_start_time_ms = Math.min(
-                ...attendance.map((a) => Number(a.joinTimestamp)),
+                ...attendance.map((a) => Number(new Date(a.joinTimestamp).getTime())),
                 now,
             );
             const class_start_time = Math.round(class_start_time_ms / 1000);
-            console.log("sendAttendance", {roomId, attendance_ids: [...attendance_ids], class_start_time, class_end_time});
             const token = await attendanceToken(roomId, [...attendance_ids], class_start_time, class_end_time);
-            await axios.post(url, {token});
+            await axios.post(assessmentUrl, {token});
+            
         } catch(e) {
             console.log("Unable to post attendance");
             console.error(e);
@@ -598,32 +613,25 @@ export class Model {
     }
 
     public async saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string, stars: number}[]) {
-        if(!context.authorizationToken || !context.sessionId) { return; }
-        const feedbackArray = [];
-        for (const { type, stars } of quickFeedback) {
-            const item = new QuickFeedback();
-            const quickFeedbackType = Object.values(QuickFeedbackType).find((val: string) => val.toLowerCase() === type.toLowerCase());
-            if (!quickFeedbackType) {
-                throw new UserInputError(`invalid quick feedback type: ${type}`);
-            }
-            item.type = quickFeedbackType;
-            item.stars = stars;
-            feedbackArray.push(item);
-        }
+        const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
 
-        try {
-            const feedback = new Feedback();
-            feedback.sessionId = context.sessionId;
-            feedback.roomId = context.authorizationToken.roomid;
-            feedback.userId = context.authorizationToken.userid;
-            feedback.type = feedbackType === "END_CLASS" ? FeedbackType.EndClass : FeedbackType.LeaveClass;
-            feedback.stars = stars;
-            feedback.comment = comment;
-            feedback.quickFeedback = feedbackArray;
-            await feedback.save();
-        } catch(e) {
-            console.log(e);
-        }
+        if(!context.authorizationToken || !context.sessionId || !url) { return; }
+        const variables = {
+            roomId: context.authorizationToken.roomid,
+            userId: context.authorizationToken.userid,
+            sessionId: context.sessionId,
+            stars: stars,
+            comment: comment,
+            feedbackType: feedbackType,
+            quickFeedback: quickFeedback
+        };
+        await request(url, SAVE_FEEDBACK_MUTATION, variables).then((data) => {
+            const feedback = data.saveFeedback;
+            console.log("\nsaved feedback: ", feedback);
+        }).catch((e) => {
+            console.log("could not save feedback: ", e);
+        });
+        
         return true;
     }
 
