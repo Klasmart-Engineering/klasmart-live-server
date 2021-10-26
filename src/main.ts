@@ -4,13 +4,9 @@ import dotenv from "dotenv";
 import { ApolloServer, ForbiddenError, ApolloError } from "apollo-server";
 import { Model } from "./model";
 import { schema } from "./schema";
-import { createConnection } from "typeorm";
 import WebSocket from "ws";
 import { resolvers } from "graphql-scalars";
 import cookie from "cookie";
-import { Attendance } from "./entities/attendance";
-import { Feedback, QuickFeedback } from "./entities/feedback";
-// import path from "path";
 
 import {
     checkAuthenticationToken,
