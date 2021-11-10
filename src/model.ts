@@ -3,7 +3,7 @@ import { redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
 import  Redis from "ioredis";
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
-import {Attendance, Context, PageEvent, Session, StudentReport, StudentReportActionType} from "./types";
+import {Attendance, ClassType, Context, PageEvent, Session, StudentReport, StudentReportActionType} from "./types";
 import WebSocket = require("ws");
 import {Pipeline} from "./pipeline";
 import {GET_ATTENDACE_QUERY, SAVE_ATTENDANCE_MUTATION, SAVE_FEEDBACK_MUTATION} from "./graphql";
@@ -12,7 +12,7 @@ import {attendanceToken, studentReportToken} from "./jwt";
 import axios from "axios";
 
 export class Model {
-    public static async create() {
+    public static async createClient() {
         const redisMode = process.env.REDIS_MODE ?? "NODE";
         const port = Number(process.env.REDIS_PORT) || undefined;
         const host = process.env.REDIS_HOST;
@@ -44,14 +44,30 @@ export class Model {
             );
         }
         await redis.connect();
+        return redis;
+    }
+
+    public static async create() {
+        const redis = await this.createClient();
+        const sub = await this.createClient();
         console.log("🔴 Redis database connected");
-        return new Model(redis);
+        return new Model(redis, sub);
     }
 
     private whiteboard: WhiteboardService;
+    private client: Redis.Cluster | Redis.Redis
+    private sub: Redis.Cluster | Redis.Redis
 
-    private constructor(private client: Redis.Cluster | Redis.Redis) {
-        this.whiteboard = new WhiteboardService(client);
+ 
+    private constructor(client: Redis.Cluster | Redis.Redis, sub: Redis.Cluster | Redis.Redis) {
+        this.client = client;
+        this.sub = sub;
+        this.whiteboard = new WhiteboardService(client); 
+
+        this.sub.on("message", (channel: string) => {
+            const arr = channel.split(":");
+            this.triggerLiveClassAssessment(arr[1]);
+        });
     }
 
     public async getSession(roomId: string, sessionId: string): Promise<Session> {
@@ -214,12 +230,12 @@ export class Model {
             await pipeline.del(sessionKey);
             await pipeline.srem(roomSessions, sessionKey);
             await this.notifyRoom(roomId, { leave: session});
-            await this.logAttendance(roomId, session);
+            await this.logAttendance(roomId, session, context);
         }
 
         await pipeline.exec();
+        await this.sendAttendance(authorizationToken.roomid, authorizationToken.classtype === ClassType.LIVE);
 
-        await this.sendAttendance(roomId);
         return true;
     }
 
@@ -239,6 +255,16 @@ export class Model {
         // TODO: Pipeline initial operations
         await this.userJoin(roomId, sessionId, authorizationToken.userid, name ?? authorizationToken.name, authorizationToken.teacher, authenticationToken?.email);
 
+        if(authorizationToken.classtype === ClassType.LIVE){
+            const EVENT = `__keyspace@0__:${roomId}`;
+            this.sub.subscribe(EVENT, () => {
+                console.log(`Live class ${roomId} is subscribed to EXPIRED chanel`);
+            });
+            const classEndtime = new Date(1000*authorizationToken.exp);
+            const currentTime = new Date();
+            const diffInSeconds = Math.floor((classEndtime.getTime() - currentTime.getTime())/1000);
+            this.client.set(roomId, "", "EX", diffInSeconds+5);
+        }
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
         if (sfuAddress) {
@@ -478,7 +504,7 @@ export class Model {
         );
 
         //Log Attendance
-        await this.logAttendance(roomId, session);
+        await this.logAttendance(roomId, session, context);
         await pipeline.exec();
 
         //Select new host
@@ -490,13 +516,19 @@ export class Model {
             }
         }
 
-        await this.attendanceNotify(roomId);
+        await this.attendanceNotify(roomId, context);
     }
 
-    private async logAttendance(roomId: string, session: Session) {
+    private async logAttendance(roomId: string, session: Session, context: Context) {
         const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
         if(!url) return;
 
+        // const autorizationToken = context.authorizationToken;
+        // const leave_time = new Date()
+        // const class_start_time = new Date(1000*autorizationToken.)
+        // const classEndtime = new Date(1000*authorizationToken.exp);
+        //     const currentTime = new Date();
+        // if(autorizationToken?.classtype === ClassType.LIVE && )
         const variables = {
             roomId: roomId,
             sessionId: session.id,
@@ -513,17 +545,19 @@ export class Model {
         });
     }
 
-    private async attendanceNotify(roomId: string) {
+    private async attendanceNotify(roomId: string, context: Context) {
         //There were no sessions in room
         //Maybe we need a timeout to check no one rejoins
         const roomSessions = RedisKeys.roomSessions(roomId);
         const numSessions = await this.client.scard(roomSessions);
         if (numSessions <= 0) {
-            await this.sendAttendance(roomId);
+            if(context.authorizationToken?.classtype !== ClassType.LIVE){
+                await this.sendAttendance(roomId);
+            }
         }
     }
 
-    private async sendAttendance(roomId: string) {
+    private async sendAttendance(roomId: string, isLiveClass?: boolean) {
         const assessmentUrl = process.env.ASSESSMENT_ENDPOINT;
         const attendanceUrl = process.env.ATTENDANCE_SERVICE_ENDPOINT;
 
@@ -540,6 +574,9 @@ export class Model {
             });
 
             const attendance_ids = new Set([...attendance.map((a) => a.userId)]);
+            if(isLiveClass && attendance_ids.size <= 1){
+                return;
+            }
             const now = Number(new Date());
             const class_end_time_ms = Math.max(
                 ...attendance.map((a) => Number(new Date(a.leaveTimestamp).getTime())),
@@ -735,8 +772,12 @@ export class Model {
             console.log("could not send userStatistics ");
             console.log(e);
         }
-
+        this.client.publish("DEL", "K");
         return true;
+    }
+    private async triggerLiveClassAssessment(roomId: string){
+        console.log("TRIGGERING LIVE CLASS ASSESSMENT ", roomId);
+        await this.sendAttendance(roomId, true);
     }
 }
 
