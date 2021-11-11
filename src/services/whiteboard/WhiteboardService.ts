@@ -1,4 +1,4 @@
-import { Cluster } from "ioredis";
+import { Cluster, Redis } from "ioredis";
 import { RedisKeys } from "../../redisKeys";
 import { PainterEvent } from "./events/PainterEvent";
 import { redisStreamDeserialize, redisStreamSerialize } from "../../utils";
@@ -8,11 +8,7 @@ import WebSocket from "ws";
 import { IWhiteboardService } from "./IWhiteboardService";
 
 export class WhiteboardService implements IWhiteboardService {
-    readonly client: Cluster
-
-    constructor(client: Cluster) {
-        this.client = client;
-    }
+    constructor(private readonly client: Cluster | Redis) {}
 
     async whiteboardSendDisplay(roomId: string, display: boolean): Promise<boolean> {
         const whiteboardStateKey = RedisKeys.whiteboardState(roomId);

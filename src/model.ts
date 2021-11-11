@@ -14,29 +14,44 @@ import { SAVE_ATTENDANCE_MUTATION, GET_ATTENDACE_QUERY, SAVE_FEEDBACK_MUTATION }
 
 export class Model {
     public static async create() {
+        const redisMode = process.env.REDIS_MODE ?? "NODE";
+        const port = Number(process.env.REDIS_PORT) || undefined;
+        const host = process.env.REDIS_HOST;
+        const password = process.env.REDIS_PASS;
+        const lazyConnect = true;
 
-        const redis = new Redis.Cluster([
+        let redis: Redis.Redis | Redis.Cluster;
+        if (redisMode === "CLUSTER") {
+            redis = new Redis.Cluster([
+                {
+                    port,
+                    host
+                },
+            ],
             {
-                port: Number(process.env.REDIS_PORT) || undefined,
-                host: process.env.REDIS_HOST
-            },
-        ],
-        {
-            lazyConnect: true,
-            redisOptions: {
-                password: process.env.REDIS_PASS || undefined
-            }
-        });
+                lazyConnect,
+                redisOptions: {
+                    password
+                }
+            });
+        } else {
+            redis = new Redis(
+                port,
+                host,
+                {
+                    lazyConnect: true,
+                    password
+                }
+            );
+        }
         await redis.connect();
         console.log("🔴 Redis database connected");
         return new Model(redis);
     }
 
-    private client: Redis.Cluster
     private whiteboard: WhiteboardService
 
-    private constructor(client: Redis.Cluster) {
-        this.client = client;
+    private constructor(private client: Redis.Cluster | Redis.Redis) {
         this.whiteboard = new WhiteboardService(client);
     }
 
