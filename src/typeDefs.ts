@@ -1,5 +1,5 @@
-import { gql } from "apollo-server";
-import { typeDefs } from "graphql-scalars";
+import { gql } from "apollo-server-express";
+import { typeDefs as typeDef } from "graphql-scalars";
 
 const customSchema = gql`
   type Query {
@@ -175,4 +175,4 @@ const customSchema = gql`
   }
 `;
 
-export const schema = typeDefs.map(typeDef => gql`${typeDef}`).concat(customSchema);
+export const typeDefs = typeDef.map(typeDef => gql`${typeDef}`).concat(customSchema);
