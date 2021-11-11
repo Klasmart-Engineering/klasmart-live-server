@@ -8,7 +8,6 @@ import { Model } from "./model";
 import { SubscriptionServer } from "subscriptions-transport-ws";
 import { execute, subscribe } from "graphql";
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import bodyParser  from "body-parser";
 import { resolvers } from "./resolvers";
 import WebSocket = require("ws");
 import { typeDefs } from "./typeDefs";
@@ -32,7 +31,6 @@ async function main() {
             schema,
             context: async ({ req }) => {
                 
-                // if (connection) { return connection.context; }
                 const authHeader = req.headers.authorization;
                 const rawAuthorizationToken = authHeader?.substr(0, 7).toLowerCase() === "bearer " ? authHeader.substr(7) : authHeader;
                 const authorizationToken = await checkLiveAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
@@ -58,8 +56,8 @@ async function main() {
             ]
         });
         const app = Express();
-        app.use(bodyParser.json({ limit: "50mb" }));
-        app.use(bodyParser.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 }));
+        app.use(Express.json({ limit: "50mb" }));
+        app.use(Express.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 }));
         const httpServer = createServer(app);
         await server.start();
         server.applyMiddleware({ app });
@@ -88,9 +86,7 @@ async function main() {
                         throw new ForbiddenError("The authorization token does not match your session token");
                     }
                     (connectionData as any).authenticationToken = authenticationToken;
-                    return { authenticationToken, authorizationToken, sessionId, websocket, joinTime  };
-                        
-                        
+                    return { authenticationToken, authorizationToken, sessionId, websocket, joinTime  };                        
                 },
                 onDisconnect: (_websocket: WebSocket, connectionData: any) => { 
                     model.disconnect(connectionData as any);
