@@ -1,4 +1,4 @@
-import { Redis } from "ioredis";
+import { Cluster } from "ioredis";
 import { RedisKeys } from "../../redisKeys";
 import { PainterEvent } from "./events/PainterEvent";
 import { redisStreamDeserialize, redisStreamSerialize } from "../../utils";
@@ -8,9 +8,9 @@ import WebSocket from "ws";
 import { IWhiteboardService } from "./IWhiteboardService";
 
 export class WhiteboardService implements IWhiteboardService {
-    readonly client: Redis
+    readonly client: Cluster
 
-    constructor(client: Redis) {
+    constructor(client: Cluster) {
         this.client = client;
     }
 

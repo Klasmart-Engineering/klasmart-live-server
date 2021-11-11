@@ -14,21 +14,28 @@ import { SAVE_ATTENDANCE_MUTATION, GET_ATTENDACE_QUERY, SAVE_FEEDBACK_MUTATION }
 
 export class Model {
     public static async create() {
-        const redis = new Redis({
-            host: process.env.REDIS_HOST,
-            port: Number(process.env.REDIS_PORT) || undefined,
+
+        const redis = new Redis.Cluster([
+            {
+                port: Number(process.env.REDIS_PORT) || undefined,
+                host: process.env.REDIS_HOST
+            },
+        ],
+        {
             lazyConnect: true,
-            password: process.env.REDIS_PASS || undefined
+            redisOptions: {
+                password: process.env.REDIS_PASS || undefined
+            }
         });
         await redis.connect();
         console.log("🔴 Redis database connected");
         return new Model(redis);
     }
 
-    private client: Redis.Redis
+    private client: Redis.Cluster
     private whiteboard: WhiteboardService
 
-    private constructor(client: Redis.Redis) {
+    private constructor(client: Redis.Cluster) {
         this.client = client;
         this.whiteboard = new WhiteboardService(client);
     }
@@ -66,15 +73,15 @@ export class Model {
         return undefined;
     }
 
-    public async setSessionStreamId(roomId: string, sessionId: string| undefined, streamId: string) {
-        if(!sessionId) { throw new Error("Can't setSessionStreamId without knowning the sessionId it was from"); }
+    public async setSessionStreamId(roomId: string, sessionId: string | undefined, streamId: string) {
+        if(!sessionId) { throw new Error("Can't setSessionStreamId without knowing the sessionId it was from"); }
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         await this.client.pipeline()
             .hset(sessionKey, "id", sessionId)
             .hset(sessionKey, "streamId", streamId)
             .exec();
         const session = await this.getSession(roomId, sessionId);
-        this.notifyRoom(roomId, { join: session });
+        await this.notifyRoom(roomId, { join: session });
     }
 
     public async setHost(roomId: string, nextHostId: string) {
@@ -176,19 +183,22 @@ export class Model {
             return false;
         }
         const pipeline = this.client.pipeline();
+        const roomId = authorizationToken.roomid;
 
         // delete class host
-        const roomHost = RedisKeys.roomHost(authorizationToken.roomid);
+        const roomHost = RedisKeys.roomHost(roomId);
         pipeline.del(roomHost.key);
-        
-        for await (const session of this.getSessions(authorizationToken.roomid)) {
-            const sessionKey = RedisKeys.sessionData(authorizationToken.roomid, session.id);
+
+        for await (const session of this.getSessions(roomId)) {
+            const sessionKey = RedisKeys.sessionData(roomId, session.id);
+            const roomSessions = RedisKeys.roomSessions(roomId);
             pipeline.del(sessionKey);
-            await this.notifyRoom(authorizationToken.roomid, { leave: session});
-            await this.logAttendance(authorizationToken.roomid, session);
+            pipeline.srem(roomSessions, sessionKey);
+            await this.notifyRoom(roomId, { leave: session});
+            await this.logAttendance(roomId, session);
         }
         await pipeline.exec();
-        await this.sendAttendance(authorizationToken.roomid);
+        await this.sendAttendance(roomId);
         return true;
     }
 
@@ -330,10 +340,10 @@ export class Model {
     }
 
     public async * getSessions(roomId: string) {
-        const sessionSearchKey = RedisKeys.sessionData(roomId, "*");
+        const roomSessionsKey = RedisKeys.roomSessions(roomId);
         let sessionSearchCursor = "0";
         do {
-            const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
+            const [newCursor, keys] = await this.client.sscan(roomSessionsKey, sessionSearchCursor);
             const pipeline = this.client.pipeline();
             for (const key of keys) { pipeline.hgetall(key); }
             const sessions = await pipeline.exec();
@@ -382,6 +392,7 @@ export class Model {
     private async userJoin(roomId: string, sessionId: string, userId: string, name?: string, isTeacher?: boolean, email?: string) {
         const joinedAt = new Date().getTime();
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
+        const roomSessions = RedisKeys.roomSessions(roomId);
         const roomHostKey = RedisKeys.roomHost(roomId);
         await this.client.pipeline()
             .hset(sessionKey, "id", sessionId)
@@ -390,6 +401,7 @@ export class Model {
             .hset(sessionKey, "joinedAt", joinedAt)
             .hset(sessionKey, "email", email||"")
             .hset(sessionKey, "isTeacher", Boolean(isTeacher).toString())
+            .sadd(roomSessions, sessionKey)
             .exec();
 
         if(isTeacher) {
@@ -399,71 +411,53 @@ export class Model {
 
         const join = await this.getSession(roomId, sessionId);
         console.log("session: ", join);
-        this.notifyRoom(roomId, { join });
-    }
-
-    private async findRooms(sessionId: string): Promise<Set<string>> {
-        const rooms = new Set<string>();
-        const sessionSearchKey = RedisKeys.sessionData("*", sessionId);
-        let sessionSearchCursor = "0";
-        
-        do {
-            const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
-            for (const key of keys) {
-                const params = RedisKeys.parseSessionDataKey(key);
-                if (!params) { continue; }
-                rooms.add(params.roomId);
-            }
-            sessionSearchCursor = newCursor;
-        } while (sessionSearchCursor !== "0");
-        
-        return rooms;
+        await this.notifyRoom(roomId, { join });
     }
 
     private async userLeave(context: Context) {
         console.log("userLeft: ", context?.authorizationToken?.classtype);
         const { sessionId } = context;
-        if(!sessionId) { return; }
-        const roomIds = await this.findRooms(sessionId);
-        
-        for await (const roomId of roomIds) {
-            const roomHostKey = RedisKeys.roomHost(roomId);
-            const roomHostId = await this.client.get(roomHostKey.key);
-            const changeRoomHost = (roomHostId === sessionId);
+        const roomId = context?.authorizationToken?.roomid;
+        if(sessionId === undefined || roomId === undefined) { return; }
 
-            const pipeline = this.client.pipeline();
+        const roomHostKey = RedisKeys.roomHost(roomId);
+        const roomSessions = RedisKeys.roomSessions(roomId);
+        const sessionKey = RedisKeys.sessionData(roomId, sessionId);
+        const roomHostId = await this.client.get(roomHostKey.key);
+        const changeRoomHost = (roomHostId === sessionId);
 
-            if (changeRoomHost) { pipeline.del(roomHostKey.key); }
+        const pipeline = this.client.pipeline();
 
-            //Get and delete session
-            const sesionKey = RedisKeys.sessionData(roomId, sessionId);
-            const session = await this.getSession(roomId, sessionId);
-            pipeline.del(sesionKey);
+        if (changeRoomHost) { pipeline.del(roomHostKey.key); }
 
-            // Notify other participants that this user has left
-            const notify = RedisKeys.roomNotify(roomId);
-            pipeline.expire(notify.key, notify.ttl);
-            pipeline.xadd(
-                notify.key,
-                "MAXLEN", "~", "64", "*",
-                ...redisStreamSerialize({ leave: { id: sessionId } })
-            );
-            
-            //Log Attendance
-            await this.logAttendance(roomId, session);
-            await pipeline.exec();
+        //Get and delete session
+        const session = await this.getSession(roomId, sessionId);
+        pipeline.srem(roomSessions, sessionKey);
+        pipeline.del(sessionKey);
 
-            //Select new host
-            if (changeRoomHost) { 
-                const teachers = await this.getRoomParticipants(roomId, true, true);
-                if(teachers.length > 0){
-                    const firstJoinedTeacher = teachers[0];
-                    await this.setHost(roomId, firstJoinedTeacher.id);
-                }
-            } 
+        // Notify other participants that this user has left
+        const notify = RedisKeys.roomNotify(roomId);
+        pipeline.expire(notify.key, notify.ttl);
+        pipeline.xadd(
+            notify.key,
+            "MAXLEN", "~", "64", "*",
+            ...redisStreamSerialize({ leave: { id: sessionId } })
+        );
+
+        //Log Attendance
+        await this.logAttendance(roomId, session);
+        await pipeline.exec();
+
+        //Select new host
+        if (changeRoomHost) {
+            const teachers = await this.getRoomParticipants(roomId, true, true);
+            if(teachers.length > 0){
+                const firstJoinedTeacher = teachers[0];
+                await this.setHost(roomId, firstJoinedTeacher.id);
+            }
         }
-        await this.attendanceNotify(roomIds);     
 
+        await this.attendanceNotify(roomId);
     }
 
     private async logAttendance(roomId: string, session: Session) {
@@ -484,26 +478,16 @@ export class Model {
         }).catch((e) => {
             console.log("could not save attendance: ", e);
         });
-          
     }
 
-    private async attendanceNotify(rooms: Set<string>) {
-        nextRoom:
-        for(const roomId of rooms) {
-            const sessionSearchKey = RedisKeys.sessionData(roomId, "*");
-            let sessionSearchCursor = "0";
-
-            do {
-                const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
-                if(keys.length > 0) { continue nextRoom; }
-                sessionSearchCursor = newCursor;
-            } while (sessionSearchCursor !== "0");
-
-            //There were no sessions in room
-            //Maybe we need a timeout to check no one rejoins
+    private async attendanceNotify(roomId: string) {
+        //There were no sessions in room
+        //Maybe we need a timeout to check no one rejoins
+        const roomSessions = RedisKeys.roomSessions(roomId);
+        const numSessions = await this.client.scard(roomSessions);
+        if (numSessions <= 0) {
             await this.sendAttendance(roomId);
         }
-
     }
 
     private async sendAttendance(roomId: string) {
