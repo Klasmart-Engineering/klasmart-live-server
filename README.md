@@ -5,13 +5,12 @@
 ## How to set up locally
 
 
-1. Clone repository, Recomended using **ssh+clone** to skip authentication every time
-2.  Run ***npm i***  to install required packages
-3. Install redis and posgress. Recomended to install them in docker, so install docker first
-4. To install and run redis:  ***docker run -p 6379:6379 -d redis***
-5. To install and run posgress:  ***docker run -e POSTGRES_PASSWORD=kidsloop -e POSTGRES_USER=postgres -p 5432:5432 -d postgres***
+1. Clone repository, Recommended using **ssh+clone** to skip authentication every time
+2. Run ***npm i***  to install required packages
+3. Install redis and postgres. Recommended to install them in docker, so install docker first.  Redis requires a functional cluster: https://dltlabs.com/blog/how-to-setup-configure-a-redis-cluster-easily-573120.
+5. To install and run postgres:  ***docker run -e POSTGRES_PASSWORD=kidsloop -e POSTGRES_USER=postgres -p 5432:5432 -d postgres***
 6. Add ***DATABASE_URL=postgres://postgres:kidsloop@localhost*** in ***.env*** *(steps 5 and 6 will be moved to kidsloop-attendance-service soon)*
-7. Finally run ***npm start***.
+7. Finally, run ***npm start***.
 
 
 ## How to make PR
@@ -29,7 +28,7 @@ Most used commit types:
 2. **feat** - introduces a new feature to the codebase (this correlates with MINOR in semantic versioning)  
 3. also **chore, test, style, refactor**
 
-## How to controll versioning 
+## How to control versioning 
 
 We follow [Semantic Versioning](https://semver.org/)
 
