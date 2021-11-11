@@ -1,9 +1,9 @@
 import { Session } from "./types";
 
-export function redisStreamDeserialize<T> (keyValues: string[]): T|undefined {
+export function redisStreamDeserialize<T> (keyValues: string[]): T | undefined {
     for (let i = 0; i + 1 < keyValues.length; i += 2) {
         try {
-            if (keyValues[i] === "json") { return JSON.parse(keyValues[i + 1]) as any; }
+            if (keyValues[i] === "json") { return JSON.parse(keyValues[i + 1]); }
         } catch (e) {
             console.error(e);
         }

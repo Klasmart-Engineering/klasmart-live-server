@@ -58,11 +58,12 @@ export class Model {
             for (const [, response] of responses) {
                 for (const [id, keyValues] of response) {
                     lastNotifyIndex = id;
-                    const { sfuAddress } = redisStreamDeserialize<any>(keyValues as any);
+                    const { sfuAddress } = redisStreamDeserialize<SFUEntry>(keyValues) as SFUEntry;
                     if (sfuAddress) { return sfuAddress; }
                 }
             }
         }
+        return undefined;
     }
 
     public async setSessionStreamId(roomId: string, sessionId: string| undefined, streamId: string) {
@@ -77,8 +78,8 @@ export class Model {
     }
 
     public async setHost(roomId: string, nextHostId: string) {
-        if(!nextHostId) { throw new Error("Can't set the host without knowning the sessionId of the new host"); }
-        
+        if(!nextHostId) { throw new Error("Can't set the host without knowing the sessionId of the new host"); }
+
         const roomHostKey = RedisKeys.roomHost(roomId);
         const nextHostSessionKey = RedisKeys.sessionData(roomId, nextHostId);
 
@@ -96,7 +97,6 @@ export class Model {
         }
 
         await pipeline.exec();
-        
         const join = await this.getSession(roomId, nextHostId);
         this.notifyRoom(roomId, { join }).catch((e) => console.log(e));
 
@@ -116,7 +116,6 @@ export class Model {
 
     public async postPageEvent(streamId: string, pageEvents: PageEvent[]) {
         const key = RedisKeys.streamEvents(streamId);
-        // console.log('streamId: ', streamId);
         const pipeline = this.client.pipeline();
         for (const { eventsSinceKeyframe, isKeyframe, eventData } of pageEvents) {
             pipeline.xadd(
@@ -135,11 +134,11 @@ export class Model {
 
     public async sendMessage(roomId: string, sessionId: string | undefined, message: string) {
         if (!roomId) { throw new Error(`Invalid roomId('${roomId}')`); }
-        if(!sessionId) { throw new Error("Can't reward trophy without knowning the sessionId it was from"); }
+        if(!sessionId) { throw new Error("Can't reward trophy without knowing the sessionId it was from"); }
         message = message.trim();
         if (message.length > 1024) { message = `${message.slice(0, 1024).trim()}...`; }
         if (!message) { return; }
-        // TODO: Pipeline these opperations
+        // TODO: Pipeline these operations
         const chatMessages = RedisKeys.roomMessages(roomId);
         const session = await this.getSession(roomId, sessionId);
         await this.client.expire(chatMessages.key, chatMessages.ttl);
@@ -148,7 +147,7 @@ export class Model {
     }
 
     public async webRTCSignal(roomId: string, toSessionId: string, sessionId: string | undefined, webRTC: any) {
-        if(!sessionId) { throw new Error("Can't send webrtc signal without knowning the sessionId it was from"); }
+        if(!sessionId) { throw new Error("Can't send webrtc signal without knowing the sessionId it was from"); }
         await this.notifySession(roomId, toSessionId, { webRTC: { sessionId, ...webRTC } });
         return true;
     }
@@ -269,26 +268,26 @@ export class Model {
                     lastMessageIndex, lastNotifyIndex, lastSessionNotifyIndex
                 );
                 if (!responses) { continue; }
-                
+
                 for (const [key, response] of responses) {
                     switch (key) {
                     case notify.key:
                         for (const [id, keyValues] of response) {
                             lastNotifyIndex = id;
-                            yield { room: { ...redisStreamDeserialize<any>(keyValues as any) } };
+                            yield { room: { ...redisStreamDeserialize<any>(keyValues) } };
                         }
                         break;
                     case chatMessages.key:
 
                         for (const [id, keyValues] of response) {
                             lastMessageIndex = id;
-                            yield { room: { message: { id, ...redisStreamDeserialize<any>(keyValues as any) } } };
+                            yield { room: { message: { id, ...redisStreamDeserialize<any>(keyValues) } } };
                         }
                         break;
                     case sessionNotifyKey:
                         for (const [id, keyValues] of response) {
                             lastSessionNotifyIndex = id;
-                            yield { room: { session: { ...redisStreamDeserialize<any>(keyValues as any) } } };
+                            yield { room: { session: { ...redisStreamDeserialize<any>(keyValues) } } };
                         }
                         break;
                     }
@@ -307,16 +306,14 @@ export class Model {
         const client = this.client.duplicate(); // We will block
         try {
             while (websocket.readyState === WebSocket.OPEN) {
-                client.expire(key, 60 * 5);
+                await client.expire(key, 60 * 5);
                 const response = await client.xread("BLOCK", 10000, "STREAMS", key, from);
                 // console.log(streamId, 'response');
                 if (!response) { continue; }
                 const [[, messages]] = response;
                 for (const [id, keyValues] of messages) {
-                    // ioredis's types definitions are incorrect
-                    // keyValues is of type string[], e.g. [key1, value1, key2, value2, key3, value3...]
                     from = id;
-                    const m = fromRedisKeyValueArray(keyValues as any);
+                    const m = fromRedisKeyValueArray(keyValues);
                     yield {
                         stream: {
                             id,
@@ -539,7 +536,7 @@ export class Model {
             const class_start_time = Math.round(class_start_time_ms / 1000);
             const token = await attendanceToken(roomId, [...attendance_ids], class_start_time, class_end_time);
             await axios.post(assessmentUrl, {token});
-            
+
         } catch(e) {
             console.log("Unable to post attendance");
             console.error(e);
@@ -585,17 +582,18 @@ export class Model {
         const client = this.client.duplicate(); // We will block
         try {
             while (websocket.readyState === WebSocket.OPEN) {
-                client.expire(video.key, video.ttl);
-                client.expire(stream.key, stream.ttl);
+                await client
+                    .pipeline()
+                    .expire(video.key, video.ttl)
+                    .expire(stream.key, stream.ttl)
+                    .exec();
                 const response = await client.xread("BLOCK", 10000, "STREAMS", stream.key, from);
                 if (!response) { continue; }
                 const [[, messages]] = response;
                 //TODO: optimize to only send most recent message
                 for (const [id, keyValues] of messages) {
-                    // ioredis's types definitions are incorrect
-                    // keyValues is of type string[], e.g. [key1, value1, key2, value2, key3, value3...]
                     from = id;
-                    const state = redisStreamDeserialize(keyValues as any) as any;
+                    const state = redisStreamDeserialize<any>(keyValues);
                     const delta = (await this.getTime()) - Number(state["time"]);
                     const offset = Number(state["offset"]) + delta;
                     yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number.isFinite(offset) ? offset : undefined } };
@@ -607,7 +605,7 @@ export class Model {
     }
 
     public async rewardTrophy(roomId: string, user: string, kind: string, sessionId?: string): Promise<boolean> {
-        if(!sessionId) { throw new Error("Can't reward trophy without knowning the sessionId it was from"); }
+        if(!sessionId) { throw new Error("Can't reward trophy without knowing the sessionId it was from"); }
         await this.notifyRoom(roomId, { trophy: { from: sessionId, user, kind } });
         return true;
     }
@@ -631,7 +629,7 @@ export class Model {
         }).catch((e) => {
             console.log("could not save feedback: ", e);
         });
-        
+
         return true;
     }
 
@@ -652,7 +650,6 @@ export class Model {
     }
 
     private async deleteOldStreamId(roomId: string, activityType: string) {
-        
         const roomActivityTypeKey = RedisKeys.activityType(roomId);
         const roomActivityType = await this.client.get(roomActivityTypeKey.key);
 
@@ -667,13 +664,11 @@ export class Model {
                         const studentSessionKey = RedisKeys.sessionData(roomId, studentSession.id);
                         await this.client
                             .hset(studentSessionKey, "streamId", "" );
-                        
                         const session = await this.getSession(roomId, studentSession.id);
-                        await this.notifyRoom(roomId, {join: session });   
-                    }         
+                        await this.notifyRoom(roomId, {join: session });
+                    }
                 }
             }
-
         }
     }
 
@@ -683,7 +678,7 @@ export class Model {
         if(!url || !(materialUrl && activityTypeName && classtype)) return;
 
         try{
-            const userStatisctics: StudentReport = {
+            const userStatistics: StudentReport = {
                 classType: classtype,
                 lessonMaterialUrl: materialUrl,
                 contentType: activityTypeName.toLowerCase(),
@@ -691,24 +686,26 @@ export class Model {
             };
 
             const studentSessions = await this.getRoomParticipants(roomId, false);
-            const students: any = [];
+            const students: Student[] = [];
             const recordedAt = new Date().getTime();
-            const requestBody: any = {
+            const requestBody: RequestBody = {
                 room_id: roomId,
-                class_type: userStatisctics.classType,
-                lesson_material_url: userStatisctics.lessonMaterialUrl,
-                content_type: userStatisctics.contentType,
-                action_type: userStatisctics.actionType,
-                timestamp: recordedAt
+                class_type: userStatistics.classType,
+                lesson_material_url: userStatistics.lessonMaterialUrl,
+                content_type: userStatistics.contentType,
+                action_type: userStatistics.actionType,
+                timestamp: recordedAt,
+                students: []
             };
             for await (const session of studentSessions){
-                const student: any = {};
-                student["user_id"] = session.userId;
-                student["email"] = session.email;
-                student["name"] = session.name;
+                const student: Student = {
+                    user_id: session.userId,
+                    email: session.email,
+                    name: session.name
+                };
                 students.push(student);
-            }   
-            requestBody["students"] = students;
+            }
+            requestBody.students = students;
             console.log("log type: report", " request body:", requestBody);
             const token = await studentReportToken(requestBody);
             await axios.post(url, {token});
@@ -720,5 +717,24 @@ export class Model {
 
         return true;
     }
+}
 
+type Student = {
+    user_id: string,
+    email: string,
+    name: string
+}
+
+type RequestBody = {
+    room_id: string,
+    class_type: string,
+    lesson_material_url: string,
+    content_type: string,
+    action_type: StudentReportActionType,
+    timestamp: number,
+    students: Student[]
+}
+
+type SFUEntry = {
+    sfuAddress: string
 }
