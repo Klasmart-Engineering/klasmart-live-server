@@ -62,7 +62,7 @@
     "graphql": "^16.0.1",
     "graphql-request": "^3.5.0",
     "graphql-scalars": "^1.8.0",
-    "ioredis": "^4.17.3",
+    "ioredis": "^4.28.0",
     "jsonwebtoken": "^8.5.1",
     "kidsloop-token-validation": "bitbucket:calmisland/kidsloop-token-validation",
     "logrocket": "^1.0.12",
