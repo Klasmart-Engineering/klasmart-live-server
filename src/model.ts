@@ -441,14 +441,16 @@ export class Model {
         const roomHostId = await this.client.get(roomHostKey.key);
         const changeRoomHost = (roomHostId === sessionId);
 
-        const pipeline = this.client.pipeline();
+        // If using Redis in cluster mode, a pipeline requires all operations to be performed on the
+        // same node, otherwise you will get an error.  This keeps compatibility with using node mode.
+        const pipeline = process.env.REDIS_MODE === "CLUSTER" ? this.client : this.client.pipeline();
 
         if (changeRoomHost) { pipeline.del(roomHostKey.key); }
 
         //Get and delete session
         const session = await this.getSession(roomId, sessionId);
-        pipeline.srem(roomSessions, sessionKey);
-        pipeline.del(sessionKey);
+        await pipeline.srem(roomSessions, sessionKey);
+        await pipeline.del(sessionKey);
 
         // Notify other participants that this user has left
         const notify = RedisKeys.roomNotify(roomId);
@@ -461,7 +463,9 @@ export class Model {
 
         //Log Attendance
         await this.logAttendance(roomId, session);
-        await pipeline.exec();
+        if (process.env.REDIS_MODE !== "CLUSTER") {
+            await pipeline.exec();
+        }
 
         //Select new host
         if (changeRoomHost) {
