@@ -5,12 +5,6 @@ import  Redis from "ioredis";
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { Context } from "./types";
 import WebSocket = require("ws");
-import { request } from "graphql-request";
-import { PageEvent, Session, StudentReport, StudentReportActionType } from "./types";
-import { Attendance } from "./types";
-import axios from "axios";
-import { attendanceToken, studentReportToken } from "./jwt";
-import { SAVE_ATTENDANCE_MUTATION, GET_ATTENDACE_QUERY, SAVE_FEEDBACK_MUTATION } from "./graphql";
 
 export class Model {
     public static async create() {
@@ -49,7 +43,7 @@ export class Model {
         return new Model(redis);
     }
 
-    private whiteboard: WhiteboardService
+    private whiteboard: WhiteboardService;
 
     private constructor(private client: Redis.Cluster | Redis.Redis) {
         this.whiteboard = new WhiteboardService(client);
@@ -91,10 +85,11 @@ export class Model {
     public async setSessionStreamId(roomId: string, sessionId: string | undefined, streamId: string) {
         if(!sessionId) { throw new Error("Can't setSessionStreamId without knowing the sessionId it was from"); }
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
-        await this.client.pipeline()
-            .hset(sessionKey, "id", sessionId)
-            .hset(sessionKey, "streamId", streamId)
-            .exec();
+        const pipeline = new Pipeline(this.client);
+        await pipeline.hset(sessionKey, "id", sessionId);
+        await pipeline.hset(sessionKey, "streamId", streamId);
+        await pipeline.exec();
+
         const session = await this.getSession(roomId, sessionId);
         await this.notifyRoom(roomId, { join: session });
     }
@@ -109,16 +104,16 @@ export class Model {
 
         if(previousHostId === nextHostId) { return; } // The host has not changed
 
-        const pipeline = this.client.pipeline()
-            .hset(nextHostSessionKey, "isHost", "true")
-            .expire(roomHostKey.key, roomHostKey.ttl);
+        const pipeline = new Pipeline(this.client);
+        await pipeline.hset(nextHostSessionKey, "isHost", "true");
+        await pipeline.expire(roomHostKey.key, roomHostKey.ttl);
 
-        if(previousHostId) {
+        if (previousHostId) {
             const previousHostSessionKey = RedisKeys.sessionData(roomId, previousHostId);
-            pipeline.hset(previousHostSessionKey, "isHost", "false");
+            await pipeline.hset(previousHostSessionKey, "isHost", "false");
         }
-
         await pipeline.exec();
+
         const join = await this.getSession(roomId, nextHostId);
         this.notifyRoom(roomId, { join }).catch((e) => console.log(e));
 
@@ -138,9 +133,9 @@ export class Model {
 
     public async postPageEvent(streamId: string, pageEvents: PageEvent[]) {
         const key = RedisKeys.streamEvents(streamId);
-        const pipeline = this.client.pipeline();
+        const pipeline = new Pipeline(this.client);
         for (const { eventsSinceKeyframe, isKeyframe, eventData } of pageEvents) {
-            pipeline.xadd(
+            await pipeline.xadd(
                 key,
                 "MAXLEN", "~", (eventsSinceKeyframe + 1).toString(),
                 "*",
@@ -149,9 +144,13 @@ export class Model {
                 "e", eventData
             );
         }
-        pipeline.expire(key, 60);
-        const result = await pipeline.exec();
-        return result.every(([e]) => e == null);
+        await pipeline.expire(key, 60);
+        if (process.env.REDIS_MODE !== "CLUSTER") {
+            const result = await pipeline.exec();
+            return result.every(([e]) => e == null);
+        } else {
+            return true;
+        }
     }
 
     public async sendMessage(roomId: string, sessionId: string | undefined, message: string) {
@@ -197,22 +196,24 @@ export class Model {
             console.log(`Session ${sessionId} attempted to end class!`);
             return false;
         }
-        const pipeline = this.client.pipeline();
+        const pipeline = new Pipeline(this.client);
         const roomId = authorizationToken.roomid;
 
         // delete class host
         const roomHost = RedisKeys.roomHost(roomId);
-        pipeline.del(roomHost.key);
+        await pipeline.del(roomHost.key);
 
         for await (const session of this.getSessions(roomId)) {
             const sessionKey = RedisKeys.sessionData(roomId, session.id);
             const roomSessions = RedisKeys.roomSessions(roomId);
-            pipeline.del(sessionKey);
-            pipeline.srem(roomSessions, sessionKey);
+            await pipeline.del(sessionKey);
+            await pipeline.srem(roomSessions, sessionKey);
             await this.notifyRoom(roomId, { leave: session});
             await this.logAttendance(roomId, session);
         }
+
         await pipeline.exec();
+
         await this.sendAttendance(roomId);
         return true;
     }
@@ -359,8 +360,10 @@ export class Model {
         let sessionSearchCursor = "0";
         do {
             const [newCursor, keys] = await this.client.sscan(roomSessionsKey, sessionSearchCursor);
-            const pipeline = this.client.pipeline();
-            for (const key of keys) { pipeline.hgetall(key); }
+            const pipeline = new Pipeline(this.client);
+            for (const key of keys) {
+                await pipeline.hgetall(key);
+            }
             const sessions = await pipeline.exec();
             for (const [, session] of sessions) {
                 yield convertSessionRecordToSession(session);
@@ -409,15 +412,16 @@ export class Model {
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
         const roomSessions = RedisKeys.roomSessions(roomId);
         const roomHostKey = RedisKeys.roomHost(roomId);
-        await this.client.pipeline()
-            .hset(sessionKey, "id", sessionId)
-            .hset(sessionKey, "name", name||"")
-            .hset(sessionKey, "userId", userId)
-            .hset(sessionKey, "joinedAt", joinedAt)
-            .hset(sessionKey, "email", email||"")
-            .hset(sessionKey, "isTeacher", Boolean(isTeacher).toString())
-            .sadd(roomSessions, sessionKey)
-            .exec();
+        const pipeline = new Pipeline(this.client);
+
+        await pipeline.hset(sessionKey, "id", sessionId);
+        await pipeline.hset(sessionKey, "name", name || "");
+        await pipeline.hset(sessionKey, "userId", userId);
+        await pipeline.hset(sessionKey, "joinedAt", joinedAt);
+        await pipeline.hset(sessionKey, "email", email||"");
+        await pipeline.hset(sessionKey, "isTeacher", Boolean(isTeacher).toString());
+        await pipeline.sadd(roomSessions, sessionKey);
+        await pipeline.exec();
 
         if(isTeacher) {
             const becameHost = await this.client.set(roomHostKey.key, sessionId, "EX", roomHostKey.ttl, "NX");
@@ -443,9 +447,9 @@ export class Model {
 
         // If using Redis in cluster mode, a pipeline requires all operations to be performed on the
         // same node, otherwise you will get an error.  This keeps compatibility with using node mode.
-        const pipeline = process.env.REDIS_MODE === "CLUSTER" ? this.client : this.client.pipeline();
+        const pipeline =  new Pipeline(this.client);
 
-        if (changeRoomHost) { pipeline.del(roomHostKey.key); }
+        if (changeRoomHost) { await pipeline.del(roomHostKey.key); }
 
         //Get and delete session
         const session = await this.getSession(roomId, sessionId);
@@ -454,8 +458,8 @@ export class Model {
 
         // Notify other participants that this user has left
         const notify = RedisKeys.roomNotify(roomId);
-        pipeline.expire(notify.key, notify.ttl);
-        pipeline.xadd(
+        await pipeline.expire(notify.key, notify.ttl);
+        await pipeline.xadd(
             notify.key,
             "MAXLEN", "~", "64", "*",
             ...redisStreamSerialize({ leave: { id: sessionId } })
@@ -463,9 +467,7 @@ export class Model {
 
         //Log Attendance
         await this.logAttendance(roomId, session);
-        if (process.env.REDIS_MODE !== "CLUSTER") {
-            await pipeline.exec();
-        }
+        await pipeline.exec();
 
         //Select new host
         if (changeRoomHost) {
@@ -658,7 +660,7 @@ export class Model {
 
         if(!roomActivityType) {
             await this.client.set(roomActivityTypeKey.key, activityType);
-        }else{
+        } else {
             await this.client.set(roomActivityTypeKey.key, activityType);
             if(roomActivityType !== activityType){
                 const studentSessions = await this.getRoomParticipants(roomId, false);
