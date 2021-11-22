@@ -319,7 +319,10 @@ export class Model {
                     }
                 }
             }
-        } finally {
+        } catch (e) {
+            console.error(e);
+        }
+        finally {
             client.disconnect();
         }
     }
@@ -350,7 +353,11 @@ export class Model {
                     };
                 }
             }
-        } finally {
+        }
+        catch(e) {
+            console.error(e);
+        }
+        finally {
             client.disconnect();
         }
     }
@@ -604,7 +611,11 @@ export class Model {
                     yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number.isFinite(offset) ? offset : undefined } };
                 }
             }
-        } finally {
+        }
+        catch (e) {
+            console.error(e);
+        }
+        finally {
             client.disconnect();
         }
     }
