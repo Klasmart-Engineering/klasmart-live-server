@@ -3,7 +3,7 @@ import { RedisKeys } from "../../redisKeys";
 import { PainterEvent } from "./events/PainterEvent";
 import { redisStreamDeserialize, redisStreamSerialize } from "../../utils";
 import { WhiteboardState } from "./model/WhiteboardState";
-import { Context } from "../../main";
+import { Context } from "../../types";
 import WebSocket from "ws";
 import { IWhiteboardService } from "./IWhiteboardService";
 

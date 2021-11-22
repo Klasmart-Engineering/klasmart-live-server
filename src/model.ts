@@ -3,7 +3,7 @@ import { redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
 import  Redis from "ioredis";
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
-import { Context } from "./main";
+import { Context } from "./types";
 import WebSocket = require("ws");
 import { request } from "graphql-request";
 import { PageEvent, Session, StudentReport, StudentReportActionType } from "./types";
