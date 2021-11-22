@@ -1,10 +1,10 @@
 export class RedisKeys {
     private static room(roomId: string): string {
-        return `room:${roomId}`;
+        return `room:{${roomId}}`;
     }
 
     private static user(userId: string): string {
-        return `user:${userId}`;
+        return `user:{${userId}}`;
     }
 
     public static roomHost(roomId: string) {
