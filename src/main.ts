@@ -52,7 +52,16 @@ async function main() {
                 return { authorizationToken, authenticationToken };
             },
             plugins: [
-                newRelicApolloPlugin
+                newRelicApolloPlugin,
+                {
+                    async serverWillStart() {
+                        return {
+                            async drainServer() {
+                                subscriptionServer.close();
+                            }
+                        };
+                    }
+                }
             ]
         });
         const app = Express();
@@ -61,7 +70,7 @@ async function main() {
         const httpServer = createServer(app);
         await server.start();
         server.applyMiddleware({ app });
-        SubscriptionServer.create(
+        const subscriptionServer = SubscriptionServer.create(
             { schema, execute, subscribe,
                 keepAlive: 1000,
                 onConnect: async ({ authToken, sessionId }: any, websocket: WebSocket, connectionData: any): Promise<Context> => {
