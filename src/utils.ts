@@ -8,6 +8,7 @@ export function redisStreamDeserialize<T> (keyValues: string[]): T|undefined {
             console.error(e);
         }
     }
+    return undefined;
 }
 
 export function redisStreamSerialize (value: any): ["json", string] {

@@ -1,27 +1,28 @@
-const path = require('path');
-
+/* eslint @typescript-eslint/no-var-requires: "off" */
+const path = require("path");
+const nodeExternals = require("webpack-node-externals");
 module.exports = {
-    mode: 'production',
-    target: 'node',
-    entry: ['./src/main.ts'],
+    mode: "development",
+    target: "node",
+    entry: ["./src/main.ts"],
+    devtool: "source-map",
     module: {
         rules: [
             {
                 test: /\.(j|t)s$/,
                 exclude: /node_modules/,
                 use: {
-                    loader: 'ts-loader',
+                    loader: "ts-loader",
                 }
             },
         ],
     },
     resolve: {
-        extensions: ['.js', '.ts'],
+        extensions: [".js", ".jsx", ".tsx", ".ts"],
     },
     output: {
-        filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist'),
+        filename: "index.js",
+        path: path.resolve(__dirname, "dist"),
     },
-    plugins: [
-    ],
+    externals: [nodeExternals()],
 };

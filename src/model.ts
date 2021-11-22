@@ -1,17 +1,16 @@
 import { convertSessionRecordToSession, fromRedisKeyValueArray } from "./utils";
 import { redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
-import Redis = require("ioredis")
+import  Redis from "ioredis";
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { Context } from "./main";
 import WebSocket = require("ws");
-import { PageEvent, Session, StudentReport, StudentReportActionType, ClassType } from "./types";
-import { Attendance } from "./entities/attendance";
-import { getRepository } from "typeorm";
+import { request } from "graphql-request";
+import { PageEvent, Session, StudentReport, StudentReportActionType } from "./types";
+import { Attendance } from "./types";
 import axios from "axios";
 import { attendanceToken, studentReportToken } from "./jwt";
-import { Feedback, FeedbackType, QuickFeedback, QuickFeedbackType } from "./entities/feedback";
-import { UserInputError } from "apollo-server";
+import { SAVE_ATTENDANCE_MUTATION, GET_ATTENDACE_QUERY, SAVE_FEEDBACK_MUTATION } from "./graphql";
 
 export class Model {
     public static async create() {
@@ -172,26 +171,25 @@ export class Model {
     }
 
     public async endClass(context: Context): Promise<boolean> {
-        console.log("endClass: ", context?.token?.classtype);
-        const {sessionId, token} = context;
-        if (!token?.teacher) {
+        const {sessionId, authorizationToken} = context;
+        if (!authorizationToken?.teacher) {
             console.log(`Session ${sessionId} attempted to end class!`);
             return false;
         }
         const pipeline = this.client.pipeline();
 
         // delete class host
-        const roomHost = RedisKeys.roomHost(token.roomid);
+        const roomHost = RedisKeys.roomHost(authorizationToken.roomid);
         pipeline.del(roomHost.key);
         
-        for await (const session of this.getSessions(token.roomid)) {
-            const sessionKey = RedisKeys.sessionData(token.roomid, session.id);
+        for await (const session of this.getSessions(authorizationToken.roomid)) {
+            const sessionKey = RedisKeys.sessionData(authorizationToken.roomid, session.id);
             pipeline.del(sessionKey);
-            await this.notifyRoom(token.roomid, { leave: session});
-            await this.logAttendance(token.roomid, session);
+            await this.notifyRoom(authorizationToken.roomid, { leave: session});
+            await this.logAttendance(authorizationToken.roomid, session);
         }
         await pipeline.exec();
-        await this.sendAttendance(token.roomid);
+        await this.sendAttendance(authorizationToken.roomid);
         return true;
     }
 
@@ -202,14 +200,14 @@ export class Model {
     }
 
     public async * room(context: Context, roomId: string, name?: string) {
-        const { sessionId, websocket, token, authenticationToken } = context;
-        if(!token) {throw new Error("Can't subscribe to a room without a token");}
+        const { sessionId, websocket, authorizationToken, authenticationToken } = context;
+        if(!authorizationToken) {throw new Error("Can't subscribe to a room without a token");}
         if(!sessionId) {throw new Error("Can't subscribe to a room without a sessionId");}
         if(!websocket) {throw new Error("Can't subscribe to a room without a websocket");}
         if(context.roomId) { console.error(`Session(${sessionId}) already subscribed to Room(${context.roomId}) and will now subscribe to Room(${roomId}) attendance records do not support multiple rooms`); }
         context.roomId = roomId;
         // TODO: Pipeline initial operations
-        await this.userJoin(roomId, sessionId, token.userid, name ?? token.name, token.teacher, authenticationToken?.email);
+        await this.userJoin(roomId, sessionId, authorizationToken.userid, name ?? authorizationToken.name, authorizationToken.teacher, authenticationToken?.email);
 
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
@@ -262,7 +260,6 @@ export class Model {
         const client = this.client.duplicate();
         try {
             while (websocket.readyState === WebSocket.OPEN) {
-                const timeoutMs = 1000 * Math.min(notify.ttl, chatMessages.ttl) / 2;
                 await client.expire(chatMessages.key, chatMessages.ttl);
                 await client.expire(notify.key, notify.ttl);
                 const responses = await client.xread(
@@ -427,7 +424,7 @@ export class Model {
     }
 
     private async userLeave(context: Context) {
-        console.log("userLeft: ", context?.token?.classtype);
+        console.log("userLeft: ", context?.authorizationToken?.classtype);
         const { sessionId } = context;
         if(!sessionId) { return; }
         const roomIds = await this.findRooms(sessionId);
@@ -473,19 +470,24 @@ export class Model {
     }
 
     private async logAttendance(roomId: string, session: Session) {
-        try {
-            const attendance = new Attendance();
-            attendance.sessionId = session.id;
-            attendance.joinTimestamp = new Date(session.joinedAt);
-            attendance.leaveTimestamp = new Date();
-            attendance.roomId = roomId;
-            attendance.userId = session.userId;
-            await attendance.save();
-            console.log("logAttendance", attendance);
-        } catch(e) {
-            console.log(`Unable to save attendance: ${JSON.stringify({session, leaveTime: Date.now()})}`);
-            console.log(e);
-        }
+        const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
+        if(!url) return;
+
+        const variables = {
+            roomId: roomId,
+            sessionId: session.id,
+            userId: session.userId,
+            joinTimestamp: new Date(session.joinedAt),
+            leaveTimestamp: new Date()
+        };
+
+        await request(url, SAVE_ATTENDANCE_MUTATION, variables).then((data) => {
+            const attendance = data.saveAttendance;
+            console.log("saved attendance: ", attendance);
+        }).catch((e) => {
+            console.log("could not save attendance: ", e);
+        });
+          
     }
 
     private async attendanceNotify(rooms: Set<string>) {
@@ -508,28 +510,39 @@ export class Model {
     }
 
     private async sendAttendance(roomId: string) {
-        const url = process.env.ASSESSMENT_ENDPOINT;
-        if(!url) {return;}
+        const assessmentUrl = process.env.ASSESSMENT_ENDPOINT;
+        const attendanceUrl = process.env.ATTENDANCE_SERVICE_ENDPOINT;
+
+        if(!assessmentUrl || !attendanceUrl) {return;}
+
         try {
-            const attendance = await getRepository(Attendance).find({ roomId });
+            let attendance: Attendance [] = [];
+
+            await request(attendanceUrl, GET_ATTENDACE_QUERY, {roomId: roomId}).then(async (data: any) => {
+                attendance = data.getClassAttendance;
+                console.log("received attendance: ", attendance);
+            }).catch((e) => {
+                console.log("could not get attendance: ", e);
+            });
+
             const attendance_ids = new Set([...attendance.map((a) => a.userId)]);
             const now = Number(new Date());
             const class_end_time_ms = Math.max(
-                ...attendance.map((a) => Number(a.leaveTimestamp)),
+                ...attendance.map((a) => Number(new Date(a.leaveTimestamp).getTime())),
                 now,
             );
             const class_end_time = Math.round(class_end_time_ms / 1000);
             const class_start_time_ms = Math.min(
-                ...attendance.map((a) => Number(a.joinTimestamp)),
+                ...attendance.map((a) => Number(new Date(a.joinTimestamp).getTime())),
                 now,
             );
             const class_start_time = Math.round(class_start_time_ms / 1000);
-            console.log("sendAttendance", {roomId, attendance_ids: [...attendance_ids], class_start_time, class_end_time});
             const token = await attendanceToken(roomId, [...attendance_ids], class_start_time, class_end_time);
-            await axios.post(url, {token});
+            await axios.post(assessmentUrl, {token});
+            
         } catch(e) {
             console.log("Unable to post attendance");
-            // console.error(e);
+            console.error(e);
         }
     }
 
@@ -600,32 +613,25 @@ export class Model {
     }
 
     public async saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string, stars: number}[]) {
-        if(!context.token || !context.sessionId) { return; }
-        const feedbackArray = [];
-        for (const { type, stars } of quickFeedback) {
-            const item = new QuickFeedback();
-            const quickFeedbackType = Object.values(QuickFeedbackType).find((val: string) => val.toLowerCase() === type.toLowerCase());
-            if (!quickFeedbackType) {
-                throw new UserInputError(`invalid quick feedback type: ${type}`);
-            }
-            item.type = quickFeedbackType;
-            item.stars = stars;
-            feedbackArray.push(item);
-        }
+        const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
 
-        try {
-            const feedback = new Feedback();
-            feedback.sessionId = context.sessionId;
-            feedback.roomId = context.token.roomid;
-            feedback.userId = context.token.userid;
-            feedback.type = feedbackType === "END_CLASS" ? FeedbackType.EndClass : FeedbackType.LeaveClass;
-            feedback.stars = stars;
-            feedback.comment = comment;
-            feedback.quickFeedback = feedbackArray;
-            await feedback.save();
-        } catch(e) {
-            console.log(e);
-        }
+        if(!context.authorizationToken || !context.sessionId || !url) { return; }
+        const variables = {
+            roomId: context.authorizationToken.roomid,
+            userId: context.authorizationToken.userid,
+            sessionId: context.sessionId,
+            stars: stars,
+            comment: comment,
+            feedbackType: feedbackType,
+            quickFeedback: quickFeedback
+        };
+        await request(url, SAVE_FEEDBACK_MUTATION, variables).then((data) => {
+            const feedback = data.saveFeedback;
+            console.log("\nsaved feedback: ", feedback);
+        }).catch((e) => {
+            console.log("could not save feedback: ", e);
+        });
+        
         return true;
     }
 
@@ -673,7 +679,7 @@ export class Model {
 
     public async studentReport(roomId: string, context: Context, materialUrl: string, activityTypeName:string){
         const url = process.env.STUDENT_REPORT_ENDPOINT;
-        const classtype = context.token?.classtype;
+        const classtype = context.authorizationToken?.classtype;
         if(!url || !(materialUrl && activityTypeName && classtype)) return;
 
         try{
@@ -711,6 +717,8 @@ export class Model {
             console.log("could not send userStatistics ");
             console.log(e);
         }
+
+        return true;
     }
 
 }

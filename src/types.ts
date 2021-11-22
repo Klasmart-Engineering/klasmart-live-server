@@ -24,6 +24,14 @@ export interface StudentReport {
     actionType: StudentReportActionType
 }
 
+export interface Attendance {
+    roomId: string
+    userId: string
+    sessionId: string
+    joinTimestamp: Date
+    leaveTimestamp: Date
+}
+
 export enum ClassType {
     LIVE = "live",
     CLASSES = "class",
