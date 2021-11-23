@@ -1,4 +1,4 @@
-import { Redis } from "ioredis";
+import { Cluster, Redis } from "ioredis";
 import { RedisKeys } from "../../redisKeys";
 import { PainterEvent } from "./events/PainterEvent";
 import { redisStreamDeserialize, redisStreamSerialize } from "../../utils";
@@ -8,11 +8,7 @@ import WebSocket from "ws";
 import { IWhiteboardService } from "./IWhiteboardService";
 
 export class WhiteboardService implements IWhiteboardService {
-    readonly client: Redis
-
-    constructor(client: Redis) {
-        this.client = client;
-    }
+    constructor(private readonly client: Cluster | Redis) {}
 
     async whiteboardSendDisplay(roomId: string, display: boolean): Promise<boolean> {
         const whiteboardStateKey = RedisKeys.whiteboardState(roomId);
@@ -40,7 +36,7 @@ export class WhiteboardService implements IWhiteboardService {
         return true;
     }
 
-    async * whiteboardStateStream(context: Context, roomId: string): AsyncGenerator<{ whiteboardState: WhiteboardState }, void, unknown> {
+    async * whiteboardStateStream(context: Context, roomId: string): AsyncGenerator<{ whiteboardState: WhiteboardState }, void> {
         const stateKey = RedisKeys.whiteboardState(roomId);
 
         for await (const whiteboardState of this.readMostRecentStreamValue<WhiteboardState>(context, stateKey.key, stateKey.ttl)) {
@@ -48,7 +44,7 @@ export class WhiteboardService implements IWhiteboardService {
         }
     }
 
-    async * whiteboardPermissionsStream(context: Context, roomId: string, userId: string): AsyncGenerator<{ whiteboardPermissions: string }, void, unknown> {
+    async * whiteboardPermissionsStream(context: Context, roomId: string, userId: string): AsyncGenerator<{ whiteboardPermissions: string }, void> {
         const permissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
 
         for await (const whiteboardPermissions of this.readMostRecentStreamValue<string>(context, permissionsKey.key, permissionsKey.ttl)) {
@@ -68,7 +64,7 @@ export class WhiteboardService implements IWhiteboardService {
         return true;
     }
 
-    async * whiteboardEventStream({ websocket }: Context, roomId: string): AsyncGenerator<{ whiteboardEvents: PainterEvent[] }, void, unknown> {
+    async * whiteboardEventStream({ websocket }: Context, roomId: string): AsyncGenerator<{ whiteboardEvents: PainterEvent[] }, void> {
         if(!websocket) {throw new Error("whiteboardEventStream requires a websocket");}
         const blockingClient = this.client.duplicate();
         try {
@@ -90,7 +86,7 @@ export class WhiteboardService implements IWhiteboardService {
 
                 lastEventId = events[events.length - 1][0];
 
-                yield { whiteboardEvents: events.map(([, eventValue]) => redisStreamDeserialize<PainterEvent>(eventValue as any)).filter(x => x !== undefined) as PainterEvent[] };
+                yield { whiteboardEvents: events.map(([, eventValue]) => redisStreamDeserialize<PainterEvent>(eventValue)).filter(x => x !== undefined) as PainterEvent[] };
             }
         } finally {
             blockingClient.disconnect();
@@ -106,7 +102,7 @@ export class WhiteboardService implements IWhiteboardService {
         await this.client.xadd(eventsKey.key, "*", "json", event);
     }
 
-    private async * readMostRecentStreamValue<TResult>({ websocket }: Context, key: string, ttl: number): AsyncGenerator<TResult, void, unknown> {
+    private async * readMostRecentStreamValue<TResult>({ websocket }: Context, key: string, ttl: number): AsyncGenerator<TResult, void> {
         if(!websocket) {throw new Error("whiteboardEventStream requires a websocket");}
         const blockingClient = this.client.duplicate();
         try {
@@ -127,7 +123,7 @@ export class WhiteboardService implements IWhiteboardService {
                 const lastIndex = streamData.length - 1;
                 lastEventId = streamData[lastIndex][0];
 
-                const mostRecentData = streamData[lastIndex][1] as any;
+                const mostRecentData = streamData[lastIndex][1];
                 const item = redisStreamDeserialize<TResult>(mostRecentData);
 
                 if (!item) {

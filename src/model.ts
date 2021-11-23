@@ -5,31 +5,47 @@ import  Redis from "ioredis";
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import { Context } from "./types";
 import WebSocket = require("ws");
-import { request } from "graphql-request";
-import { PageEvent, Session, StudentReport, StudentReportActionType } from "./types";
-import { Attendance } from "./types";
-import axios from "axios";
-import { attendanceToken, studentReportToken } from "./jwt";
-import { SAVE_ATTENDANCE_MUTATION, GET_ATTENDACE_QUERY, SAVE_FEEDBACK_MUTATION } from "./graphql";
 
 export class Model {
     public static async create() {
-        const redis = new Redis({
-            host: process.env.REDIS_HOST,
-            port: Number(process.env.REDIS_PORT) || undefined,
-            lazyConnect: true,
-            password: process.env.REDIS_PASS || undefined
-        });
+        const redisMode = process.env.REDIS_MODE ?? "NODE";
+        const port = Number(process.env.REDIS_PORT) || undefined;
+        const host = process.env.REDIS_HOST;
+        const password = process.env.REDIS_PASS;
+        const lazyConnect = true;
+
+        let redis: Redis.Redis | Redis.Cluster;
+        if (redisMode === "CLUSTER") {
+            redis = new Redis.Cluster([
+                {
+                    port,
+                    host
+                },
+            ],
+            {
+                lazyConnect,
+                redisOptions: {
+                    password
+                }
+            });
+        } else {
+            redis = new Redis(
+                port,
+                host,
+                {
+                    lazyConnect: true,
+                    password
+                }
+            );
+        }
         await redis.connect();
         console.log("🔴 Redis database connected");
         return new Model(redis);
     }
 
-    private client: Redis.Redis
-    private whiteboard: WhiteboardService
+    private whiteboard: WhiteboardService;
 
-    private constructor(client: Redis.Redis) {
-        this.client = client;
+    private constructor(private client: Redis.Cluster | Redis.Redis) {
         this.whiteboard = new WhiteboardService(client);
     }
 
@@ -58,27 +74,29 @@ export class Model {
             for (const [, response] of responses) {
                 for (const [id, keyValues] of response) {
                     lastNotifyIndex = id;
-                    const { sfuAddress } = redisStreamDeserialize<any>(keyValues as any);
+                    const { sfuAddress } = redisStreamDeserialize<SFUEntry>(keyValues) as SFUEntry;
                     if (sfuAddress) { return sfuAddress; }
                 }
             }
         }
+        return undefined;
     }
 
-    public async setSessionStreamId(roomId: string, sessionId: string| undefined, streamId: string) {
-        if(!sessionId) { throw new Error("Can't setSessionStreamId without knowning the sessionId it was from"); }
+    public async setSessionStreamId(roomId: string, sessionId: string | undefined, streamId: string) {
+        if(!sessionId) { throw new Error("Can't setSessionStreamId without knowing the sessionId it was from"); }
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
-        await this.client.pipeline()
-            .hset(sessionKey, "id", sessionId)
-            .hset(sessionKey, "streamId", streamId)
-            .exec();
+        const pipeline = new Pipeline(this.client);
+        await pipeline.hset(sessionKey, "id", sessionId);
+        await pipeline.hset(sessionKey, "streamId", streamId);
+        await pipeline.exec();
+
         const session = await this.getSession(roomId, sessionId);
-        this.notifyRoom(roomId, { join: session });
+        await this.notifyRoom(roomId, { join: session });
     }
 
     public async setHost(roomId: string, nextHostId: string) {
-        if(!nextHostId) { throw new Error("Can't set the host without knowning the sessionId of the new host"); }
-        
+        if(!nextHostId) { throw new Error("Can't set the host without knowing the sessionId of the new host"); }
+
         const roomHostKey = RedisKeys.roomHost(roomId);
         const nextHostSessionKey = RedisKeys.sessionData(roomId, nextHostId);
 
@@ -86,17 +104,16 @@ export class Model {
 
         if(previousHostId === nextHostId) { return; } // The host has not changed
 
-        const pipeline = this.client.pipeline()
-            .hset(nextHostSessionKey, "isHost", "true")
-            .expire(roomHostKey.key, roomHostKey.ttl);
+        const pipeline = new Pipeline(this.client);
+        await pipeline.hset(nextHostSessionKey, "isHost", "true");
+        await pipeline.expire(roomHostKey.key, roomHostKey.ttl);
 
-        if(previousHostId) {
+        if (previousHostId) {
             const previousHostSessionKey = RedisKeys.sessionData(roomId, previousHostId);
-            pipeline.hset(previousHostSessionKey, "isHost", "false");
+            await pipeline.hset(previousHostSessionKey, "isHost", "false");
         }
-
         await pipeline.exec();
-        
+
         const join = await this.getSession(roomId, nextHostId);
         this.notifyRoom(roomId, { join }).catch((e) => console.log(e));
 
@@ -116,10 +133,9 @@ export class Model {
 
     public async postPageEvent(streamId: string, pageEvents: PageEvent[]) {
         const key = RedisKeys.streamEvents(streamId);
-        // console.log('streamId: ', streamId);
-        const pipeline = this.client.pipeline();
+        const pipeline = new Pipeline(this.client);
         for (const { eventsSinceKeyframe, isKeyframe, eventData } of pageEvents) {
-            pipeline.xadd(
+            await pipeline.xadd(
                 key,
                 "MAXLEN", "~", (eventsSinceKeyframe + 1).toString(),
                 "*",
@@ -128,18 +144,22 @@ export class Model {
                 "e", eventData
             );
         }
-        pipeline.expire(key, 60);
-        const result = await pipeline.exec();
-        return result.every(([e]) => e == null);
+        await pipeline.expire(key, 60);
+        if (process.env.REDIS_MODE !== "CLUSTER") {
+            const result = await pipeline.exec();
+            return result.every(([e]) => e == null);
+        } else {
+            return true;
+        }
     }
 
     public async sendMessage(roomId: string, sessionId: string | undefined, message: string) {
         if (!roomId) { throw new Error(`Invalid roomId('${roomId}')`); }
-        if(!sessionId) { throw new Error("Can't reward trophy without knowning the sessionId it was from"); }
+        if(!sessionId) { throw new Error("Can't reward trophy without knowing the sessionId it was from"); }
         message = message.trim();
         if (message.length > 1024) { message = `${message.slice(0, 1024).trim()}...`; }
         if (!message) { return; }
-        // TODO: Pipeline these opperations
+        // TODO: Pipeline these operations
         const chatMessages = RedisKeys.roomMessages(roomId);
         const session = await this.getSession(roomId, sessionId);
         await this.client.expire(chatMessages.key, chatMessages.ttl);
@@ -148,7 +168,7 @@ export class Model {
     }
 
     public async webRTCSignal(roomId: string, toSessionId: string, sessionId: string | undefined, webRTC: any) {
-        if(!sessionId) { throw new Error("Can't send webrtc signal without knowning the sessionId it was from"); }
+        if(!sessionId) { throw new Error("Can't send webrtc signal without knowing the sessionId it was from"); }
         await this.notifySession(roomId, toSessionId, { webRTC: { sessionId, ...webRTC } });
         return true;
     }
@@ -176,20 +196,25 @@ export class Model {
             console.log(`Session ${sessionId} attempted to end class!`);
             return false;
         }
-        const pipeline = this.client.pipeline();
+        const pipeline = new Pipeline(this.client);
+        const roomId = authorizationToken.roomid;
 
         // delete class host
-        const roomHost = RedisKeys.roomHost(authorizationToken.roomid);
-        pipeline.del(roomHost.key);
-        
-        for await (const session of this.getSessions(authorizationToken.roomid)) {
-            const sessionKey = RedisKeys.sessionData(authorizationToken.roomid, session.id);
-            pipeline.del(sessionKey);
-            await this.notifyRoom(authorizationToken.roomid, { leave: session});
-            await this.logAttendance(authorizationToken.roomid, session);
+        const roomHost = RedisKeys.roomHost(roomId);
+        await pipeline.del(roomHost.key);
+
+        for await (const session of this.getSessions(roomId)) {
+            const sessionKey = RedisKeys.sessionData(roomId, session.id);
+            const roomSessions = RedisKeys.roomSessions(roomId);
+            await pipeline.del(sessionKey);
+            await pipeline.srem(roomSessions, sessionKey);
+            await this.notifyRoom(roomId, { leave: session});
+            await this.logAttendance(roomId, session);
         }
+
         await pipeline.exec();
-        await this.sendAttendance(authorizationToken.roomid);
+
+        await this.sendAttendance(roomId);
         return true;
     }
 
@@ -269,32 +294,35 @@ export class Model {
                     lastMessageIndex, lastNotifyIndex, lastSessionNotifyIndex
                 );
                 if (!responses) { continue; }
-                
+
                 for (const [key, response] of responses) {
                     switch (key) {
                     case notify.key:
                         for (const [id, keyValues] of response) {
                             lastNotifyIndex = id;
-                            yield { room: { ...redisStreamDeserialize<any>(keyValues as any) } };
+                            yield { room: { ...redisStreamDeserialize<any>(keyValues) } };
                         }
                         break;
                     case chatMessages.key:
 
                         for (const [id, keyValues] of response) {
                             lastMessageIndex = id;
-                            yield { room: { message: { id, ...redisStreamDeserialize<any>(keyValues as any) } } };
+                            yield { room: { message: { id, ...redisStreamDeserialize<any>(keyValues) } } };
                         }
                         break;
                     case sessionNotifyKey:
                         for (const [id, keyValues] of response) {
                             lastSessionNotifyIndex = id;
-                            yield { room: { session: { ...redisStreamDeserialize<any>(keyValues as any) } } };
+                            yield { room: { session: { ...redisStreamDeserialize<any>(keyValues) } } };
                         }
                         break;
                     }
                 }
             }
-        } finally {
+        } catch (e) {
+            console.error(e);
+        }
+        finally {
             client.disconnect();
         }
     }
@@ -307,16 +335,14 @@ export class Model {
         const client = this.client.duplicate(); // We will block
         try {
             while (websocket.readyState === WebSocket.OPEN) {
-                client.expire(key, 60 * 5);
+                await client.expire(key, 60 * 5);
                 const response = await client.xread("BLOCK", 10000, "STREAMS", key, from);
                 // console.log(streamId, 'response');
                 if (!response) { continue; }
                 const [[, messages]] = response;
                 for (const [id, keyValues] of messages) {
-                    // ioredis's types definitions are incorrect
-                    // keyValues is of type string[], e.g. [key1, value1, key2, value2, key3, value3...]
                     from = id;
-                    const m = fromRedisKeyValueArray(keyValues as any);
+                    const m = fromRedisKeyValueArray(keyValues);
                     yield {
                         stream: {
                             id,
@@ -327,18 +353,24 @@ export class Model {
                     };
                 }
             }
-        } finally {
+        }
+        catch(e) {
+            console.error(e);
+        }
+        finally {
             client.disconnect();
         }
     }
 
     public async * getSessions(roomId: string) {
-        const sessionSearchKey = RedisKeys.sessionData(roomId, "*");
+        const roomSessionsKey = RedisKeys.roomSessions(roomId);
         let sessionSearchCursor = "0";
         do {
-            const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
-            const pipeline = this.client.pipeline();
-            for (const key of keys) { pipeline.hgetall(key); }
+            const [newCursor, keys] = await this.client.sscan(roomSessionsKey, sessionSearchCursor);
+            const pipeline = new Pipeline(this.client);
+            for (const key of keys) {
+                await pipeline.hgetall(key);
+            }
             const sessions = await pipeline.exec();
             for (const [, session] of sessions) {
                 yield convertSessionRecordToSession(session);
@@ -385,15 +417,18 @@ export class Model {
     private async userJoin(roomId: string, sessionId: string, userId: string, name?: string, isTeacher?: boolean, email?: string) {
         const joinedAt = new Date().getTime();
         const sessionKey = RedisKeys.sessionData(roomId, sessionId);
+        const roomSessions = RedisKeys.roomSessions(roomId);
         const roomHostKey = RedisKeys.roomHost(roomId);
-        await this.client.pipeline()
-            .hset(sessionKey, "id", sessionId)
-            .hset(sessionKey, "name", name||"")
-            .hset(sessionKey, "userId", userId)
-            .hset(sessionKey, "joinedAt", joinedAt)
-            .hset(sessionKey, "email", email||"")
-            .hset(sessionKey, "isTeacher", Boolean(isTeacher).toString())
-            .exec();
+        const pipeline = new Pipeline(this.client);
+
+        await pipeline.hset(sessionKey, "id", sessionId);
+        await pipeline.hset(sessionKey, "name", name || "");
+        await pipeline.hset(sessionKey, "userId", userId);
+        await pipeline.hset(sessionKey, "joinedAt", joinedAt);
+        await pipeline.hset(sessionKey, "email", email||"");
+        await pipeline.hset(sessionKey, "isTeacher", Boolean(isTeacher).toString());
+        await pipeline.sadd(roomSessions, sessionKey);
+        await pipeline.exec();
 
         if(isTeacher) {
             const becameHost = await this.client.set(roomHostKey.key, sessionId, "EX", roomHostKey.ttl, "NX");
@@ -402,71 +437,55 @@ export class Model {
 
         const join = await this.getSession(roomId, sessionId);
         console.log("session: ", join);
-        this.notifyRoom(roomId, { join });
-    }
-
-    private async findRooms(sessionId: string): Promise<Set<string>> {
-        const rooms = new Set<string>();
-        const sessionSearchKey = RedisKeys.sessionData("*", sessionId);
-        let sessionSearchCursor = "0";
-        
-        do {
-            const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
-            for (const key of keys) {
-                const params = RedisKeys.parseSessionDataKey(key);
-                if (!params) { continue; }
-                rooms.add(params.roomId);
-            }
-            sessionSearchCursor = newCursor;
-        } while (sessionSearchCursor !== "0");
-        
-        return rooms;
+        await this.notifyRoom(roomId, { join });
     }
 
     private async userLeave(context: Context) {
         console.log("userLeft: ", context?.authorizationToken?.classtype);
         const { sessionId } = context;
-        if(!sessionId) { return; }
-        const roomIds = await this.findRooms(sessionId);
-        
-        for await (const roomId of roomIds) {
-            const roomHostKey = RedisKeys.roomHost(roomId);
-            const roomHostId = await this.client.get(roomHostKey.key);
-            const changeRoomHost = (roomHostId === sessionId);
+        const roomId = context?.authorizationToken?.roomid;
+        if(sessionId === undefined || roomId === undefined) { return; }
 
-            const pipeline = this.client.pipeline();
+        const roomHostKey = RedisKeys.roomHost(roomId);
+        const roomSessions = RedisKeys.roomSessions(roomId);
+        const sessionKey = RedisKeys.sessionData(roomId, sessionId);
+        const roomHostId = await this.client.get(roomHostKey.key);
+        const changeRoomHost = (roomHostId === sessionId);
 
-            if (changeRoomHost) { pipeline.del(roomHostKey.key); }
+        // If using Redis in cluster mode, a pipeline requires all operations to be performed on the
+        // same node, otherwise you will get an error.  This keeps compatibility with using node mode.
+        const pipeline =  new Pipeline(this.client);
 
-            //Get and delete session
-            const sesionKey = RedisKeys.sessionData(roomId, sessionId);
-            const session = await this.getSession(roomId, sessionId);
-            pipeline.del(sesionKey);
+        if (changeRoomHost) { await pipeline.del(roomHostKey.key); }
 
-            // Notify other participants that this user has left
-            const notify = RedisKeys.roomNotify(roomId);
-            pipeline.expire(notify.key, notify.ttl);
-            pipeline.xadd(
-                notify.key,
-                "MAXLEN", "~", "64", "*",
-                ...redisStreamSerialize({ leave: { id: sessionId } })
-            );
-            
-            //Log Attendance
-            await this.logAttendance(roomId, session);
-            await pipeline.exec();
+        //Get and delete session
+        const session = await this.getSession(roomId, sessionId);
+        await pipeline.srem(roomSessions, sessionKey);
+        await pipeline.del(sessionKey);
 
-            //Select new host
-            if (changeRoomHost) { 
-                const teachers = await this.getRoomParticipants(roomId, true, true);
-                if(teachers.length > 0){
-                    const firstJoinedTeacher = teachers[0];
-                    await this.setHost(roomId, firstJoinedTeacher.id);
-                }
-            } 
+        // Notify other participants that this user has left
+        const notify = RedisKeys.roomNotify(roomId);
+        await pipeline.expire(notify.key, notify.ttl);
+        await pipeline.xadd(
+            notify.key,
+            "MAXLEN", "~", "64", "*",
+            ...redisStreamSerialize({ leave: { id: sessionId } })
+        );
+
+        //Log Attendance
+        await this.logAttendance(roomId, session);
+        await pipeline.exec();
+
+        //Select new host
+        if (changeRoomHost) {
+            const teachers = await this.getRoomParticipants(roomId, true, true);
+            if(teachers.length > 0){
+                const firstJoinedTeacher = teachers[0];
+                await this.setHost(roomId, firstJoinedTeacher.id);
+            }
         }
-        await this.attendanceNotify(roomIds);     
 
+        await this.attendanceNotify(roomId);
     }
 
     private async logAttendance(roomId: string, session: Session) {
@@ -487,26 +506,16 @@ export class Model {
         }).catch((e) => {
             console.log("could not save attendance: ", e);
         });
-          
     }
 
-    private async attendanceNotify(rooms: Set<string>) {
-        nextRoom:
-        for(const roomId of rooms) {
-            const sessionSearchKey = RedisKeys.sessionData(roomId, "*");
-            let sessionSearchCursor = "0";
-
-            do {
-                const [newCursor, keys] = await this.client.scan(sessionSearchCursor, "MATCH", sessionSearchKey);
-                if(keys.length > 0) { continue nextRoom; }
-                sessionSearchCursor = newCursor;
-            } while (sessionSearchCursor !== "0");
-
-            //There were no sessions in room
-            //Maybe we need a timeout to check no one rejoins
+    private async attendanceNotify(roomId: string) {
+        //There were no sessions in room
+        //Maybe we need a timeout to check no one rejoins
+        const roomSessions = RedisKeys.roomSessions(roomId);
+        const numSessions = await this.client.scard(roomSessions);
+        if (numSessions <= 0) {
             await this.sendAttendance(roomId);
         }
-
     }
 
     private async sendAttendance(roomId: string) {
@@ -539,7 +548,7 @@ export class Model {
             const class_start_time = Math.round(class_start_time_ms / 1000);
             const token = await attendanceToken(roomId, [...attendance_ids], class_start_time, class_end_time);
             await axios.post(assessmentUrl, {token});
-            
+
         } catch(e) {
             console.log("Unable to post attendance");
             console.error(e);
@@ -585,29 +594,34 @@ export class Model {
         const client = this.client.duplicate(); // We will block
         try {
             while (websocket.readyState === WebSocket.OPEN) {
-                client.expire(video.key, video.ttl);
-                client.expire(stream.key, stream.ttl);
+                await client
+                    .pipeline()
+                    .expire(video.key, video.ttl)
+                    .expire(stream.key, stream.ttl)
+                    .exec();
                 const response = await client.xread("BLOCK", 10000, "STREAMS", stream.key, from);
                 if (!response) { continue; }
                 const [[, messages]] = response;
                 //TODO: optimize to only send most recent message
                 for (const [id, keyValues] of messages) {
-                    // ioredis's types definitions are incorrect
-                    // keyValues is of type string[], e.g. [key1, value1, key2, value2, key3, value3...]
                     from = id;
-                    const state = redisStreamDeserialize(keyValues as any) as any;
+                    const state = redisStreamDeserialize<any>(keyValues);
                     const delta = (await this.getTime()) - Number(state["time"]);
                     const offset = Number(state["offset"]) + delta;
                     yield { video: { src: state["src"], play: Boolean(state["play"]), offset: Number.isFinite(offset) ? offset : undefined } };
                 }
             }
-        } finally {
+        }
+        catch (e) {
+            console.error(e);
+        }
+        finally {
             client.disconnect();
         }
     }
 
     public async rewardTrophy(roomId: string, user: string, kind: string, sessionId?: string): Promise<boolean> {
-        if(!sessionId) { throw new Error("Can't reward trophy without knowning the sessionId it was from"); }
+        if(!sessionId) { throw new Error("Can't reward trophy without knowing the sessionId it was from"); }
         await this.notifyRoom(roomId, { trophy: { from: sessionId, user, kind } });
         return true;
     }
@@ -631,7 +645,7 @@ export class Model {
         }).catch((e) => {
             console.log("could not save feedback: ", e);
         });
-        
+
         return true;
     }
 
@@ -652,13 +666,12 @@ export class Model {
     }
 
     private async deleteOldStreamId(roomId: string, activityType: string) {
-        
         const roomActivityTypeKey = RedisKeys.activityType(roomId);
         const roomActivityType = await this.client.get(roomActivityTypeKey.key);
 
         if(!roomActivityType) {
             await this.client.set(roomActivityTypeKey.key, activityType);
-        }else{
+        } else {
             await this.client.set(roomActivityTypeKey.key, activityType);
             if(roomActivityType !== activityType){
                 const studentSessions = await this.getRoomParticipants(roomId, false);
@@ -667,13 +680,11 @@ export class Model {
                         const studentSessionKey = RedisKeys.sessionData(roomId, studentSession.id);
                         await this.client
                             .hset(studentSessionKey, "streamId", "" );
-                        
                         const session = await this.getSession(roomId, studentSession.id);
-                        await this.notifyRoom(roomId, {join: session });   
-                    }         
+                        await this.notifyRoom(roomId, {join: session });
+                    }
                 }
             }
-
         }
     }
 
@@ -683,7 +694,7 @@ export class Model {
         if(!url || !(materialUrl && activityTypeName && classtype)) return;
 
         try{
-            const userStatisctics: StudentReport = {
+            const userStatistics: StudentReport = {
                 classType: classtype,
                 lessonMaterialUrl: materialUrl,
                 contentType: activityTypeName.toLowerCase(),
@@ -691,24 +702,26 @@ export class Model {
             };
 
             const studentSessions = await this.getRoomParticipants(roomId, false);
-            const students: any = [];
+            const students: Student[] = [];
             const recordedAt = new Date().getTime();
-            const requestBody: any = {
+            const requestBody: RequestBody = {
                 room_id: roomId,
-                class_type: userStatisctics.classType,
-                lesson_material_url: userStatisctics.lessonMaterialUrl,
-                content_type: userStatisctics.contentType,
-                action_type: userStatisctics.actionType,
-                timestamp: recordedAt
+                class_type: userStatistics.classType,
+                lesson_material_url: userStatistics.lessonMaterialUrl,
+                content_type: userStatistics.contentType,
+                action_type: userStatistics.actionType,
+                timestamp: recordedAt,
+                students: []
             };
             for await (const session of studentSessions){
-                const student: any = {};
-                student["user_id"] = session.userId;
-                student["email"] = session.email;
-                student["name"] = session.name;
+                const student: Student = {
+                    user_id: session.userId,
+                    email: session.email,
+                    name: session.name
+                };
                 students.push(student);
-            }   
-            requestBody["students"] = students;
+            }
+            requestBody.students = students;
             console.log("log type: report", " request body:", requestBody);
             const token = await studentReportToken(requestBody);
             await axios.post(url, {token});
@@ -720,5 +733,24 @@ export class Model {
 
         return true;
     }
+}
 
+type Student = {
+    user_id: string,
+    email: string,
+    name: string
+}
+
+type RequestBody = {
+    room_id: string,
+    class_type: string,
+    lesson_material_url: string,
+    content_type: string,
+    action_type: StudentReportActionType,
+    timestamp: number,
+    students: Student[]
+}
+
+type SFUEntry = {
+    sfuAddress: string
 }
