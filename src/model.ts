@@ -3,8 +3,13 @@ import { redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
 import  Redis from "ioredis";
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
-import { Context } from "./types";
+import {Attendance, Context, PageEvent, Session, StudentReport, StudentReportActionType} from "./types";
 import WebSocket = require("ws");
+import {Pipeline} from "./pipeline";
+import {GET_ATTENDACE_QUERY, SAVE_ATTENDANCE_MUTATION, SAVE_FEEDBACK_MUTATION} from "./graphql";
+import request from "graphql-request";
+import {attendanceToken, studentReportToken} from "./jwt";
+import axios from "axios";
 
 export class Model {
     public static async create() {
