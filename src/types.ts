@@ -1,4 +1,17 @@
 // define interfaces and enums in this file
+import WebSocket from "ws";
+import {
+    KidsloopAuthenticationToken,
+    KidsloopLiveAuthorizationToken,
+} from "kidsloop-token-validation";
+export interface Context {
+    authenticationToken?: KidsloopAuthenticationToken
+    authorizationToken?: KidsloopLiveAuthorizationToken
+    sessionId?: string
+    roomId?: string
+    websocket?: WebSocket
+    joinTime?: Date
+}
 export interface PageEvent {
     sequenceNumber: number
     isKeyframe: boolean

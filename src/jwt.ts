@@ -12,7 +12,7 @@ export async function attendanceToken(room_id: string, attendance_ids: string[],
                 attendance_ids,
                 class_end_time,
                 class_length,
-                schedule_id,          
+                schedule_id,
             },
             secretOrPrivateKey,
             options,
@@ -145,7 +145,7 @@ export async function retrieveJWTKeys(secretName: string) {
             publicKey: keys["PUBLIC_KEY"].replace(/\\n/gm, "\n"),
             passphrase: keys["PASSPHRASE"],
         };
-    } catch (err) {
+    } catch (err: any) {
         if (err.code ==="DecryptionFailureException")
             // Secrets Manager can't decrypt the protected secret text using the provided KMS key.
             // Deal with the exception here, and/or rethrow at your discretion.
