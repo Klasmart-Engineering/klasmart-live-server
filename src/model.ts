@@ -6,7 +6,7 @@ import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
 import {Attendance, ClassType, Context, PageEvent, Session, StudentReport, StudentReportActionType} from "./types";
 import WebSocket = require("ws");
 import {Pipeline} from "./pipeline";
-import {GET_ATTENDACE_QUERY, SAVE_ATTENDANCE_MUTATION, SAVE_FEEDBACK_MUTATION} from "./graphql";
+import {GET_ATTENDANCE_QUERY, SAVE_ATTENDANCE_MUTATION, SAVE_FEEDBACK_MUTATION} from "./graphql";
 import request from "graphql-request";
 import {attendanceToken, studentReportToken} from "./jwt";
 import axios from "axios";
@@ -566,7 +566,7 @@ export class Model {
         try {
             let attendance: Attendance [] = [];
 
-            await request(attendanceUrl, GET_ATTENDACE_QUERY, {roomId: roomId}).then(async (data: any) => {
+            await request(attendanceUrl, GET_ATTENDANCE_QUERY, {roomId: roomId}).then(async (data: any) => {
                 attendance = data.getClassAttendance;
                 console.log("received attendance: ", attendance);
             }).catch((e) => {
