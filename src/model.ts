@@ -521,14 +521,15 @@ export class Model {
 
     private async logAttendance(roomId: string, session: Session, context: Context) {
         const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
-        if(!url) return;
+        const { authorizationToken } = context;
+        if(!url || !authorizationToken) return;
 
-        // const autorizationToken = context.authorizationToken;
-        // const leave_time = new Date()
-        // const class_start_time = new Date(1000*autorizationToken.)
-        // const classEndtime = new Date(1000*authorizationToken.exp);
-        //     const currentTime = new Date();
-        // if(autorizationToken?.classtype === ClassType.LIVE && )
+        
+
+        const class_start_time = new Date(1000*authorizationToken.startat);
+        const currentTime = new Date();
+        const diff = Math.floor((class_start_time.getTime() - currentTime.getTime())/1000);
+        if(authorizationToken?.classtype === ClassType.LIVE && diff < 300) return;
         const variables = {
             roomId: roomId,
             sessionId: session.id,
