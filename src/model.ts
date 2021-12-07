@@ -260,7 +260,7 @@ export class Model {
             this.sub.subscribe(EVENT, () => {
                 console.log(`Live class ${roomId} is subscribed to EXPIRED chanel`);
             });
-            const classEndtime = new Date(1000*authorizationToken.exp);
+            const classEndtime = new Date(1000*authorizationToken.endat);
             const currentTime = new Date();
             const diffInSeconds = Math.floor((classEndtime.getTime() - currentTime.getTime())/1000);
             this.client.set(roomId, "", "EX", diffInSeconds+5);
