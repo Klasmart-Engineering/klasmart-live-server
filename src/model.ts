@@ -3,16 +3,16 @@ import { redisStreamDeserialize, redisStreamSerialize } from "./utils";
 import { RedisKeys } from "./redisKeys";
 import  Redis from "ioredis";
 import { WhiteboardService } from "./services/whiteboard/WhiteboardService";
-import {Attendance, Context, PageEvent, Session, StudentReport, StudentReportActionType} from "./types";
+import {Attendance, ClassType, Context, PageEvent, Session, StudentReport, StudentReportActionType} from "./types";
 import WebSocket = require("ws");
 import {Pipeline} from "./pipeline";
-import {GET_ATTENDACE_QUERY, SAVE_ATTENDANCE_MUTATION, SAVE_FEEDBACK_MUTATION} from "./graphql";
+import {GET_ATTENDANCE_QUERY, SAVE_ATTENDANCE_MUTATION, SAVE_FEEDBACK_MUTATION} from "./graphql";
 import request from "graphql-request";
 import {attendanceToken, studentReportToken} from "./jwt";
 import axios from "axios";
 
 export class Model {
-    public static async create() {
+    public static async createClient() {
         const redisMode = process.env.REDIS_MODE ?? "NODE";
         const port = Number(process.env.REDIS_PORT) || undefined;
         const host = process.env.REDIS_HOST;
@@ -44,14 +44,25 @@ export class Model {
             );
         }
         await redis.connect();
+        return redis;
+    }
+
+    public static async create() {
+        const redis = await this.createClient();
         console.log("🔴 Redis database connected");
         return new Model(redis);
     }
 
     private whiteboard: WhiteboardService;
+    private client: Redis.Cluster | Redis.Redis
 
-    private constructor(private client: Redis.Cluster | Redis.Redis) {
+    private constructor(client: Redis.Cluster | Redis.Redis) {
+        this.client = client;
         this.whiteboard = new WhiteboardService(client);
+        
+        setInterval(() => {
+            this.checkTempStorage();
+        }, 60*1000);
     }
 
     public async getSession(roomId: string, sessionId: string): Promise<Session> {
@@ -214,12 +225,12 @@ export class Model {
             await pipeline.del(sessionKey);
             await pipeline.srem(roomSessions, sessionKey);
             await this.notifyRoom(roomId, { leave: session});
-            await this.logAttendance(roomId, session);
+            await this.logAttendance(roomId, session, context);
         }
 
         await pipeline.exec();
+        await this.sendAttendance(authorizationToken.roomid, authorizationToken.classtype === ClassType.LIVE);
 
-        await this.sendAttendance(roomId);
         return true;
     }
 
@@ -239,6 +250,18 @@ export class Model {
         // TODO: Pipeline initial operations
         await this.userJoin(roomId, sessionId, authorizationToken.userid, name ?? authorizationToken.name, authorizationToken.teacher, authenticationToken?.email);
 
+        if(authorizationToken.classtype === ClassType.LIVE){
+            const tempStorageKeys = RedisKeys.tempStorageKeys();
+            const tempStorageSingleKey = RedisKeys.tempStorageKey(roomId);
+            const tempStorageSingleData = await this.client.get(tempStorageSingleKey);
+            if(!tempStorageSingleData){
+                // send after n hour
+                const time = new Date(authorizationToken.endat*1000);
+                time.setSeconds(time.getSeconds() + Number(process.env.ASSESSMENT_GENERATE_TIME || 300));
+                await this.client.set(tempStorageSingleKey, time.getTime());
+                await this.client.sadd(tempStorageKeys, roomId);
+            }
+        }
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
         if (sfuAddress) {
@@ -478,7 +501,7 @@ export class Model {
         );
 
         //Log Attendance
-        await this.logAttendance(roomId, session);
+        await this.logAttendance(roomId, session, context);
         await pipeline.exec();
 
         //Select new host
@@ -490,13 +513,22 @@ export class Model {
             }
         }
 
-        await this.attendanceNotify(roomId);
+        await this.attendanceNotify(roomId, context);
     }
 
-    private async logAttendance(roomId: string, session: Session) {
+    private async logAttendance(roomId: string, session: Session, context: Context) {
         const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
-        if(!url) return;
+        const { authorizationToken } = context;
+        if(!url || !authorizationToken) return;
 
+        // in LIVE class, start saving attendances 5 mins before class start time
+        // and until 30 mins after class end time
+        const classStartTime = authorizationToken.startat - 300;
+        const classEndTime = authorizationToken.endat + 1800;
+        const currentTime = Math.floor(new Date().getTime()/1000);
+        const ok = classStartTime <= currentTime && currentTime <= classEndTime;
+
+        if(authorizationToken?.classtype === ClassType.LIVE && !ok) return;
         const variables = {
             roomId: roomId,
             sessionId: session.id,
@@ -513,17 +545,19 @@ export class Model {
         });
     }
 
-    private async attendanceNotify(roomId: string) {
+    private async attendanceNotify(roomId: string, context: Context) {
         //There were no sessions in room
         //Maybe we need a timeout to check no one rejoins
         const roomSessions = RedisKeys.roomSessions(roomId);
         const numSessions = await this.client.scard(roomSessions);
         if (numSessions <= 0) {
-            await this.sendAttendance(roomId);
+            if(context.authorizationToken?.classtype !== ClassType.LIVE){
+                await this.sendAttendance(roomId);
+            }
         }
     }
 
-    private async sendAttendance(roomId: string) {
+    private async sendAttendance(roomId: string, isLiveClass?: boolean) {
         const assessmentUrl = process.env.ASSESSMENT_ENDPOINT;
         const attendanceUrl = process.env.ATTENDANCE_SERVICE_ENDPOINT;
 
@@ -532,7 +566,7 @@ export class Model {
         try {
             let attendance: Attendance [] = [];
 
-            await request(attendanceUrl, GET_ATTENDACE_QUERY, {roomId: roomId}).then(async (data: any) => {
+            await request(attendanceUrl, GET_ATTENDANCE_QUERY, {roomId: roomId}).then(async (data: any) => {
                 attendance = data.getClassAttendance;
                 console.log("received attendance: ", attendance);
             }).catch((e) => {
@@ -540,6 +574,9 @@ export class Model {
             });
 
             const attendance_ids = new Set([...attendance.map((a) => a.userId)]);
+            if(isLiveClass && attendance_ids.size <= 1){
+                return;
+            }
             const now = Number(new Date());
             const class_end_time_ms = Math.max(
                 ...attendance.map((a) => Number(new Date(a.leaveTimestamp).getTime())),
@@ -735,8 +772,43 @@ export class Model {
             console.log("could not send userStatistics ");
             console.log(e);
         }
-
+        this.client.publish("DEL", "K");
         return true;
+    }
+    private async checkTempStorage() {
+        const isTepmStorageLocked = RedisKeys.isTepmStorageLocked();
+        const isLocked = await this.client.set(isTepmStorageLocked, "true", "NX");
+        if (isLocked) {
+            const tempStorageKeys = RedisKeys.tempStorageKeys();
+            const pipeline = new Pipeline(this.client);
+            let tempStorageSearchCursor = "0";
+            do {
+                const [newCursor, keys] = await this.client.sscan(tempStorageKeys, tempStorageSearchCursor);
+                
+                for (const key of keys) {
+                    const tempSingleKey = RedisKeys.tempStorageKey(key);
+                    const tempSingleData = await this.client.get(tempSingleKey);
+                    const currentTime = new Date();
+                    const diffInSeconds = Number(tempSingleData) - Math.floor(currentTime.getTime());
+                    if(diffInSeconds <= 0){
+                        // trigger assessment then delete data from redis
+                        await this.triggerLiveClassAssessment(key);
+                        await pipeline.del(tempSingleKey);
+                        await pipeline.srem(tempStorageKeys, key);
+                    }
+                }
+                tempStorageSearchCursor = newCursor;
+            } while (tempStorageSearchCursor !== "0");
+
+            await pipeline.exec();
+        }
+
+        await this.client.del(isTepmStorageLocked);
+    }
+
+    private async triggerLiveClassAssessment(roomId: string) {
+        console.log("TRIGGERING LIVE CLASS ASSESSMENT ", roomId);
+        await this.sendAttendance(roomId, true);
     }
 }
 

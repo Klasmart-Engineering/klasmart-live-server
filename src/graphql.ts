@@ -11,7 +11,7 @@ export const SAVE_ATTENDANCE_MUTATION = gql`
     }
 }`;
 
-export const GET_ATTENDACE_QUERY = gql`
+export const GET_ATTENDANCE_QUERY = gql`
   query Query($roomId: String!) {
     getClassAttendance(roomId: $roomId) {
       roomId
