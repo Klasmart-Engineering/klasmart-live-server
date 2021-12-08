@@ -81,7 +81,20 @@ export class RedisKeys {
     public static videoState(roomId: string, sessionId: string) {
         return { key: `${RedisKeys.video(roomId, sessionId)}:state`, ttl: 3600 };
     }
+
     public static videoStateChanges(roomId: string, sessionId: string) {
         return { key: `${RedisKeys.video(roomId, sessionId)}:changes`, ttl: 3600 };
+    }
+
+    public static isTepmStorageLocked() {
+        return "isTepmStorageLocked";
+    }
+
+    public static tempStorageKeys() {
+        return "tempStorage";
+    }
+
+    public static tempStorageKey(id: string) {
+        return `${RedisKeys.tempStorageKeys()}:${id}`;
     }
 }
