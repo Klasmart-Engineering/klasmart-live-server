@@ -3,7 +3,7 @@ import { Session } from "./types";
 export function redisStreamDeserialize<T> (keyValues: string[]): T | undefined {
     for (let i = 0; i + 1 < keyValues.length; i += 2) {
         try {
-            if (keyValues[i] === "json") { return JSON.parse(keyValues[i + 1]); }
+            if (keyValues[i] === `json`) { return JSON.parse(keyValues[i + 1]); }
         } catch (e) {
             console.error(e);
         }
@@ -12,7 +12,7 @@ export function redisStreamDeserialize<T> (keyValues: string[]): T | undefined {
 }
 
 export function redisStreamSerialize (value: any): ["json", string] {
-    return ["json", JSON.stringify(value)];
+    return [ `json`, JSON.stringify(value) ];
 }
 
 export async function * mapAsync<T, U> (collection: AsyncIterable<T>, f: (item: T) => U) {
@@ -43,15 +43,15 @@ export function toRedisKeyValueArray (obj: Record<any, any>): string[] {
     return result;
 }
 
-export function convertSessionRecordToSession(session: Record<string, string>): Session {
+export function convertSessionRecordToSession (session: Record<string, string>): Session {
     return {
         id: session.id,
         userId: session.userId,
         name: session.name,
         streamId: session.streamId,
         email: session.email,
-        isTeacher: session.isTeacher === "true",
-        isHost: session.isHost === "true",
+        isTeacher: session.isTeacher === `true`,
+        isHost: session.isHost === `true`,
         joinedAt: Number(session.joinedAt),
     } as Session;
 }
