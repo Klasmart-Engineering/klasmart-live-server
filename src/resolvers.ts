@@ -19,14 +19,14 @@ export const resolvers = {
             materials: authorizationToken?.materials,
             classType: authorizationToken?.classtype,
         }),
-        sfuAddress: (parent: any, { roomId } : {roomId: string }) => model.getSfuAddress(roomId),
+        sfuAddress: (parent: any, { roomId }: {roomId: string }) => model.getSfuAddress(roomId),
     },
     Mutation: {
         endClass: (parent: any, arg: any, context: Context) => model.endClass(context),
         leaveClass: (parent: any, arg: any, context: Context) => model.disconnect(context),
-        setSessionStreamId: (parent: any, { roomId, streamId } : {roomId:  string; streamId: string}, { sessionId }: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
-        setHost: (parent: any, { roomId, nextHostId } : { roomId: string; nextHostId: string}) => model.setHost(roomId, nextHostId),
-        sendMessage: (parent: any, { roomId, message }: { roomId: string; message:string }, { sessionId }: Context) => model.sendMessage(roomId, sessionId, message),
+        setSessionStreamId: (parent: any, { roomId, streamId }: {roomId:  string; streamId: string}, { sessionId }: Context) => model.setSessionStreamId(roomId, sessionId, streamId),
+        setHost: (parent: any, { roomId, nextHostId }: { roomId: string; nextHostId: string}) => model.setHost(roomId, nextHostId),
+        sendMessage: (parent: any, { roomId, message }: { roomId: string; message: string }, { sessionId }: Context) => model.sendMessage(roomId, sessionId, message),
         postPageEvent: (parent: any, { streamId, pageEvents }: { streamId: string; pageEvents: PageEvent[] }) => {
             const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
             return a;
@@ -36,7 +36,7 @@ export const resolvers = {
         }: { roomId: string; type: string; contentId?: string }) => model.showContent(roomId, type, contentId),
         webRTCSignal: (parent: any, {
             roomId, toSessionId, webrtc,
-        } : {roomId: string; toSessionId: string; sessionId: string | undefined; webrtc: any}, { sessionId }: Context) => model.webRTCSignal(roomId, toSessionId, sessionId, webrtc),
+        }: {roomId: string; toSessionId: string; sessionId: string | undefined; webrtc: any}, { sessionId }: Context) => model.webRTCSignal(roomId, toSessionId, sessionId, webrtc),
         whiteboardSendEvent: (parent: any, { roomId, event }: {roomId: string; event: string}) => model.whiteboardSendEvent(roomId, event),
         whiteboardSendDisplay: (parent: any, { roomId, display }: {roomId: string; display: boolean}) => model.whiteboardSendDisplay(roomId, display),
         whiteboardSendPermissions: (parent: any, {
@@ -47,7 +47,7 @@ export const resolvers = {
         }: {roomId: string; sessionId: string; audio?: boolean; video?: boolean}) => model.mute(roomId, sessionId, audio, video),
         video: (parent: any, {
             roomId, sessionId, src, play, offset,
-        } : {roomId: string; sessionId: string; src?: string; play?: boolean; offset?: number}) => model.video(roomId, sessionId, src, play, offset),
+        }: {roomId: string; sessionId: string; src?: string; play?: boolean; offset?: number}) => model.video(roomId, sessionId, src, play, offset),
         rewardTrophy: (parent: any, {
             roomId, user, kind,
         }: {roomId: string; user: string; kind: string; sessionId?: string}, { sessionId }: Context) => model.rewardTrophy(roomId, user, kind, sessionId),
@@ -56,11 +56,11 @@ export const resolvers = {
         }: { stars: number; feedbackType: string; comment: string; quickFeedback: {type: string; stars: number}[]}, context: Context) => model.saveFeedback(context, stars, feedbackType, comment, quickFeedback),
         studentReport: (parent: any, {
             roomId, materialUrl, activityTypeName,
-        } : {roomId: string; materialUrl: string; activityTypeName:string}, context: Context) => model.studentReport(roomId, context, materialUrl, activityTypeName),
+        }: {roomId: string; materialUrl: string; activityTypeName: string}, context: Context) => model.studentReport(roomId, context, materialUrl, activityTypeName),
     },
     Subscription: {
         room: {
-            subscribe: (parent: any, { roomId, name } : {roomId: string; name: string}, context: Context) => model.room(context, roomId, name),
+            subscribe: (parent: any, { roomId, name }: {roomId: string; name: string}, context: Context) => model.room(context, roomId, name),
         },
         stream: {
             subscribe: (parent: any, { streamId, from }: { streamId: string; from: string}, context: Context) => model.stream(context, streamId, from),
