@@ -298,11 +298,11 @@ export class Model {
                 // send after n hour
                 const time = new Date(authorizationToken.endat*1000);
                 if( time > new Date()) {
-                time.setSeconds(time.getSeconds() + Number(process.env.ASSESSMENT_GENERATE_TIME || 300));
-                await this.client.set(tempStorageSingleKey, time.getTime());
-                await this.client.sadd(tempStorageKeys, roomId);
+                    time.setSeconds(time.getSeconds() + Number(process.env.ASSESSMENT_GENERATE_TIME || 300));
+                    await this.client.set(tempStorageSingleKey, time.getTime());
+                    await this.client.sadd(tempStorageKeys, roomId);
+                }
             }
-        }
         }
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
@@ -593,8 +593,7 @@ export class Model {
     private async logAttendance (roomId: string, session: Session, context: Context) {
         const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
         const { authorizationToken } = context;
-        if(!url || !authorizationToken) return;
-
+        if(!url || !authorizationToken || !session.id) return;
         // in LIVE class, start saving attendances 5 mins before class start time
         // and until 30 mins after class end time
         const classStartTime = authorizationToken.startat - 300;
@@ -827,7 +826,7 @@ export class Model {
         }
     }
 
-    public async studentReport (roomId: string, context: Context, materialUrl: string, activityTypeName:string){
+    public async studentReport (roomId: string, context: Context, materialUrl: string, activityTypeName: string){
         const url = process.env.STUDENT_REPORT_ENDPOINT;
         const classtype = context.authorizationToken?.classtype;
         if(!url || !(materialUrl && activityTypeName && classtype)) return;
