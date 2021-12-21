@@ -297,10 +297,12 @@ export class Model {
             if(!tempStorageSingleData){
                 // send after n hour
                 const time = new Date(authorizationToken.endat*1000);
+                if( time > new Date()) {
                 time.setSeconds(time.getSeconds() + Number(process.env.ASSESSMENT_GENERATE_TIME || 300));
                 await this.client.set(tempStorageSingleKey, time.getTime());
                 await this.client.sadd(tempStorageKeys, roomId);
             }
+        }
         }
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
