@@ -264,7 +264,8 @@ export class Model {
         }
 
         await pipeline.exec();
-        await this.sendAttendance(authorizationToken.roomid, authorizationToken.classtype === ClassType.LIVE);
+        // when teacher end class trigger attendance
+        await this.sendAttendance(authorizationToken.roomid, context.authorizationToken?.classtype);
 
         return true;
     }
@@ -625,12 +626,12 @@ export class Model {
         const numSessions = await this.client.scard(roomSessions);
         if (numSessions <= 0) {
             if(context.authorizationToken?.classtype !== ClassType.LIVE){
-                await this.sendAttendance(roomId);
+                await this.sendAttendance(roomId, context.authorizationToken?.classtype);
             }
         }
     }
 
-    private async sendAttendance (roomId: string, isLiveClass?: boolean) {
+    private async sendAttendance (roomId: string, classType?: string) {
         const assessmentUrl = process.env.ASSESSMENT_ENDPOINT;
         const attendanceUrl = process.env.ATTENDANCE_SERVICE_ENDPOINT;
 
@@ -649,7 +650,7 @@ export class Model {
             });
 
             const attendanceIds = new Set([ ...attendance.map((a) => a.userId) ]);
-            if(isLiveClass && attendanceIds.size <= 1){
+            if(classType === ClassType.LIVE && attendanceIds.size <= 1){
                 return;
             }
             const now = Number(new Date());
@@ -906,7 +907,7 @@ export class Model {
 
     private async triggerLiveClassAssessment (roomId: string) {
         console.log(`TRIGGERING LIVE CLASS ASSESSMENT `, roomId);
-        await this.sendAttendance(roomId, true);
+        await this.sendAttendance(roomId, ClassType.LIVE);
     }
 }
 
