@@ -10,12 +10,13 @@ export async function attendanceToken (roomId: string, attendanceIds: string[], 
     const classLength = classEndTime - classStartTime;
     const scheduleId = roomId;
     const { secretOrPrivateKey, options } = await jwtConfig();
+
     return new Promise<string>((resolve, reject) => {
         sign({
-            attendanceIds,
-            classEndTime,
-            classLength,
-            scheduleId,
+            attendance_ids: attendanceIds,
+            class_end_time: classEndTime,
+            class_length: classLength,
+            schedule_id: scheduleId,
         }, secretOrPrivateKey, options, (err, token) => {
             if(err) { reject(err); }
             else if(token) { resolve(token); }
