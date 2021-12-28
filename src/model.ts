@@ -663,6 +663,13 @@ export class Model {
                 token,
             });
 
+            // delete room temp key if it exist
+            const pipeline = new Pipeline(this.client);
+            const key = RedisKeys.tempStorageKey(roomId);
+            const tempStorageKeys = RedisKeys.tempStorageKeys();
+            await pipeline.del(key);
+            await pipeline.srem(tempStorageKeys, key);
+            await pipeline.exec();
         } catch(e) {
             console.log(`Unable to post attendance`);
             console.error(e);
