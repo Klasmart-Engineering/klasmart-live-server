@@ -655,10 +655,10 @@ export class Model {
             }
             const now = Number(new Date());
             const classEndTimeMS = Math.max(...attendance.map((a) => Number(new Date(a.leaveTimestamp).getTime())), now);
-            const classendTimeSec = Math.round(classEndTimeMS / 1000);
+            const classEndTimeSec = Math.round(classEndTimeMS / 1000);
             const classStartTimeMS = Math.min(...attendance.map((a) => Number(new Date(a.joinTimestamp).getTime())), now);
-            const classstartTimeSec = Math.round(classStartTimeMS / 1000);
-            const token = await attendanceToken(roomId, [ ...attendanceIds ], classstartTimeSec, classendTimeSec);
+            const classStartTimeSec = Math.round(classStartTimeMS / 1000);
+            const token = await attendanceToken(roomId, [ ...attendanceIds ], classStartTimeSec, classEndTimeSec);
             await axios.post(assessmentUrl, {
                 token,
             });
@@ -914,6 +914,27 @@ export class Model {
 
     private async triggerLiveClassAssessment (roomId: string) {
         console.log(`TRIGGERING LIVE CLASS ASSESSMENT `, roomId);
+        // log attendance if class onging after 2 hours its end_time
+        const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
+        if(url){
+            for await (const session of this.getSessions(roomId)) {
+                const variables = {
+                    roomId: roomId,
+                    sessionId: session.id,
+                    userId: session.userId,
+                    joinTimestamp: new Date(session.joinedAt),
+                    leaveTimestamp: new Date(),
+                };
+        
+                await request(url, SAVE_ATTENDANCE_MUTATION, variables).then((data) => {
+                    const attendance = data.saveAttendance;
+                    console.log(`saved attendance: `, attendance);
+                }).catch((e) => {
+                    console.log(`could not save attendance: `, e);
+                });
+            }
+        }
+
         await this.sendAttendance(roomId, ClassType.LIVE);
     }
 }
