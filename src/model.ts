@@ -650,7 +650,7 @@ export class Model {
             });
 
             const attendanceIds = new Set([ ...attendance.map((a) => a.userId) ]);
-            if(classType === ClassType.LIVE && attendanceIds.size <= 1){
+            if((classType === ClassType.LIVE && attendanceIds.size <= 1) || attendance.length === 0){
                 return;
             }
             const now = Number(new Date());
