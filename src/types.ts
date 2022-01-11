@@ -42,6 +42,7 @@ export interface Attendance {
     roomId: string;
     userId: string;
     sessionId: string;
+    isTeacher: Boolean;
     joinTimestamp: Date;
     leaveTimestamp: Date;
 }
