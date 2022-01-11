@@ -45,7 +45,6 @@ async function main () {
                 const authorizationToken = await checkLiveAuthorizationToken(rawAuthorizationToken).catch((e) => { throw new ForbiddenError(e); });
 
                 if(process.env.DISABLE_AUTH) {
-                    console.warn(`skipping AUTHENTICATION`);
                     return {
                         authorizationToken,
                     };
@@ -107,7 +106,6 @@ async function main () {
                 (connectionData as any).authorizationToken = authorizationToken;
                 (connectionData as any).joinTime = joinTime;
                 if(process.env.DISABLE_AUTH){
-                    console.warn(`SKIPPING AUTHENTICATION`);
                     return {
                         authorizationToken,
                         sessionId,

@@ -436,7 +436,6 @@ export class Model {
 
     public async * stream ({ websocket }: Context, streamId: string, from: string) {
         if(!websocket) {throw new Error(`Can't subscribe to a stream without a websocket`);}
-
         const key = RedisKeys.streamEvents(streamId);
         if (!from) { from = `0`; }
         const client = this.client.duplicate(); // We will block
@@ -607,6 +606,7 @@ export class Model {
             roomId: roomId,
             sessionId: session.id,
             userId: session.userId,
+            isTeacher: session.isTeacher,
             joinTimestamp: new Date(session.joinedAt),
             leaveTimestamp: new Date(),
         };
@@ -638,31 +638,49 @@ export class Model {
         if(!assessmentUrl || !attendanceUrl) {return;}
 
         try {
-            let attendance: Attendance [] = [];
+            let attendances: Attendance [] = [];
 
             await request(attendanceUrl, GET_ATTENDANCE_QUERY, {
                 roomId: roomId,
             }).then((data: any) => {
-                attendance = data.getClassAttendance;
-                console.log(`received attendance: `, attendance);
+                attendances = data.getClassAttendance;
+                console.log(`received attendance: `, attendances);
             }).catch((e) => {
                 console.log(`could not get attendance: `, e);
             });
 
-            const attendanceIds = new Set([ ...attendance.map((a) => a.userId) ]);
-            if((classType === ClassType.LIVE && attendanceIds.size <= 1) || attendance.length === 0){
+            const attendanceIds = new Set([ ...attendances.map((a) => a.userId) ]);
+            
+            let numberOfTeachers = 0;
+            let numberOfStudents = 0;
+            await [ ... attendanceIds].map(async (a) => {
+                for ( const attendance of attendances) {
+                    if (a === attendance.userId) {
+                        if (attendance.isTeacher){
+                            numberOfTeachers += 1;
+                        } else {
+                            numberOfStudents += 1;
+                        }
+                        break;
+                    } 
+                    
+                }
+            })
+            // in live class to trigger attendance there should be at least
+            // on teacher an on student
+            if(classType === ClassType.LIVE && (numberOfTeachers === 0 || numberOfStudents === 0)){
                 return;
             }
             const now = Number(new Date());
-            const classEndTimeMS = Math.max(...attendance.map((a) => Number(new Date(a.leaveTimestamp).getTime())), now);
+            const classEndTimeMS = Math.max(...attendances.map((a) => Number(new Date(a.leaveTimestamp).getTime())), now);
             const classEndTimeSec = Math.round(classEndTimeMS / 1000);
-            const classStartTimeMS = Math.min(...attendance.map((a) => Number(new Date(a.joinTimestamp).getTime())), now);
+            const classStartTimeMS = Math.min(...attendances.map((a) => Number(new Date(a.joinTimestamp).getTime())), now);
             const classStartTimeSec = Math.round(classStartTimeMS / 1000);
             const token = await attendanceToken(roomId, [ ...attendanceIds ], classStartTimeSec, classEndTimeSec);
             await axios.post(assessmentUrl, {
                 token,
             });
-
+            console.log(`Attendance sent: `, roomId);
             // delete room temp key if it exist
             const pipeline = new Pipeline(this.client);
             const key = RedisKeys.tempStorageKey(roomId);
@@ -671,7 +689,7 @@ export class Model {
             await pipeline.srem(tempStorageKeys, key);
             await pipeline.exec();
         } catch(e) {
-            console.log(`Unable to post attendance`);
+            console.log(`Unable to post attendance: `, roomId);
             console.error(e);
         }
     }
@@ -878,7 +896,6 @@ export class Model {
             console.log(`could not send userStatistics `);
             console.log(e);
         }
-        this.client.publish(`DEL`, `K`);
         return true;
     }
     private async checkTempStorage () {
@@ -922,6 +939,7 @@ export class Model {
                     roomId: roomId,
                     sessionId: session.id,
                     userId: session.userId,
+                    isTeacher: session.isTeacher,
                     joinTimestamp: new Date(session.joinedAt),
                     leaveTimestamp: new Date(),
                 };

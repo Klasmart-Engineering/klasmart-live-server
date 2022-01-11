@@ -1,11 +1,12 @@
 import { gql } from "graphql-request";
 
 export const SAVE_ATTENDANCE_MUTATION = gql`
-  mutation saveAttendance($userId: String!, $leaveTimestamp: DateTime!, $joinTimestamp: DateTime!, $sessionId: String!, $roomId: String!) {
-    saveAttendance(userId: $userId, leaveTimestamp: $leaveTimestamp, joinTimestamp: $joinTimestamp, sessionId: $sessionId, roomId: $roomId) {
+  mutation saveAttendance($userId: String!, $leaveTimestamp: DateTime!, $joinTimestamp: DateTime!, $isTeacher: Boolean!, $sessionId: String!, $roomId: String!) {
+    saveAttendance(userId: $userId, leaveTimestamp: $leaveTimestamp, joinTimestamp: $joinTimestamp, isTeacher: $isTeacher, sessionId: $sessionId, roomId: $roomId) {
       roomId,
       userId,
       sessionId,
+      isTeacher,
       joinTimestamp,
       leaveTimestamp,
     }
@@ -17,6 +18,7 @@ export const GET_ATTENDANCE_QUERY = gql`
       roomId
       userId
       sessionId
+      isTeacher
       joinTimestamp
       leaveTimestamp
     }
