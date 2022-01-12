@@ -170,18 +170,43 @@ export class Model {
     public async postPageEvent (streamId: string, pageEvents: PageEvent[]) {
         const key = RedisKeys.streamEvents(streamId);
         const pipeline = new Pipeline(this.client);
-        for (const {
-            eventsSinceKeyframe, isKeyframe, eventData,
-        } of pageEvents) {
-            await pipeline.xadd(key, `MAXLEN`, `~`, (eventsSinceKeyframe + 1).toString(), `*`, `i`, eventsSinceKeyframe.toString(), `c`, isKeyframe.toString(), `e`, eventData);
+        const lastkKeyframeKey = RedisKeys.lastKeyframe(streamId);
+        let keyframeExist = false;
+        // check if pageEvents has keyframe
+        for (const { isKeyframe } of pageEvents) {
+            if (isKeyframe) {
+                keyframeExist = true;
+            }
         }
-        await pipeline.expire(key, 60);
-        if (process.env.REDIS_MODE !== `CLUSTER`) {
-            const result = await pipeline.exec();
-            return result.every(([ e ]) => e == null);
-        } else {
-            return true;
+
+        if (keyframeExist) {
+            for (const {
+                eventsSinceKeyframe, isKeyframe, eventData,
+            } of pageEvents) { 
+                const result = await this.client.xadd(key, `MAXLEN`, `~`, (eventsSinceKeyframe + 1).toString(), `*`, `i`, eventsSinceKeyframe.toString(), `c`, isKeyframe.toString(), `e`, eventData);
+                await this.client.expire(key, 60);
+                if (isKeyframe && result) {
+                    await this.client.set(lastkKeyframeKey, result);
+                }
+            }
+            return
         }
+        else {
+            for (const {
+                eventsSinceKeyframe, isKeyframe, eventData,
+            } of pageEvents) {
+                await pipeline.xadd(key, `MAXLEN`, `~`, (eventsSinceKeyframe + 1).toString(), `*`, `i`, eventsSinceKeyframe.toString(), `c`, isKeyframe.toString(), `e`, eventData);
+                
+            }
+            await pipeline.expire(key, 60);
+            if (process.env.REDIS_MODE !== `CLUSTER`) {
+                const result = await pipeline.exec();
+                return result.every(([ e ]) => e == null);
+            } else {
+                return true;
+            }
+        }
+       
     }
 
     public async sendMessage (roomId: string, sessionId: string | undefined, message: string) {
@@ -437,7 +462,16 @@ export class Model {
     public async * stream ({ websocket }: Context, streamId: string, from: string) {
         if(!websocket) {throw new Error(`Can't subscribe to a stream without a websocket`);}
         const key = RedisKeys.streamEvents(streamId);
-        if (!from) { from = `0`; }
+        if (!from) { 
+            const lastKeyframeKey = RedisKeys.lastKeyframe(streamId);
+            const lastKeyframe = await this.client.get(lastKeyframeKey);
+            if (lastKeyframe){
+                from = lastKeyframe;
+            } else {
+                from = `0`; 
+            }
+        }
+        console.log(from);
         const client = this.client.duplicate(); // We will block
         try {
             while (websocket.readyState === WebSocket.OPEN) {
@@ -838,7 +872,7 @@ export class Model {
             if(roomActivityType !== activityType){
                 const studentSessions = await this.getRoomParticipants(roomId, false);
                 for await (const studentSession of studentSessions) {
-                    if (studentSession.streamId){
+                    if (studentSession.streamId) {
                         const studentSessionKey = RedisKeys.sessionData(roomId, studentSession.id);
                         await this.client
                             .hset(studentSessionKey, `streamId`, `` );
@@ -894,7 +928,7 @@ export class Model {
             return true;
         }catch(e){
             console.log(`could not send userStatistics `);
-            console.log(e);
+            // console.log(e);
         }
         return true;
     }
