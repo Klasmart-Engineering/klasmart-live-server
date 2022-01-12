@@ -180,14 +180,16 @@ export class Model {
         }
 
         if (keyframeExist) {
+            let prevResult = undefined;
             for (const {
                 eventsSinceKeyframe, isKeyframe, eventData,
-            } of pageEvents) { 
+            } of pageEvents) {
                 const result = await this.client.xadd(key, `MAXLEN`, `~`, (eventsSinceKeyframe + 1).toString(), `*`, `i`, eventsSinceKeyframe.toString(), `c`, isKeyframe.toString(), `e`, eventData);
                 await this.client.expire(key, 60);
-                if (isKeyframe && result) {
-                    await this.client.set(lastkKeyframeKey, result);
+                if (isKeyframe && prevResult) {
+                    await this.client.set(lastkKeyframeKey, prevResult);
                 }
+                prevResult = result;
             }
             return
         }
@@ -471,7 +473,6 @@ export class Model {
                 from = `0`; 
             }
         }
-        console.log(from);
         const client = this.client.duplicate(); // We will block
         try {
             while (websocket.readyState === WebSocket.OPEN) {
