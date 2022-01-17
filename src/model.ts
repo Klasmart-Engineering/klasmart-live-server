@@ -170,18 +170,45 @@ export class Model {
     public async postPageEvent (streamId: string, pageEvents: PageEvent[]) {
         const key = RedisKeys.streamEvents(streamId);
         const pipeline = new Pipeline(this.client);
-        for (const {
-            eventsSinceKeyframe, isKeyframe, eventData,
-        } of pageEvents) {
-            await pipeline.xadd(key, `MAXLEN`, `~`, (eventsSinceKeyframe + 1).toString(), `*`, `i`, eventsSinceKeyframe.toString(), `c`, isKeyframe.toString(), `e`, eventData);
+        const lastkKeyframeKey = RedisKeys.lastKeyframe(streamId);
+        let keyframeExist = false;
+        // check if pageEvents has keyframe
+        for (const { isKeyframe } of pageEvents) {
+            if (isKeyframe) {
+                keyframeExist = true;
+            }
         }
-        await pipeline.expire(key, 60);
-        if (process.env.REDIS_MODE !== `CLUSTER`) {
-            const result = await pipeline.exec();
-            return result.every(([ e ]) => e == null);
-        } else {
-            return true;
+
+        if (keyframeExist) {
+            let prevResult = undefined;
+            for (const {
+                eventsSinceKeyframe, isKeyframe, eventData,
+            } of pageEvents) {
+                const result = await this.client.xadd(key, `MAXLEN`, `~`, (eventsSinceKeyframe + 1).toString(), `*`, `i`, eventsSinceKeyframe.toString(), `c`, isKeyframe.toString(), `e`, eventData);
+                await this.client.expire(key, 60);
+                if (isKeyframe && prevResult) {
+                    await this.client.set(lastkKeyframeKey, prevResult);
+                }
+                prevResult = result;
+            }
+            return
         }
+        else {
+            for (const {
+                eventsSinceKeyframe, isKeyframe, eventData,
+            } of pageEvents) {
+                await pipeline.xadd(key, `MAXLEN`, `~`, (eventsSinceKeyframe + 1).toString(), `*`, `i`, eventsSinceKeyframe.toString(), `c`, isKeyframe.toString(), `e`, eventData);
+                
+            }
+            await pipeline.expire(key, 60);
+            if (process.env.REDIS_MODE !== `CLUSTER`) {
+                const result = await pipeline.exec();
+                return result.every(([ e ]) => e == null);
+            } else {
+                return true;
+            }
+        }
+       
     }
 
     public async sendMessage (roomId: string, sessionId: string | undefined, message: string) {
@@ -436,9 +463,16 @@ export class Model {
 
     public async * stream ({ websocket }: Context, streamId: string, from: string) {
         if(!websocket) {throw new Error(`Can't subscribe to a stream without a websocket`);}
-
         const key = RedisKeys.streamEvents(streamId);
-        if (!from) { from = `0`; }
+        if (!from) { 
+            const lastKeyframeKey = RedisKeys.lastKeyframe(streamId);
+            const lastKeyframe = await this.client.get(lastKeyframeKey);
+            if (lastKeyframe){
+                from = lastKeyframe;
+            } else {
+                from = `0`; 
+            }
+        }
         const client = this.client.duplicate(); // We will block
         try {
             while (websocket.readyState === WebSocket.OPEN) {
@@ -607,6 +641,7 @@ export class Model {
             roomId: roomId,
             sessionId: session.id,
             userId: session.userId,
+            isTeacher: session.isTeacher,
             joinTimestamp: new Date(session.joinedAt),
             leaveTimestamp: new Date(),
         };
@@ -638,31 +673,49 @@ export class Model {
         if(!assessmentUrl || !attendanceUrl) {return;}
 
         try {
-            let attendance: Attendance [] = [];
+            let attendances: Attendance [] = [];
 
             await request(attendanceUrl, GET_ATTENDANCE_QUERY, {
                 roomId: roomId,
             }).then((data: any) => {
-                attendance = data.getClassAttendance;
-                console.log(`received attendance: `, attendance);
+                attendances = data.getClassAttendance;
+                console.log(`received attendance: `, attendances);
             }).catch((e) => {
                 console.log(`could not get attendance: `, e);
             });
 
-            const attendanceIds = new Set([ ...attendance.map((a) => a.userId) ]);
-            if(classType === ClassType.LIVE && attendanceIds.size <= 1){
+            const attendanceIds = new Set([ ...attendances.map((a) => a.userId) ]);
+            
+            let numberOfTeachers = 0;
+            let numberOfStudents = 0;
+            await [ ... attendanceIds].map(async (a) => {
+                for ( const attendance of attendances) {
+                    if (a === attendance.userId) {
+                        if (attendance.isTeacher){
+                            numberOfTeachers += 1;
+                        } else {
+                            numberOfStudents += 1;
+                        }
+                        break;
+                    } 
+                    
+                }
+            })
+            // in live class to trigger attendance there should be at least
+            // on teacher an on student
+            if(classType === ClassType.LIVE && (numberOfTeachers === 0 || numberOfStudents === 0)){
                 return;
             }
             const now = Number(new Date());
-            const classEndTimeMS = Math.max(...attendance.map((a) => Number(new Date(a.leaveTimestamp).getTime())), now);
+            const classEndTimeMS = Math.max(...attendances.map((a) => Number(new Date(a.leaveTimestamp).getTime())), now);
             const classEndTimeSec = Math.round(classEndTimeMS / 1000);
-            const classStartTimeMS = Math.min(...attendance.map((a) => Number(new Date(a.joinTimestamp).getTime())), now);
+            const classStartTimeMS = Math.min(...attendances.map((a) => Number(new Date(a.joinTimestamp).getTime())), now);
             const classStartTimeSec = Math.round(classStartTimeMS / 1000);
             const token = await attendanceToken(roomId, [ ...attendanceIds ], classStartTimeSec, classEndTimeSec);
             await axios.post(assessmentUrl, {
                 token,
             });
-
+            console.log(`Attendance sent: `, roomId);
             // delete room temp key if it exist
             const pipeline = new Pipeline(this.client);
             const key = RedisKeys.tempStorageKey(roomId);
@@ -671,7 +724,7 @@ export class Model {
             await pipeline.srem(tempStorageKeys, key);
             await pipeline.exec();
         } catch(e) {
-            console.log(`Unable to post attendance`);
+            console.log(`Unable to post attendance: `, roomId);
             console.error(e);
         }
     }
@@ -820,7 +873,7 @@ export class Model {
             if(roomActivityType !== activityType){
                 const studentSessions = await this.getRoomParticipants(roomId, false);
                 for await (const studentSession of studentSessions) {
-                    if (studentSession.streamId){
+                    if (studentSession.streamId) {
                         const studentSessionKey = RedisKeys.sessionData(roomId, studentSession.id);
                         await this.client
                             .hset(studentSessionKey, `streamId`, `` );
@@ -876,9 +929,8 @@ export class Model {
             return true;
         }catch(e){
             console.log(`could not send userStatistics `);
-            console.log(e);
+            // console.log(e);
         }
-        this.client.publish(`DEL`, `K`);
         return true;
     }
     private async checkTempStorage () {
@@ -922,6 +974,7 @@ export class Model {
                     roomId: roomId,
                     sessionId: session.id,
                     userId: session.userId,
+                    isTeacher: session.isTeacher,
                     joinTimestamp: new Date(session.joinedAt),
                     leaveTimestamp: new Date(),
                 };

@@ -133,4 +133,8 @@ export class RedisKeys {
     public static tempStorageKey (id: string) {
         return `${RedisKeys.tempStorageKeys()}:${id}`;
     }
+
+    public static lastKeyframe (streamId: string) {
+        return `lastKeyframe: ${streamId}`;
+    }
 }
