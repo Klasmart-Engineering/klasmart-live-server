@@ -22,7 +22,7 @@ Build the container and run:
 docker build -t kl-live-server .
 ```
 make sure redis and kl-live-server containers run in same docker network.
-if you don't have custom network you can create by `redis-cli network create network-name` and set `--net network-name` while running container
+if you don't have custom network you can create by `docker network create network-name` and set `--net network-name` while running container
 ```shell
 docker run --rm -it \
   --name kl_live_server \
