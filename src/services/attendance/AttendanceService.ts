@@ -56,7 +56,7 @@ export class AttendanceService extends Base {
       this.sendLiveAttendance(roomId);
     }
   }
-  
+
   private async sendLiveAttendance(roomId: string) {
     const assessmentUrl = process.env.ASSESSMENT_ENDPOINT;
     const attendanceUrl = process.env.ATTENDANCE_SERVICE_ENDPOINT;
@@ -115,7 +115,7 @@ export class AttendanceService extends Base {
       console.error(e);
     }
   }
-  
+
 
   private async sendClassAttendance(roomId: string) {
     const key = RedisKeys.classAttendees(roomId);

@@ -59,7 +59,7 @@ export class Model extends Base {
     this.feedbackService = new FeedbackService(client);
     this.classService = new ClassService(client);
   }
-  
+
   /** classService begin */
   public setHost(roomId: string, nextHostId: string): Promise<Boolean> {
     return this.classService.setHost(roomId, nextHostId);
