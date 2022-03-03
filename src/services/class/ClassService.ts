@@ -1,6 +1,6 @@
 import {Base} from '../base';
 import Redis from 'ioredis';
-import { RedisKeys } from '../../redisKeys';
+import {RedisKeys} from '../../redisKeys';
 import {Context, PageEvent, Session, SFUEntry, Message, StudentReportActionType, RequestBody, Student, StudentReport, ClassType} from '../../types';
 import WebSocket from 'ws';
 import {Pipeline} from '../../pipeline';
@@ -553,11 +553,11 @@ export class ClassService extends Base {
 
   public async setClassAttendees(roomId: string, userIds: [string]): Promise<Boolean> {
     const classContext = await this.getRoomContext(roomId);
-    if(classContext.classType === ClassType.CLASS) {
-        this.schedulerService.addSchedule(roomId);
-        const key = RedisKeys.classAttendees(roomId);
-        await this.client.del(key);
-        await this.client.set(key, userIds.toString());
+    if (classContext.classType === ClassType.CLASS) {
+      this.schedulerService.addSchedule(roomId);
+      const key = RedisKeys.classAttendees(roomId);
+      await this.client.del(key);
+      await this.client.set(key, userIds.toString());
     }
     return true;
   }

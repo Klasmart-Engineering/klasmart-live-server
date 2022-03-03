@@ -105,7 +105,6 @@ export class Model extends Base {
   }
 
 
-
   public getSfuAddress(roomId: string): Promise<String|undefined> {
     return this.classService.getSfuAddress(roomId);
   }

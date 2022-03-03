@@ -113,5 +113,4 @@ export class AttendanceService extends Base {
       console.error(e);
     }
   }
-  
 }
