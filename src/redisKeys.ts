@@ -141,4 +141,8 @@ export class RedisKeys {
   public static lastKeyframe(streamId: string) {
         return `lastKeyframe: ${streamId}`;
     }
+
+  public static roomContext(roomId: string) {
+    return `roomContext:${roomId}`;
+  }
 }
