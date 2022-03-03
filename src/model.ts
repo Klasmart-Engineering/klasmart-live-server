@@ -59,7 +59,7 @@ export class Model extends Base {
     this.feedbackService = new FeedbackService(client);
     this.classService = new ClassService(client);
   }
-
+  
   /** classService begin */
   public setHost(roomId: string, nextHostId: string): Promise<Boolean> {
     return this.classService.setHost(roomId, nextHostId);
@@ -104,6 +104,9 @@ export class Model extends Base {
     return this.classService.studentReport(roomId, context, materialUrl, activityTypeName);
   }
 
+  public setClassAttendees(roomId: string, userIds: [string]): Promise<Boolean> {
+    return this.classService.setClassAttendees(roomId, userIds);
+  }
 
   public getSfuAddress(roomId: string): Promise<String|undefined> {
     return this.classService.getSfuAddress(roomId);

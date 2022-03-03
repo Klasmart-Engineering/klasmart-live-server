@@ -25,6 +25,7 @@ const customSchema = gql`
     rewardTrophy(roomId: ID!, user: ID!, kind: String): Boolean
     saveFeedback(stars: Int!, feedbackType: FeedbackType!, comment: String, quickFeedback: [QuickFeedbackInput]): Boolean
     studentReport(roomId: ID!, materialUrl: String, activityTypeName:String): Boolean
+    setClassAttendees(roomId: ID!, userIds: [String]): Boolean
   }
 
   type Subscription {
