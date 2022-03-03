@@ -2,8 +2,8 @@
 import {
     KidsloopAuthenticationToken,
     KidsloopLiveAuthorizationToken,
-} from "kidsloop-token-validation";
-import WebSocket from "ws";
+} from 'kidsloop-token-validation';
+import WebSocket from 'ws';
 
 export interface Context {
     authenticationToken?: KidsloopAuthenticationToken;
@@ -42,7 +42,7 @@ export interface Attendance {
     roomId: string;
     userId: string;
     sessionId: string;
-    isTeacher: Boolean;
+    isTeacher: boolean;
     joinTimestamp: Date;
     leaveTimestamp: Date;
 }
