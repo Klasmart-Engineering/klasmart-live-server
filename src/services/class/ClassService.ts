@@ -14,14 +14,18 @@ import {
 
 import {AttendanceService} from '../attendance/AttendanceService';
 import {SchedulerService} from '../scheduler/SchedulerService';
+import {WhiteboardService} from '../whiteboard/WhiteboardService';
 
 export class ClassService extends Base {
   private attendanceService: AttendanceService;
   private schedulerService: SchedulerService;
+  private whiteboardService: WhiteboardService;
+
   constructor(readonly client: Redis.Cluster | Redis.Redis) {
     super(client);
     this.attendanceService = new AttendanceService(client);
     this.schedulerService = new SchedulerService(client);
+    this.whiteboardService = new WhiteboardService(client);
   }
 
   public async setHost(roomId: string, nextHostId: string): Promise<Boolean> {
@@ -48,6 +52,8 @@ export class ClassService extends Base {
     }
     await pipeline.exec();
 
+    // room host is changed, reset Whiteboard permissions
+    await this.whiteboardService.resetRoomPermissions(roomId);
     const join = await this.getSession(roomId, nextHostId);
     this.notifyRoom(roomId, {
       join,

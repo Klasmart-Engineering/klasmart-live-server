@@ -12,9 +12,12 @@ import {
   Redis,
 } from 'ioredis';
 import WebSocket from 'ws';
+import {Base} from '../base';
 
-export class WhiteboardService implements IWhiteboardService {
-  constructor(private readonly client: Cluster | Redis) {}
+export class WhiteboardService extends Base implements IWhiteboardService {
+  constructor(readonly client: Cluster | Redis) {
+    super(client);
+  }
 
   async whiteboardSendDisplay(roomId: string, display: boolean): Promise<boolean> {
     const whiteboardStateKey = RedisKeys.whiteboardState(roomId);
@@ -35,7 +38,6 @@ export class WhiteboardService implements IWhiteboardService {
   // with the desired permissions.
   async whiteboardSendPermissions(roomId: string, userId: string, permissions: string): Promise<boolean> {
     const permissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
-
     await this.client.expire(permissionsKey.key, permissionsKey.ttl);
     await this.client.xadd(permissionsKey.key, `MAXLEN`, `~`, 1, `*`, ...redisStreamSerialize(permissions));
 
@@ -107,6 +109,13 @@ export class WhiteboardService implements IWhiteboardService {
     }
   }
 
+  async resetRoomPermissions(roomId: string) {
+    for await (const session of this.getSessions(roomId)) {
+      const userId = session.userId;
+      this.whiteboardSendPermissions(roomId, userId, '');
+    }
+    this.whiteboardSendDisplay(roomId, false);
+  }
   private async addPainterEventToStream(roomId: string, event: string) {
     const eventsKey = RedisKeys.whiteboardEvents(roomId);
     await this.client.expire(eventsKey.key, eventsKey.ttl);
