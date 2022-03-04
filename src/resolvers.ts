@@ -53,11 +53,12 @@ export const resolvers = {
     }: {roomId: string; user: string; kind: string; sessionId?: string}, {sessionId}: Context) => model.rewardTrophy(roomId, user, kind, sessionId),
     saveFeedback: (parent: any, {
       stars, feedbackType, comment, quickFeedback,
-    }: { stars: number; feedbackType: string; comment: string; quickFeedback: {type: string; stars: number}[]}, context: Context) =>
+    }: { stars: number; feedbackType: string; comment: string; quickFeedback: {type: string; stars: number}[]}, context: Context) => 
       model.saveFeedback(context, stars, feedbackType, comment, quickFeedback),
     studentReport: (parent: any, {
       roomId, materialUrl, activityTypeName,
     }: {roomId: string; materialUrl: string; activityTypeName: string}, context: Context) => model.studentReport(roomId, context, materialUrl, activityTypeName),
+    setClassAttendees: (parent: any, {roomId, userIds}: {roomId: string; userIds: [string]}) => model.setClassAttendees(roomId, userIds),
   },
   Subscription: {
     room: {
