@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.9.0](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.8.4...v1.9.0) (2022-03-04)
+
+
+### Features
+
+* add setClassAttendees endpoint ([d791bfa](https://bitbucket.org/calmisland/kidsloop-live-server/commit/d791bfaf3143d21a02f9e5d237df6d1e2b777479))
+
 ### [1.8.4](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.8.3...v1.8.4) (2022-03-04)
 
 
