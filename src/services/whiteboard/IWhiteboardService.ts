@@ -1,6 +1,6 @@
-import { Context } from "../../types";
-import { PainterEvent } from "./events/PainterEvent";
-import { WhiteboardState } from "./model/WhiteboardState";
+import {Context} from '../../types';
+import {PainterEvent} from './events/PainterEvent';
+import {WhiteboardState} from './model/WhiteboardState';
 
 export interface IWhiteboardService {
     whiteboardSendEvent(roomId: string, event: string): Promise<boolean>;
