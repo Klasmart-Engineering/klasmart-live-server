@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.10.0](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.9.0...v1.10.0) (2022-03-04)
+
+
+### Features
+
+* reset whiteboard permissions if host change or leave ([a3f9f79](https://bitbucket.org/calmisland/kidsloop-live-server/commit/a3f9f79541aaaea09a625fdb532eca26a18b6e0c))
+
 ## [1.9.0](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.8.4...v1.9.0) (2022-03-04)
 
 
