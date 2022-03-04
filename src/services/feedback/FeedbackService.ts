@@ -23,11 +23,11 @@ export class FeedbackService extends Base {
     return true;
   }
 
-  public async saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string; stars: number}[]) {
+  public async saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string; stars: number}[]): Promise<boolean> {
     const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
 
     if (!context.authorizationToken || !context.sessionId || !url) {
-      return;
+      return true;
     }
     const variables = {
       roomId: context.authorizationToken.roomid,

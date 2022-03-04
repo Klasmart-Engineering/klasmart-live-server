@@ -1,5 +1,4 @@
 import Redis from 'ioredis';
-import {Base} from './services/base';
 import {ClassService} from './services/class/ClassService';
 import {FeedbackService} from './services/feedback/FeedbackService';
 import {VideoServices} from './services/video/VideoServices';
@@ -10,7 +9,7 @@ import {
   Message,
 } from './types';
 
-export class Model extends Base {
+export class Model {
   private static async createClient() {
     const redisMode = process.env.REDIS_MODE ?? `NODE`;
     const port = Number(process.env.REDIS_PORT) || undefined;
@@ -53,7 +52,6 @@ export class Model extends Base {
   private classService: ClassService;
 
   private constructor(client: Redis.Cluster | Redis.Redis) {
-    super(client);
     this.whiteboardService = new WhiteboardService(client);
     this.videoService = new VideoServices(client);
     this.feedbackService = new FeedbackService(client);
@@ -157,14 +155,13 @@ export class Model extends Base {
 
 
   /** feedbackService begin */
-  public async rewardTrophy(roomId: string, user: string, kind: string, sessionId?: string): Promise<boolean> {
-    this.feedbackService.rewardTrophy(roomId, user, kind, sessionId);
-    return true;
+  public rewardTrophy(roomId: string, user: string, kind: string, sessionId?: string): Promise<boolean> {
+    return this.feedbackService.rewardTrophy(roomId, user, kind, sessionId);
   }
 
-  public async saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string; stars: number}[]) {
-    this.feedbackService.saveFeedback(context, stars, feedbackType, comment, quickFeedback);
-    return true;
+  public saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string; stars: number}[]) {
+    return this.feedbackService.saveFeedback(context, stars, feedbackType, comment, quickFeedback);
+
   }
   /** feedbackService end */
 }
