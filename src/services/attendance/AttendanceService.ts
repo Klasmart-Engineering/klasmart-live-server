@@ -8,7 +8,7 @@ import {
   ClassType,
   Session,
 } from '../../types';
-import { RedisKeys } from 'src/redisKeys';
+import { RedisKeys } from '../../redisKeys';
 import {Base} from '../base';
 import axios from 'axios';
 import request from 'graphql-request';
