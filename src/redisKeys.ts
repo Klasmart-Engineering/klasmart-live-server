@@ -145,4 +145,8 @@ export class RedisKeys {
   public static roomContext(roomId: string) {
     return `roomContext:${roomId}`;
   }
+
+  public static classAttendees(roomId: string) {
+    return `classAttendees:${roomId}`;
+  }
 }

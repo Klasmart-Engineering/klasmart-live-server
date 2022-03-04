@@ -3,7 +3,6 @@ import {
   SAVE_ATTENDANCE_MUTATION,
 } from '../../graphql';
 import {attendanceToken} from '../../jwt';
-import {RedisKeys} from '../../redisKeys';
 import {
   Attendance,
   ClassType,
