@@ -88,7 +88,7 @@ definitions:
           - export TAG_EXISTS=$(git ls-remote origin refs/tags/$VERSION_TAG)
           - '[[ ! -z "$TAG_EXISTS" ]] && echo "$VERSION_TAG already exists" && exit 1'
           # - '[[ ! -z "$TAG_EXISTS" ]] && echo "Delete remote tag $VERSION_TAG" && git push --delete origin "$VERSION_TAG"'
-          - git push origin alpha
+          - git push origin master
           - git push origin --tags
 
     - step: &npm-install-and-build
