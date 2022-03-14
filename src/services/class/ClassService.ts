@@ -1,11 +1,11 @@
 import {Base} from '../base';
 import Redis from 'ioredis';
 import {RedisKeys} from '../../redisKeys';
-import {Context, PageEvent, Session, SFUEntry, Message, StudentReportActionType, RequestBody, Student, StudentReport, ClassType} from '../../types';
+import {Context, PageEvent, Session, SFUEntry, Message, StudentReportActionType, StudentReportRequestType, Student, StudentReport, ClassType} from '../../types';
 import WebSocket from 'ws';
 import {Pipeline} from '../../pipeline';
 import axios from 'axios';
-import {studentReportToken} from '../../jwt';
+import {generateToken} from '../../jwt';
 import {
   fromRedisKeyValueArray,
   redisStreamDeserialize,
@@ -493,6 +493,7 @@ export class ClassService extends Base {
       }
     }
   }
+
   public async setSessionStreamId(roomId: string, sessionId: string | undefined, streamId: string): Promise<Boolean> {
     if (!sessionId) {
       throw new Error(`Can't setSessionStreamId without knowing the sessionId it was from`);
@@ -526,7 +527,7 @@ export class ClassService extends Base {
       const studentSessions = await this.getRoomParticipants(roomId, false);
       const students: Student[] = [];
       const recordedAt = new Date().getTime();
-      const requestBody: RequestBody = {
+      const requestBody: StudentReportRequestType = {
         room_id: roomId,
         class_type: userStatistics.classType,
         lesson_material_url: userStatistics.lessonMaterialUrl,
@@ -545,7 +546,7 @@ export class ClassService extends Base {
       }
       requestBody.students = students;
       console.log(`log type: report`, ` request body:`, requestBody);
-      const token = await studentReportToken(requestBody);
+      const token = await generateToken(requestBody);
       await axios.post(url, {
         token,
       });
@@ -567,6 +568,7 @@ export class ClassService extends Base {
     }
     return true;
   }
+
   public async getSfuAddress(roomId: string): Promise<String|undefined> {
     const sfu = RedisKeys.roomSfu(roomId);
     const address = await this.client.get(sfu.key);

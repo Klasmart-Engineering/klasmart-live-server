@@ -13,6 +13,12 @@ export interface Context {
     websocket?: WebSocket;
     joinTime?: Date;
 }
+
+export type Message = {
+    id: string,
+    session: Session,
+    message: string,
+}
 export interface PageEvent {
     sequenceNumber: number;
     isKeyframe: boolean;
@@ -30,14 +36,6 @@ export interface Session {
     joinedAt: number;
     email: string;
 }
-
-export interface StudentReport {
-    classType: string;
-    lessonMaterialUrl: string;
-    contentType: string;
-    actionType: StudentReportActionType;
-}
-
 export interface Attendance {
     roomId: string;
     userId: string;
@@ -53,7 +51,14 @@ export type Student = {
     name: string;
 }
 
-export type RequestBody = {
+export interface StudentReport {
+    classType: string;
+    lessonMaterialUrl: string;
+    contentType: string;
+    actionType: StudentReportActionType;
+}
+
+export type StudentReportRequestType = {
     room_id: string;
     class_type: string;
     lesson_material_url: string;
@@ -63,14 +68,14 @@ export type RequestBody = {
     students: Student[];
 }
 
+export type AttendanceRequestType = {
+    attendance_ids: string [],
+    class_end_time: number,
+    class_length: number,
+    schedule_id: string,
+}
 export type SFUEntry = {
     sfuAddress: string;
-}
-
-export type Message = {
-    id: string,
-    session: Session,
-    message: string,
 }
 
 export type RoomContext = {

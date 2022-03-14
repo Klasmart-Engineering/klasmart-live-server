@@ -5,31 +5,11 @@ import {
   sign,
   SignOptions,
 } from 'jsonwebtoken';
+import { AttendanceRequestType, StudentReportRequestType } from './types';
 
-export async function attendanceToken(roomId: string, attendanceIds: string[], classStartTime: number, classEndTime: number) {
-  const classLength = classEndTime - classStartTime;
-  const scheduleId = roomId;
+export async function generateToken(requestBody: AttendanceRequestType | StudentReportRequestType) {
   const {secretOrPrivateKey, options} = await jwtConfig();
 
-  return new Promise<string>((resolve, reject) => {
-    sign({
-      attendance_ids: attendanceIds,
-      class_end_time: classEndTime,
-      class_length: classLength,
-      schedule_id: scheduleId,
-    }, secretOrPrivateKey, options, (err, token) => {
-      if (err) {
-        reject(err);
-      } else if (token) {
-        resolve(token);
-      } else {
-        reject(new Error(`Signing attendance token failed without explicit error`));
-      }
-    });
-  });
-}
-export async function studentReportToken(requestBody: any) {
-  const {secretOrPrivateKey, options} = await jwtConfig();
   return new Promise<string>((resolve, reject) => {
     sign(requestBody, secretOrPrivateKey, options, (err, token) => {
       if (err) {
@@ -42,6 +22,7 @@ export async function studentReportToken(requestBody: any) {
     });
   });
 }
+
 let config: { options: SignOptions; secretOrPrivateKey: Secret; secretOrPublicKey: Secret } | undefined;
 async function jwtConfig() {
   if (config) {

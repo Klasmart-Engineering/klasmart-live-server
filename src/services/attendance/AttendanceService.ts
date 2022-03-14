@@ -2,11 +2,12 @@ import {
   GET_ATTENDANCE_QUERY,
   SAVE_ATTENDANCE_MUTATION,
 } from '../../graphql';
-import {attendanceToken} from '../../jwt';
+import {generateToken} from '../../jwt';
 import {
   Attendance,
   ClassType,
   Session,
+  AttendanceRequestType
 } from '../../types';
 import { RedisKeys } from '../../redisKeys';
 import {Base} from '../base';
@@ -105,7 +106,13 @@ export class AttendanceService extends Base {
       if (numberOfTeachers === 0 || numberOfStudents === 0) {
         return;
       }
-      const token = await attendanceToken(roomId, [...attendanceIds], roomContext.startAt, roomContext.endAt);
+      const body: AttendanceRequestType = {
+        attendance_ids: [...attendanceIds],
+        class_end_time: roomContext.endAt,
+        class_length: roomContext.endAt-roomContext.startAt,
+        schedule_id: roomId,
+      }
+      const token = await generateToken(body);
       await axios.post(assessmentUrl, {
         token,
       });
@@ -127,7 +134,13 @@ export class AttendanceService extends Base {
       const attendanceIds = response[0].split(`,`);
       console.log(`attendanceIds: `, attendanceIds);
       const roomContext = await this.getRoomContext(roomId);
-      const token = await attendanceToken(roomId, attendanceIds, roomContext.startAt, roomContext.endAt);
+      const requestBody: AttendanceRequestType = {
+        attendance_ids: [...attendanceIds],
+        class_end_time: roomContext.endAt,
+        class_length: roomContext.endAt-roomContext.startAt,
+        schedule_id: roomId,
+      }
+      const token = await generateToken(requestBody);
       await axios.post(assessmentUrl, {
         token,
       });
