@@ -1,7 +1,7 @@
 import {Base} from '../base';
 import Redis from 'ioredis';
 import {RedisKeys} from '../../redisKeys';
-import {Context, PageEvent, Session, SFUEntry, Message, StudentReportActionType, StudentReportRequestType, Student, StudentReport, ClassType} from '../../types';
+import {Context, PageEvent, Session, SFUEntry, Message, StudentReportActionType, StudentReportRequestType, Student, StudentReport, ClassType, NotifyRoomType} from '../../types';
 import WebSocket from 'ws';
 import {Pipeline} from '../../pipeline';
 import axios from 'axios';
@@ -57,13 +57,13 @@ export class ClassService extends Base {
     const join = await this.getSession(roomId, nextHostId);
     this.notifyRoom(roomId, {
       join,
-    }).catch((e) => console.log(e));
+    } as NotifyRoomType).catch((e) => console.log(e));
 
     if (previousHostId) {
       const join = await this.getSession(roomId, previousHostId);
       this.notifyRoom(roomId, {
         join,
-      }).catch((e) => console.log(e));
+      } as NotifyRoomType).catch((e) => console.log(e));
     }
     return true;
   }
@@ -76,7 +76,7 @@ export class ClassService extends Base {
     };
     await this.notifyRoom(roomId, {
       content,
-    });
+    } as NotifyRoomType);
     await this.client.set(roomContent.key, JSON.stringify(content));
     await this.client.expire(roomContent.key, roomContent.ttl);
     return true;
@@ -172,7 +172,7 @@ export class ClassService extends Base {
         audio,
         video,
       },
-    });
+    } as NotifyRoomType);
     return true;
   }
 
@@ -196,7 +196,7 @@ export class ClassService extends Base {
       await pipeline.srem(roomSessions, sessionKey);
       await this.notifyRoom(roomId, {
         leave: session,
-      });
+      } as NotifyRoomType);
       await this.attendanceService.log(roomId, session);
     }
 
@@ -441,7 +441,7 @@ export class ClassService extends Base {
     console.log(`session: `, join);
     await this.notifyRoom(roomId, {
       join,
-    });
+    } as NotifyRoomType);
   }
 
   private async userLeave(context: Context) {
@@ -510,7 +510,7 @@ export class ClassService extends Base {
     const session = await this.getSession(roomId, sessionId);
     await this.notifyRoom(roomId, {
       join: session,
-    });
+    } as NotifyRoomType);
     return true;
   }
 

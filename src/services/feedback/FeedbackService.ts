@@ -1,5 +1,5 @@
 import {Base} from '../base';
-import {Context} from '../../types';
+import {Context, NotifyRoomType} from '../../types';
 import Redis from 'ioredis';
 import request from 'graphql-request';
 import {SAVE_FEEDBACK_MUTATION} from '../../graphql';
@@ -19,7 +19,7 @@ export class FeedbackService extends Base {
         user,
         kind,
       },
-    });
+    } as NotifyRoomType);
     return true;
   }
 

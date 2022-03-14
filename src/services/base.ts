@@ -5,6 +5,7 @@ import {
   Context,
   RoomContext,
   Session,
+  NotifyRoomType
 } from '../types';
 import {
   convertSessionRecordToSession,
@@ -58,11 +59,22 @@ export class Base {
     return convertSessionRecordToSession(sessionRecord);
   }
 
-  protected async notifyRoom(roomId: string, message: any): Promise<string> {
+  protected async notifyRoom(roomId: string, message: NotifyRoomType): Promise<string> {
+    
     const activityType = message?.content?.type;
     if (activityType === `Activity` || activityType === `Stream`) { // delete old Streams
       await this.deleteOldStreamId(roomId, activityType);
     }
+    
+
+    //check if session exist
+    if (message?.leave || message?.join) {
+      const session = message?.leave || message?.join;
+      if (!session || !session.id) {
+        return '';
+      }
+     }
+
     const notify = RedisKeys.roomNotify(roomId);
     await this.client.expire(notify.key, notify.ttl);
     const res = await this.client.xadd(notify.key, `MAXLEN`, `~`, 32, `*`, ...redisStreamSerialize(message));
@@ -111,7 +123,7 @@ export class Base {
             const session = await this.getSession(roomId, studentSession.id);
             await this.notifyRoom(roomId, {
               join: session,
-            });
+            } as NotifyRoomType);
           }
         }
       }
