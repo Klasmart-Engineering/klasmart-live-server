@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.5](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.4...v1.10.5) (2022-03-14)
+
+
+### Bug Fixes
+
+* push bitbucket commit to master ([7fa2eff](https://bitbucket.org/calmisland/kidsloop-live-server/commit/7fa2eff2f63745c7a765248082af974a8e20693b))
+
+## [1.8.0-master](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.8.0...v1.8.0-master) (2022-01-17)
+
+## [1.7.0-master](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.7.0...v1.7.0-master) (2022-01-03)
+
+## [1.6.0-master](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.6.0...v1.6.0-master) (2021-12-01)
+
 ### [1.10.4](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.3...v1.10.4) (2022-03-14)
 
 ### [1.10.3](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.2...v1.10.3) (2022-03-14)
