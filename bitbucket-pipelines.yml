@@ -1,65 +1,138 @@
-pipelines:
-  branches:
-    master:
-      - step: &step-secret-check
-          name: Atlassian Security Secrets Scan
-          script:
-            - pipe: atlassian/git-secrets-scan:0.5.1
-      - step: &step-build-npm
-          name: "Build NPM"
-          image: node:lts
-          script:
-            - npm ci
-            - npm run build
-          caches:
-            - nodemodules
-          artifacts:
-            - node_modules/**
-            - dist/**
-      - step: &step-build-docker
-          name: "Build & Push Docker image"
-          image: python:3.7.4-alpine3.10
-          script:
-            - pip3 install -U awscli
-
-            - export BRANCH_TAG=$(echo "$BITBUCKET_BRANCH" | sed -E 's/([^0-9a-zA-Z]+)/-/g' | awk '{print tolower($0)}')
-            - export REPO=$DOCKER_REPO_URL/kidsloop-live-backend # DOCKER_REPO_URL is workspace wide variable
-            - export COMMIT_TAG=$(echo $BITBUCKET_COMMIT | cut -c1-7)
-            - printf '"Git tag":"%s", "Git commit":"%s" "ECR repo":"%s"' $BRANCH_TAG $COMMIT_TAG $REPO
-
-            - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $DOCKER_REPO_URL
-
-            - mv deploy/Dockerfile.bitbucket-pipeline .
-            - docker build -t live-backend -f Dockerfile.bitbucket-pipeline .
-
-            - docker tag live-backend:latest $REPO:$BRANCH_TAG
-            - docker tag live-backend:latest $REPO:$BRANCH_TAG-latest
-            - docker tag live-backend:latest $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
-            - docker tag live-backend:latest $REPO:$BRANCH_TAG-$COMMIT_TAG
-
-            - docker push $REPO:$BRANCH_TAG
-            - docker push $REPO:$BRANCH_TAG-latest
-            - docker push $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
-            - docker push $REPO:$BRANCH_TAG-$COMMIT_TAG
-          services:
-            - docker
-          caches:
-            - docker
-    alpha:
-      - step: *step-secret-check
-      - step: *step-build-npm
-      - step: *step-build-docker
-  #     - step: &step-deploy-alpha
-  #         name: Deploy to alpha
-  #         deployment: alpha
-  #         image: python:3.7.4-alpine3.10
-  #         script:
-  #           - pip3 install -U awscli
-  #           - AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY_ALPHA_OLD" AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID_ALPHA_OLD" aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
-  # custom:
-  #   deploy-alpha:
-  #     - step: *step-deploy-alpha
+options:
+  docker: true
+  size: 2x
 
 definitions:
+  services:
+    docker:
+      memory: 4096
+    redis:
+      image: redis
   caches:
     nodemodules: ./node_modules
+  scripts:
+    - script:
+        - &skip-bitbucket-authored-commits '[[ $(git log -1 --pretty=%an) == "bitbucket-pipelines" ]] && echo "Commit author is bitbucket-pipelines - exiting Pipeline" && exit 0'
+    - script: &docker-push-to-aws
+        - pip3 install -U awscli
+
+        - export BRANCH_TAG=$([[ ! -z "$BITBUCKET_BRANCH" ]] && echo "$BITBUCKET_BRANCH" | sed -E 's/([^0-9a-zA-Z]+)/-/g' | awk '{print tolower($0)}' || echo "master")
+        - export REPO=$DOCKER_REPO_URL/kidsloop-live-backend # DOCKER_REPO_URL is workspace wide variable
+        - export COMMIT_TAG=$(echo $BITBUCKET_COMMIT | cut -c1-7)
+        - printf '"Git tag":"%s", "Git branch":"%s", "Git commit":"%s" "ECR repo":"%s"' $BITBUCKET_TAG $BRANCH_TAG $COMMIT_TAG $REPO
+        - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $DOCKER_REPO_URL
+        - export MAJOR_VERSION=$(echo $BITBUCKET_TAG | grep -o "[v][0-9]")
+        - export MINOR_VERSION=$(echo $BITBUCKET_TAG | grep -o "[v][0-9].[0-9]")
+        - export PATCH_VERSION=$(echo $BITBUCKET_TAG | grep -o "[v][0-9].[0-9].[0-9]")
+        - echo "$MAJOR_VERSION, $MINOR_VERSION, $PATCH_VERSION"
+
+        # - mv deploy/Dockerfile.bitbucket-pipeline .
+        - docker build -t live-backend -f Dockerfile .
+        - docker tag live-backend:latest $REPO:$MAJOR_VERSION
+        - docker tag live-backend:latest $REPO:$MINOR_VERSION
+        - docker tag live-backend:latest $REPO:$BITBUCKET_TAG
+        - docker tag live-backend:latest $REPO:$BRANCH_TAG
+        - docker tag live-backend:latest $REPO:$BRANCH_TAG-latest
+        - docker tag live-backend:latest $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
+        - docker tag live-backend:latest $REPO:$BRANCH_TAG-$COMMIT_TAG
+
+        - docker push $REPO:$MAJOR_VERSION
+        - docker push $REPO:$MINOR_VERSION
+        - docker push $REPO:$BITBUCKET_TAG
+        - docker push $REPO:$BRANCH_TAG
+        - docker push $REPO:$BRANCH_TAG-latest
+        - docker push $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
+        - docker push $REPO:$BRANCH_TAG-$COMMIT_TAG
+      services:
+        - docker
+      caches:
+        - docker
+
+  steps:
+    - step: &npm-install-and-test
+        name: "⚡ npm install and test"
+        image: node:16
+        services:
+          - redis
+        script:
+          - *skip-bitbucket-authored-commits
+          - export HUSKY=0
+          - npm i
+          # - npm run test:unit
+        caches:
+          - nodemodules
+        artifacts:
+          - node_modules/**
+
+    - step: &npm-build
+        name: "⚡ npm build"
+        image: node:16
+        script:
+          - *skip-bitbucket-authored-commits
+          - npm run build
+        artifacts:
+          - dist/**
+
+    - step: &version-release
+        name: "🏷️ Release Version Bump"
+        image: node:16
+        caches:
+          - nodemodules
+        script:
+          - *skip-bitbucket-authored-commits
+          - if [[ $BITBUCKET_BRANCH != master ]] && [[ $BITBUCKET_BRANCH != alpha ]]; then echo "This can only be performed on master branch" && exit 1; fi
+
+          - npm run release
+          - export VERSION_TAG=$(git describe --tags)
+          - 'echo "New release version: $VERSION_TAG - $(git log -1 --pretty=%h%B)"'
+          - export TAG_EXISTS=$(git ls-remote origin refs/tags/$VERSION_TAG)
+          - '[[ ! -z "$TAG_EXISTS" ]] && echo "$VERSION_TAG already exists" && exit 1'
+          # - '[[ ! -z "$TAG_EXISTS" ]] && echo "Delete remote tag $VERSION_TAG" && git push --delete origin "$VERSION_TAG"'
+          - git push origin alpha
+          - git push origin --tags
+
+    - step: &npm-install-and-build
+        name: "⚡ npm install and build"
+        image: node:16-alpine
+        script:
+          - npm i
+          - npm run build
+          - npm prune --production
+        caches:
+          - nodemodules
+        artifacts:
+          - node_modules/**
+          - dist/**
+
+pipelines:
+  pull-requests:
+    "**": # This runs as default for any branch not elsewhere defined.:
+      - step: *npm-install-and-test
+      - step: *npm-build
+      # - step: *docker-build-and-run
+
+  branches:
+    master:
+      - step: *npm-install-and-test
+      - step: *npm-build
+      - step: *version-release
+
+  tags:
+    "*":
+      - step: *npm-install-and-build
+      - step:
+          name: "🚀 Docker build + push to ECR"
+          image: python:3.9-alpine
+          services:
+            - docker
+          script: *docker-push-to-aws
+      - step: &step-deploy-alpha
+          name: Deploy to alpha
+          deployment: alpha
+          image: python:3.9-alpine
+          script:
+            - pip3 install -U awscli
+            - AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY_ALPHA_OLD" AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID_ALPHA_OLD" aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
+  custom:
+    deploy-alpha:
+      - step: *step-deploy-alpha

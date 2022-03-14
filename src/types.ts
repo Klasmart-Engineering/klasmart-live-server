@@ -1,9 +1,9 @@
 // define interfaces and enums in this file
 import {
-    KidsloopAuthenticationToken,
-    KidsloopLiveAuthorizationToken,
-} from "kidsloop-token-validation";
-import WebSocket from "ws";
+  KidsloopAuthenticationToken,
+  KidsloopLiveAuthorizationToken,
+} from 'kidsloop-token-validation';
+import WebSocket from 'ws';
 
 export interface Context {
     authenticationToken?: KidsloopAuthenticationToken;
@@ -12,6 +12,12 @@ export interface Context {
     roomId?: string;
     websocket?: WebSocket;
     joinTime?: Date;
+}
+
+export type Message = {
+    id: string,
+    session: Session,
+    message: string,
 }
 export interface PageEvent {
     sequenceNumber: number;
@@ -30,6 +36,20 @@ export interface Session {
     joinedAt: number;
     email: string;
 }
+export interface Attendance {
+    roomId: string;
+    userId: string;
+    sessionId: string;
+    isTeacher: boolean;
+    joinTimestamp: Date;
+    leaveTimestamp: Date;
+}
+
+export type Student = {
+    user_id: string;
+    email: string;
+    name: string;
+}
 
 export interface StudentReport {
     classType: string;
@@ -38,18 +58,34 @@ export interface StudentReport {
     actionType: StudentReportActionType;
 }
 
-export interface Attendance {
-    roomId: string;
-    userId: string;
-    sessionId: string;
-    isTeacher: Boolean;
-    joinTimestamp: Date;
-    leaveTimestamp: Date;
+export type StudentReportRequestType = {
+    room_id: string;
+    class_type: string;
+    lesson_material_url: string;
+    content_type: string;
+    action_type: StudentReportActionType;
+    timestamp: number;
+    students: Student[];
 }
 
+export type AttendanceRequestType = {
+    attendance_ids: string [],
+    class_end_time: number,
+    class_length: number,
+    schedule_id: string,
+}
+export type SFUEntry = {
+    sfuAddress: string;
+}
+
+export type RoomContext = {
+    classType: ClassType;
+    startAt: number;
+    endAt: number;
+}
 export enum ClassType {
     LIVE = `live`,
-    CLASSES = `class`,
+    CLASS = `class`,
     STUDY = `study`,
     TASK = `task`
 }

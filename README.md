@@ -14,6 +14,24 @@
 7. Finally, run `npm start`.
 
 
+## Run the service in a docker container
+
+Build the container and run:
+
+```shell
+docker build -t kl-live-server .
+```
+make sure redis and kl-live-server containers run in same docker network.
+if you don't have custom network you can create by `docker network create network-name` and set `--net network-name` while running container
+```shell
+docker run --rm -it \
+  --name kl_live_server \
+  --env REDIS_HOST=redis \
+  --env REDIS_PORT=6379 \
+  --env PORT=8080 \
+  -p 8082:8080 \
+  kl-live-server
+```
 ## How to make PR
 
 Project has `master` and `alpha` (dev) branches. `master` branch contains production ready code.  

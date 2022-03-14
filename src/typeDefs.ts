@@ -1,5 +1,5 @@
-import { gql } from "apollo-server-express";
-import { typeDefs as typeDef } from "graphql-scalars";
+import {gql} from 'apollo-server-express';
+import {typeDefs as typeDef} from 'graphql-scalars';
 
 const customSchema = gql`
   type Query {
@@ -24,7 +24,8 @@ const customSchema = gql`
     video(roomId: ID!, sessionId: ID!, src: String, play: Boolean, offset: Float): Boolean
     rewardTrophy(roomId: ID!, user: ID!, kind: String): Boolean
     saveFeedback(stars: Int!, feedbackType: FeedbackType!, comment: String, quickFeedback: [QuickFeedbackInput]): Boolean
-    studentReport(roomId: ID!, , materialUrl: String, activityTypeName:String): Boolean
+    studentReport(roomId: ID!, materialUrl: String, activityTypeName:String): Boolean
+    setClassAttendees(roomId: ID!, userIds: [String]): Boolean
   }
 
   type Subscription {
@@ -175,4 +176,4 @@ const customSchema = gql`
   }
 `;
 
-export const typeDefs = typeDef.map(typeDef => gql`${typeDef}`).concat(customSchema);
+export const typeDefs = typeDef.map((typeDef) => gql`${typeDef}`).concat(customSchema);
