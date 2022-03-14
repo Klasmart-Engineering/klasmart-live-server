@@ -15,7 +15,7 @@ import Redis from 'ioredis';
 export class Base {
   constructor(readonly client: Redis.Redis | Redis.Cluster) {}
 
-  public async setRoomContext(context: Context) {
+  protected async setRoomContext(context: Context) {
     const roomId = context.roomId;
     if (roomId) {
       const roomContextKey = RedisKeys.roomContext(roomId);
@@ -25,7 +25,7 @@ export class Base {
     }
   }
 
-  public async getRoomContext(roomId: string): Promise<RoomContext> {
+  protected async getRoomContext(roomId: string): Promise<RoomContext> {
     const roomContextKey = RedisKeys.roomContext(roomId);
     const roomContext = await this.client.hgetall(roomContextKey);
     return {
@@ -35,7 +35,7 @@ export class Base {
     } as RoomContext;
   }
 
-  public async* getSessions(roomId: string) {
+  protected async* getSessions(roomId: string) {
     const roomSessionsKey = RedisKeys.roomSessions(roomId);
     let sessionSearchCursor = `0`;
     do {
@@ -52,13 +52,13 @@ export class Base {
     } while (sessionSearchCursor !== `0`);
   }
 
-  public async getSession(roomId: string, sessionId: string): Promise<Session> {
+  protected async getSession(roomId: string, sessionId: string): Promise<Session> {
     const sessionKey = RedisKeys.sessionData(roomId, sessionId);
     const sessionRecord = await this.client.hgetall(sessionKey);
     return convertSessionRecordToSession(sessionRecord);
   }
 
-  public async notifyRoom(roomId: string, message: any): Promise<string> {
+  protected async notifyRoom(roomId: string, message: any): Promise<string> {
     const activityType = message?.content?.type;
     if (activityType === `Activity` || activityType === `Stream`) { // delete old Streams
       await this.deleteOldStreamId(roomId, activityType);
@@ -69,18 +69,18 @@ export class Base {
     return res;
   }
 
-  public async notifySession(roomId: string, sessionId: string, message: any): Promise<string> {
+  protected async notifySession(roomId: string, sessionId: string, message: any): Promise<string> {
     const notifyKey = RedisKeys.sessionNotify(roomId, sessionId);
     const res = await this.client.xadd(notifyKey, `MAXLEN`, `~`, 32, `*`, ...redisStreamSerialize(message));
     return res;
   }
 
-  public async getTime() {
+  protected async getTime() {
     const [seconds, microseconds] = await this.client.time();
     return Number(seconds) + Number(microseconds) / 1e6;
   }
 
-  public async getRoomParticipants(roomId: string, isTeacher = true, sort = false) {
+  protected async getRoomParticipants(roomId: string, isTeacher = true, sort = false) {
     const sessions = [];
     for await (const session of this.getSessions(roomId)) {
       if (session.isTeacher === isTeacher) {
