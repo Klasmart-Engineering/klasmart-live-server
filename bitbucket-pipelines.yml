@@ -115,10 +115,6 @@ pipelines:
     master:
       - step: *npm-install-and-test
       - step: *npm-build
-
-    alpha:
-      - step: *npm-install-and-test
-      - step: *npm-build
       - step: *version-release
 
   tags:
