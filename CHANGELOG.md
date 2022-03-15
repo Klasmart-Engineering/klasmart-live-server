@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.6](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.5...v1.10.6) (2022-03-15)
+
+
+### Bug Fixes
+
+* reset canvas when host teacher leaves ([2f83596](https://bitbucket.org/calmisland/kidsloop-live-server/commit/2f835966144905fb5aa61f8b07a74a9804b6d0aa))
+
 ### [1.10.5](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.4...v1.10.5) (2022-03-14)
 
 
