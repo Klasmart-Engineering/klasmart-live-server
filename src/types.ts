@@ -84,22 +84,22 @@ export type RoomContext = {
     endAt: number;
 }
 
-export type NotifyRoomType = {
-    content: ContentMessageType;
-    join: Session;
-    leave: Session;
-    mute: MuteMessageType;
-    trophy: TrophMessageType;
-}
+export type NotifyRoomType =
+    { content: ContentMessageType } |
+    { join: Session } |
+    { leave: Session } |
+    { mute: MuteMessageType } |
+    { trophy: TrophMessageType };
+
 export type ContentMessageType = {
     type: string;
-    contentId: string;
+    contentId?: string;
 }
 
 export type MuteMessageType = {
     sessionId: string;
-    audio: boolean;
-    video: boolean;
+    audio?: boolean;
+    video?: boolean;
 }
 
 export type TrophMessageType = {

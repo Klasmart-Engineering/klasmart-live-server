@@ -61,19 +61,17 @@ export class Base {
 
   protected async notifyRoom(roomId: string, message: NotifyRoomType): Promise<string> {
     
-    const activityType = message?.content?.type;
-    if (activityType === `Activity` || activityType === `Stream`) { // delete old Streams
-      await this.deleteOldStreamId(roomId, activityType);
+    if("content" in message) {
+      const activityType = message.content?.type;
+      if (activityType === `Activity` || activityType === `Stream`) { // delete old Streams
+        await this.deleteOldStreamId(roomId, activityType);
+      }
     }
     
 
     //check if session exist
-    if (message?.leave || message?.join) {
-      const session = message?.leave || message?.join;
-      if (!session || !session.id) {
-        return '';
-      }
-     }
+    if("leave" in message && !message.leave.id) { return ''; }
+    if("join" in message && !message.join.id) { return ''; }
 
     const notify = RedisKeys.roomNotify(roomId);
     await this.client.expire(notify.key, notify.ttl);
@@ -123,7 +121,7 @@ export class Base {
             const session = await this.getSession(roomId, studentSession.id);
             await this.notifyRoom(roomId, {
               join: session,
-            } as NotifyRoomType);
+            });
           }
         }
       }
