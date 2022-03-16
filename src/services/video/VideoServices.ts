@@ -2,6 +2,7 @@ import {Base} from '../base';
 import Redis from 'ioredis';
 import {RedisKeys} from '../../redisKeys';
 import WebSocket from 'ws';
+import { Context } from '../../types';
 import {
   redisStreamDeserialize,
 } from '../../utils';
@@ -11,11 +12,11 @@ export class VideoServices extends Base {
     super(client);
   }
 
-  public async startVideoStream(roomId: string, sessionId: string, src?: string, play?: boolean, offset?: number): Promise<boolean> {
+  public async startVideoStream(context: Context, sessionId: string, src?: string, play?: boolean, offset?: number): Promise<boolean> {
     if (src === undefined && play === undefined && offset === undefined) {
       return true;
     }
-
+    const roomId = context.authorizationToken.roomid;
     const timePromise = this.getTime();
     const pipeline = this.client.pipeline();
     const state = RedisKeys.videoState(roomId, sessionId);
@@ -46,7 +47,9 @@ export class VideoServices extends Base {
     return true;
   }
 
-  public async* subscribeToVideo(websocket: WebSocket | undefined, roomId: string, sessionId: string) {
+  public async* subscribeToVideo(context: Context, sessionId: string) {
+    const { websocket } = context;
+    const roomId = context.authorizationToken.roomid;
     if (!websocket) {
       throw new Error(`Can't subscribe to a video notifications without a websocket`);
     }
