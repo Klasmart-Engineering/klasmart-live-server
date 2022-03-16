@@ -83,6 +83,30 @@ export type RoomContext = {
     startAt: number;
     endAt: number;
 }
+
+export type NotifyRoomType =
+    { content: ContentMessageType } |
+    { join: Session } |
+    { leave: Session } |
+    { mute: MuteMessageType } |
+    { trophy: TrophMessageType };
+
+export type ContentMessageType = {
+    type: string;
+    contentId?: string;
+}
+
+export type MuteMessageType = {
+    sessionId: string;
+    audio?: boolean;
+    video?: boolean;
+}
+
+export type TrophMessageType = {
+    from: string;
+    user: string;
+    kind: string;
+}
 export enum ClassType {
     LIVE = `live`,
     CLASS = `class`,

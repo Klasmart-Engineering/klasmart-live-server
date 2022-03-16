@@ -1,7 +1,7 @@
 import {Base} from '../base';
 import Redis from 'ioredis';
 import {RedisKeys} from '../../redisKeys';
-import {Context, PageEvent, Session, SFUEntry, Message, StudentReportActionType, StudentReportRequestType, Student, StudentReport, ClassType} from '../../types';
+import {Context, PageEvent, Session, SFUEntry, Message, StudentReportActionType, StudentReportRequestType, Student, StudentReport, ClassType, NotifyRoomType} from '../../types';
 import WebSocket from 'ws';
 import {Pipeline} from '../../pipeline';
 import axios from 'axios';
