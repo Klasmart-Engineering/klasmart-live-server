@@ -180,7 +180,7 @@ pipelines:
           script: *docker-push-to-aws
       - step: &step-deploy-alpha
           name: Deploy to alpha
-          deployment: alpha
+          deployment: alpha-dev
           image: python:3.9-alpine
           script:
             - pip3 install -U awscli
