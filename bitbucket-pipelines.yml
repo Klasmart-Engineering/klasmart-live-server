@@ -111,9 +111,9 @@ definitions:
         image: argoproj/argocd:v2.3.1
         script:
           # What are we deploying?
-          - export BRANCH_TAG=$(echo "$BITBUCKET_BRANCH" | sed -E 's/([^0-9a-zA-Z]+)/-/g' | awk '{print tolower($0)}')
+          - export BRANCH_TAG=$([[ ! -z "$BITBUCKET_BRANCH" ]] && echo "$BITBUCKET_BRANCH" | sed -E 's/([^0-9a-zA-Z]+)/-/g' | awk '{print tolower($0)}' || echo "master")
           - export COMMIT_TAG=$(echo $BITBUCKET_COMMIT | cut -c1-7)
-          - export DEPLOY_TAG=$BRANCH_TAG-$COMMIT_TAG
+          - export DEPLOY_TAG=$(if [[ ! -z "$BITBUCKET_TAG" ]]; then echo $BITBUCKET_TAG; else echo "$BRANCH_TAG-$COMMIT_TAG"; fi)
           - echo "Tag to deploy - $DEPLOY_TAG"
 
           # Set up port forwarding
