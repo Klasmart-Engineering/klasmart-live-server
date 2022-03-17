@@ -7,9 +7,9 @@ import {
   Attendance,
   ClassType,
   Session,
-  AttendanceRequestType
+  AttendanceRequestType,
 } from '../../types';
-import { RedisKeys } from '../../redisKeys';
+import {RedisKeys} from '../../redisKeys';
 import {Base} from '../base';
 import axios from 'axios';
 import request from 'graphql-request';
@@ -110,7 +110,7 @@ export class AttendanceService extends Base {
         class_end_time: roomContext.endAt,
         class_length: roomContext.endAt-roomContext.startAt,
         schedule_id: roomId,
-      }
+      };
       const token = await generateToken(body);
       await axios.post(assessmentUrl, {
         token,
@@ -138,7 +138,7 @@ export class AttendanceService extends Base {
         class_end_time: roomContext.endAt,
         class_length: roomContext.endAt-roomContext.startAt,
         schedule_id: roomId,
-      }
+      };
       const token = await generateToken(requestBody);
       await axios.post(assessmentUrl, {
         token,

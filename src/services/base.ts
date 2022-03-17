@@ -5,7 +5,7 @@ import {
   Context,
   RoomContext,
   Session,
-  NotifyRoomType
+  NotifyRoomType,
 } from '../types';
 import {
   convertSessionRecordToSession,
@@ -60,18 +60,21 @@ export class Base {
   }
 
   protected async notifyRoom(roomId: string, message: NotifyRoomType): Promise<string> {
-    
-    if("content" in message) {
+    if ('content' in message) {
       const activityType = message.content?.type;
       if (activityType === `Activity` || activityType === `Stream`) { // delete old Streams
         await this.deleteOldStreamId(roomId, activityType);
       }
     }
-    
 
-    //check if session exist
-    if("leave" in message && !message.leave.id) { return ''; }
-    if("join" in message && !message.join.id) { return ''; }
+
+    // check if session exist
+    if ('leave' in message && !message.leave.id) {
+      return '';
+    }
+    if ('join' in message && !message.join.id) {
+      return '';
+    }
 
     const notify = RedisKeys.roomNotify(roomId);
     await this.client.expire(notify.key, notify.ttl);

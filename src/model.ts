@@ -161,7 +161,6 @@ export class Model {
 
   public saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string; stars: number}[]) {
     return this.feedbackService.saveFeedback(context, stars, feedbackType, comment, quickFeedback);
-
   }
   /** feedbackService end */
 }
