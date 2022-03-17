@@ -2,28 +2,16 @@ import 'newrelic';
 import {Model} from './model';
 import {resolvers} from './resolvers';
 import {makeExecutableSchema} from '@graphql-tools/schema';
-import newRelicApolloPlugin from '@newrelic/apollo-server-plugin';
-import {
-  ApolloError,
-  ApolloServer,
-  ForbiddenError,
-} from 'apollo-server-express';
 import dotenv from 'dotenv';
 import Express from 'express';
-import {
-  execute,
-  subscribe,
-} from 'graphql';
 import {createServer} from 'http';
-import {SubscriptionServer} from 'subscriptions-transport-ws';
-import WebSocket = require('ws');
+import {GRAPHQL_WS} from 'subscriptions-transport-ws';
+import {WebSocketServer} from 'ws';
 import {typeDefs} from './typeDefs';
-import {Context} from './types';
-import cookie from 'cookie';
-import {
-  checkAuthenticationToken,
-  checkLiveAuthorizationToken,
-} from 'kidsloop-token-validation';
+import {GRAPHQL_TRANSPORT_WS_PROTOCOL} from 'graphql-ws';
+import {CustomApolloServer} from './servers/CustomApolloServer';
+import {SubTransWsServer} from './servers/SubTransWsServer';
+import {GraphqlWsServer} from './servers/GraphqlWsServer';
 
 dotenv.config();
 
@@ -36,50 +24,18 @@ async function main() {
       typeDefs,
       resolvers,
     });
-    const apolloServer = new ApolloServer({
-      schema,
-      context: async ({req}) => {
-        const authHeader = req.headers.authorization;
-        const rawAuthorizationToken = authHeader?.substr(0, 7).toLowerCase() === `bearer ` ? authHeader.substr(7) : authHeader;
-        const authorizationToken = await checkLiveAuthorizationToken(rawAuthorizationToken).catch((e) => {
-          throw new ForbiddenError(e);
-        });
 
-        if (process.env.DISABLE_AUTH) {
-          return {
-            authorizationToken,
-          };
-        }
-        const rawCookies = req.headers.cookie;
-        const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
-        const authenticationToken = await checkAuthenticationToken(cookies?.access).catch((e) => {
-          if (e.name === `TokenExpiredError`) {
-            throw new ApolloError(`AuthenticationExpired`, `AuthenticationExpired`);
-          }
-          throw new ApolloError(`AuthenticationInvalid`, `AuthenticationInvalid`);
-        });
-        if (!authenticationToken.id || authenticationToken.id !== authorizationToken.userid) {
-          throw new ForbiddenError(`The authorization token does not match your session token`);
-        }
-
-        return {
-          authorizationToken,
-          authenticationToken,
-        };
-      },
-      plugins: [
-        newRelicApolloPlugin,
-        {
-          async serverWillStart() {
-            return {
-              async drainServer() {
-                subscriptionServer.close();
-              },
-            };
-          },
-        },
-      ],
-    });
+    // subscription-transport-ws server
+    const subTransWs = new WebSocketServer({noServer: true});
+    const subscriptionServer = SubTransWsServer.create(model, schema, subTransWs);
+    
+    // grapqhl-ws server
+    const graphqlWs = new WebSocketServer({noServer: true});
+    const graphqlWsServer = GraphqlWsServer.create(model, schema, graphqlWs);
+    
+    // apollo server
+    const apolloServer = CustomApolloServer.create(schema, subscriptionServer, graphqlWsServer);
+    
     const app = Express();
     app.use(Express.json({
       limit: `50mb`,
@@ -89,62 +45,32 @@ async function main() {
       extended: true,
       parameterLimit: 50000,
     }));
+
+    // http server
     const httpServer = createServer(app);
     await apolloServer.start();
     apolloServer.applyMiddleware({
       app,
     });
-    const subscriptionServer = SubscriptionServer.create({
-      schema,
-      execute,
-      subscribe,
-      keepAlive: 1000,
-      onConnect: async ({authToken, sessionId}: any, websocket: WebSocket, connectionData: any): Promise<Context> => {
-        const authorizationToken = await checkLiveAuthorizationToken(authToken).catch((e) => {
-          throw new ForbiddenError(e);
-        });
-        const rawCookies = connectionData.request.headers.cookie;
-        const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
-        const joinTime = new Date();
-        (connectionData as any).sessionId = sessionId;
-        (connectionData as any).authorizationToken = authorizationToken;
-        (connectionData as any).joinTime = joinTime;
-        if (process.env.DISABLE_AUTH) {
-          return {
-            authorizationToken,
-            sessionId,
-            websocket,
-            joinTime,
-          };
-        }
 
-        const authenticationToken = await checkAuthenticationToken(cookies?.access).catch((e) => {
-          if (e.name === `TokenExpiredError`) {
-            throw new ApolloError(`AuthenticationExpired`, `AuthenticationExpired`);
-          }
-          throw new ApolloError(`AuthenticationInvalid`, `AuthenticationInvalid`);
-        });
-        if (!authenticationToken.id || authenticationToken.id !== authorizationToken.userid) {
-          throw new ForbiddenError(`The authorization token does not match your session token`);
-        }
-        (connectionData as any).authenticationToken = authenticationToken;
-        return {
-          authenticationToken,
-          authorizationToken,
-          sessionId,
-          websocket,
-          joinTime,
-        };
-      },
-      onDisconnect: (websocket: WebSocket, connectionData: any) => {
-        model.leaveRoom(connectionData as any);
-      },
-    }, {
-      server: httpServer,
-      path: apolloServer.graphqlPath,
-    });
     const port = process.env.PORT || 8000;
 
+    // listen for upgrades and delegate requests according to the WS subprotocol
+    httpServer.on('upgrade', (req, socket, head) => {
+      // extract websocket subprotocol from header
+      const protocol = req.headers['sec-websocket-protocol'];
+      const protocols = Array.isArray(protocol) ?
+        protocol :
+        protocol?.split(',').map((p) => p.trim());
+
+      const wss =
+        protocols?.includes(GRAPHQL_WS) && // subscriptions-transport-ws subprotocol
+        !protocols.includes(GRAPHQL_TRANSPORT_WS_PROTOCOL) ? // graphql-ws subprotocol
+          subTransWs : graphqlWs;
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        wss.emit('connection', ws, req);
+      });
+    });
     httpServer.listen({
       port,
     }, () => console.log(`🌎 Server ready at http://localhost:${port}${apolloServer.graphqlPath}`));
