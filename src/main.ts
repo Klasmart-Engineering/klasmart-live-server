@@ -28,14 +28,14 @@ async function main() {
     // subscription-transport-ws server
     const subTransWs = new WebSocketServer({noServer: true});
     const subscriptionServer = SubTransWsServer.create(model, schema, subTransWs);
-    
+
     // grapqhl-ws server
     const graphqlWs = new WebSocketServer({noServer: true});
     const graphqlWsServer = GraphqlWsServer.create(model, schema, graphqlWs);
-    
+
     // apollo server
     const apolloServer = CustomApolloServer.create(schema, subscriptionServer, graphqlWsServer);
-    
+
     const app = Express();
     app.use(Express.json({
       limit: `50mb`,

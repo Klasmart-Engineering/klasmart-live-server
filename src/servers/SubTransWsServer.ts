@@ -25,7 +25,7 @@ export class SubTransWsServer {
       subscribe,
       keepAlive: 1000,
       onConnect: async ({authToken, sessionId}: any, websocket: WebSocket, connectionData: any): Promise<Context> => {
-        console.log('onConnect: subscriptionServer')
+        console.log('onConnect: subscriptionServer');
         const authorizationToken = await checkLiveAuthorizationToken(authToken).catch((e) => {
           throw new ForbiddenError(e);
         });

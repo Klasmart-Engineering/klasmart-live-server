@@ -1,30 +1,30 @@
 import {useServer} from 'graphql-ws/lib/use/ws';
 import WebSocket from 'ws';
-import { CloseCode } from 'graphql-ws';
+import {CloseCode} from 'graphql-ws';
 
 import {
   checkAuthenticationToken,
   checkLiveAuthorizationToken,
   KidsloopLiveAuthorizationToken,
-  KidsloopAuthenticationToken
+  KidsloopAuthenticationToken,
 } from 'kidsloop-token-validation';
 import cookie from 'cookie';
 import {GraphQLSchema} from 'graphql';
-import { Model } from "../model";
+import {Model} from '../model';
 
 export class GraphqlWsServer {
   static create(model: Model, schema: GraphQLSchema, graphqlWs: WebSocket.Server<WebSocket.WebSocket>) {
-    const server =  useServer(
+    const server = useServer(
         {
           context: async (ctx: any) => {
             console.log('context: graphql-ws ');
-            
+
             const context = await this.createContext(ctx);
-            return context; 
+            return context;
           },
           onConnect: async (ctx) => {
             console.log('onConnect: graphql-ws ');
-            if( !(await this.checkAuth(ctx)) ){
+            if ( !(await this.checkAuth(ctx)) ) {
               return false;
             }
             return true;
@@ -35,9 +35,11 @@ export class GraphqlWsServer {
             model.leaveRoom(context);
           },
 
+
           schema,
         },
         graphqlWs,
+        1000,
     );
     return server;
   }
@@ -71,31 +73,31 @@ export class GraphqlWsServer {
       websocket,
       joinTime,
     };
-  }
+  };
 
   private static checkAuth = async (ctx: any) => {
     const authToken = ctx.connectionParams.authToken;
     let authorizationToken: KidsloopLiveAuthorizationToken;
     try {
-      authorizationToken = await checkLiveAuthorizationToken(authToken)
-    } catch(e: any) {
-      if (e instanceof Error){
-        ctx.extra.socket.close(CloseCode.Forbidden, e.message)
+      authorizationToken = await checkLiveAuthorizationToken(authToken);
+    } catch (e: any) {
+      if (e instanceof Error) {
+        ctx.extra.socket.close(CloseCode.Forbidden, e.message);
       }
       return false;
     }
-    
+
     if (process.env.DISABLE_AUTH) {
-      return true
+      return true;
     }
-    
+
     const rawCookies = ctx.extra.request.headers.cookie;
     const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
 
     let authenticationToken: KidsloopAuthenticationToken;
-    try { 
-      authenticationToken = await checkAuthenticationToken(cookies?.access)
-    } catch(e: any) {
+    try {
+      authenticationToken = await checkAuthenticationToken(cookies?.access);
+    } catch (e: any) {
       if (e instanceof Error) {
         ctx.extra.socket.close(CloseCode.Unauthorized, e.message);
       }
@@ -107,6 +109,6 @@ export class GraphqlWsServer {
       return false;
     }
 
-    return true
-  }
+    return true;
+  };
 }
