@@ -48,7 +48,7 @@
     "@newrelic/apollo-server-plugin": "^1.2.0",
     "@types/ws": "^8.5.3",
     "apollo-server-core": "^3.6.4",
-    "apollo-server-express": "^3.5.0",
+    "apollo-server-express": "^3.6.4",
     "aws-sdk": "^2.926.0",
     "axios": "^0.21.4",
     "cookie": "^0.4.1",
