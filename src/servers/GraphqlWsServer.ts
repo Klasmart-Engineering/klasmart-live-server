@@ -1,13 +1,12 @@
 import {useServer} from 'graphql-ws/lib/use/ws';
 import WebSocket from 'ws';
-import {
-  ApolloError,
-  ForbiddenError,
-} from 'apollo-server-express';
+import { CloseCode } from 'graphql-ws';
 
 import {
   checkAuthenticationToken,
   checkLiveAuthorizationToken,
+  KidsloopLiveAuthorizationToken,
+  KidsloopAuthenticationToken
 } from 'kidsloop-token-validation';
 import cookie from 'cookie';
 import {GraphQLSchema} from 'graphql';
@@ -18,17 +17,24 @@ export class GraphqlWsServer {
     const server =  useServer(
         {
           context: async (ctx: any) => {
-            const context = this.createContext(ctx);
+            console.log('context: graphql-ws ');
+            
+            const context = await this.createContext(ctx);
             return context; 
           },
-          onConnect: (ctx) => {
-            console.log('onConnect: graphql-ws');
+          onConnect: async (ctx) => {
+            console.log('onConnect: graphql-ws ');
+            if( !(await this.checkAuth(ctx)) ){
+              return false;
+            }
+            return true;
           },
-          onDisconnect: (ctx) => {
-            const context = this.createContext(ctx);
-            model.leaveRoom(context);
+          onDisconnect: async (ctx) => {
             console.log('onDisconnect: graphql-ws');
+            const context = await this.createContext(ctx);
+            model.leaveRoom(context);
           },
+
           schema,
         },
         graphqlWs,
@@ -41,9 +47,7 @@ export class GraphqlWsServer {
     const authToken = connectionParams.authToken;
     const sessionId = connectionParams.sessionId;
     const websocket = ctx.extra.socket;
-    const authorizationToken = await checkLiveAuthorizationToken(authToken).catch((e) => {
-      throw new ForbiddenError(e);
-    });
+    const authorizationToken = await checkLiveAuthorizationToken(authToken);
     const rawCookies = ctx.extra.request.headers.cookie;
     const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
     const joinTime = new Date();
@@ -58,15 +62,7 @@ export class GraphqlWsServer {
       };
     }
 
-    const authenticationToken = await checkAuthenticationToken(cookies?.access).catch((e) => {
-      if (e.name === `TokenExpiredError`) {
-        throw new ApolloError(`AuthenticationExpired`, `AuthenticationExpired`);
-      }
-      throw new ApolloError(`AuthenticationInvalid`, `AuthenticationInvalid`);
-    });
-    if (!authenticationToken.id || authenticationToken.id !== authorizationToken.userid) {
-      throw new ForbiddenError(`The authorization token does not match your session token`);
-    }
+    const authenticationToken = await checkAuthenticationToken(cookies?.access);
     (connectionParams as any).authenticationToken = authenticationToken;
     return {
       authenticationToken,
@@ -76,4 +72,44 @@ export class GraphqlWsServer {
       joinTime,
     };
   }
+
+  private static checkAuth = async (ctx: any) => {
+    const authToken = ctx.connectionParams.authToken;
+    let authorizationToken: KidsloopLiveAuthorizationToken;
+    try {
+      authorizationToken = await checkLiveAuthorizationToken(authToken)
+    } catch(e) {
+      ctx.extra.socket.close(CloseCode.Forbidden, 'Forbidden')
+      return false;
+    }
+    
+    if (process.env.DISABLE_AUTH) {
+      return true
+    }
+    
+    const rawCookies = ctx.extra.request.headers.cookie;
+    const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+
+    let authenticationToken: KidsloopAuthenticationToken;
+    try { 
+      authenticationToken = await checkAuthenticationToken(cookies?.access)
+    } catch(e) {
+      if (e.name === `TokenExpiredError`) {
+        ctx.extra.socket.close(CloseCode.Unauthorized, 'TokenExpiredError');
+        return false;
+      }
+      
+      ctx.extra.socket.close(CloseCode.Unauthorized, 'AuthenticationInvalid');
+      return false;
+    }
+
+    if ( !authenticationToken.id || authenticationToken.id !== authorizationToken.userid) {
+      ctx.extra.socket.close(CloseCode.Unauthorized, 'AuthenticationExpired');
+      return false;
+    }
+
+    return true
+  }
+
+  
 }
