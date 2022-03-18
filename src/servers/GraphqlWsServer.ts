@@ -78,8 +78,10 @@ export class GraphqlWsServer {
     let authorizationToken: KidsloopLiveAuthorizationToken;
     try {
       authorizationToken = await checkLiveAuthorizationToken(authToken)
-    } catch(e) {
-      ctx.extra.socket.close(CloseCode.Forbidden, 'Forbidden')
+    } catch(e: any) {
+      if (e instanceof Error){
+        ctx.extra.socket.close(CloseCode.Forbidden, e.message)
+      }
       return false;
     }
     
@@ -93,23 +95,18 @@ export class GraphqlWsServer {
     let authenticationToken: KidsloopAuthenticationToken;
     try { 
       authenticationToken = await checkAuthenticationToken(cookies?.access)
-    } catch(e) {
-      if (e.name === `TokenExpiredError`) {
-        ctx.extra.socket.close(CloseCode.Unauthorized, 'TokenExpiredError');
-        return false;
+    } catch(e: any) {
+      if (e instanceof Error) {
+        ctx.extra.socket.close(CloseCode.Unauthorized, e.message);
       }
-      
-      ctx.extra.socket.close(CloseCode.Unauthorized, 'AuthenticationInvalid');
       return false;
     }
 
     if ( !authenticationToken.id || authenticationToken.id !== authorizationToken.userid) {
-      ctx.extra.socket.close(CloseCode.Unauthorized, 'AuthenticationExpired');
+      ctx.extra.socket.close(CloseCode.Unauthorized, 'Authentication Expired');
       return false;
     }
 
     return true
   }
-
-  
 }
