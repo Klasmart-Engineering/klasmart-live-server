@@ -130,7 +130,6 @@ definitions:
             --address 0.0.0.0 8080:80
             )
           - sleep 5
-
           # Deploy tag to environment with ArgoCD
           - >
             export
@@ -189,4 +188,25 @@ pipelines:
 
   custom:
     deploy-alpha:
-      - step: *step-deploy-alpha
+      - step: *npm-install-and-build
+      - step:
+          name: "🚀 Docker build for alpha + push to ECR"
+          image: python:3.9-alpine
+          services:
+            - docker
+          script:
+            - pip3 install -U awscli
+            - export BRANCH_TAG=$([[ ! -z "$BITBUCKET_BRANCH" ]] && echo "$BITBUCKET_BRANCH" | sed -E 's/([^0-9a-zA-Z]+)/-/g' | awk '{print tolower($0)}' || echo "master")
+            - export REPO=$DOCKER_REPO_URL/kidsloop-live-backend # DOCKER_REPO_URL is workspace wide variable
+            - export COMMIT_TAG=$(echo $BITBUCKET_COMMIT | cut -c1-7)
+            - printf '"Git tag":"%s", "Git branch":"%s", "Git commit":"%s" "ECR repo":"%s"' $BITBUCKET_TAG $BRANCH_TAG $COMMIT_TAG $REPO
+            - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $DOCKER_REPO_URL
+
+            - docker build -t live-backend -f Dockerfile .
+            - docker tag live-backend:latest $REPO:alpha-$COMMIT_TAG
+            - docker tag live-backend:latest $REPO:alpha-latest
+
+            - docker push $REPO:alpha-$COMMIT_TAG
+            - docker push $REPO:alpha-latest
+
+            - AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY_ALPHA_OLD" AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID_ALPHA_OLD" aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
