@@ -9,7 +9,9 @@ export class FeedbackService extends Base {
     super(client);
   }
 
-  public async rewardTrophy(roomId: string, user: string, kind: string, sessionId?: string): Promise<boolean> {
+  public async rewardTrophy(context: Context, user: string, kind: string): Promise<boolean> {
+    const roomId = context.authorizationToken.roomid;
+    const { sessionId } = context;
     if (!sessionId) {
       throw new Error(`Can't reward trophy without knowing the sessionId it was from`);
     }

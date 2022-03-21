@@ -28,7 +28,9 @@ export class ClassService extends Base {
     this.whiteboardService = new WhiteboardService(client);
   }
 
-  public async setHost(roomId: string, nextHostId: string): Promise<Boolean> {
+  public async setHost(context: Context, nextHostId: string): Promise<Boolean> {
+    const roomId = context.authorizationToken.roomid;
+
     if (!nextHostId) {
       throw new Error(`Can't set the host without knowing the sessionId of the new host`);
     }
@@ -53,7 +55,7 @@ export class ClassService extends Base {
     await pipeline.exec();
 
     // room host is changed, reset Whiteboard permissions
-    await this.whiteboardService.resetRoomPermissions(roomId);
+    await this.whiteboardService.resetRoomPermissions(context);
     const join = await this.getSession(roomId, nextHostId);
     this.notifyRoom(roomId, {
       join,
@@ -68,7 +70,8 @@ export class ClassService extends Base {
     return true;
   }
 
-  public async showContent(roomId: string, type: string, contentId?: string): Promise<Boolean> {
+  public async showContent(context: Context, type: string, contentId?: string): Promise<Boolean> {
+    const roomId = context.authorizationToken.roomid;
     const roomContent = RedisKeys.roomContent(roomId);
     const content = {
       type,
@@ -123,10 +126,10 @@ export class ClassService extends Base {
     }
   }
 
-  public async sendMessage(roomId: string, sessionId: string | undefined, message: string): Promise<Message|undefined> {
-    if (!roomId) {
-      throw new Error(`Invalid roomId('${roomId}')`);
-    }
+  public async sendMessage(context: Context, message: string): Promise<Message|undefined> {
+    const roomId = context.authorizationToken.roomid;
+    const { sessionId } = context;
+
     if (!sessionId) {
       throw new Error(`Can't reward trophy without knowing the sessionId it was from`);
     }
@@ -152,7 +155,10 @@ export class ClassService extends Base {
     };
   }
 
-  public async webRTCSignal(roomId: string, toSessionId: string, sessionId: string | undefined, webRTC: any): Promise<Boolean> {
+  public async webRTCSignal(context: Context, toSessionId: string, webRTC: any): Promise<Boolean> {
+    const roomId = context.authorizationToken.roomid;
+    const { sessionId } = context;
+    
     if (!sessionId) {
       throw new Error(`Can't send webrtc signal without knowing the sessionId it was from`);
     }
@@ -165,7 +171,8 @@ export class ClassService extends Base {
     return true;
   }
 
-  public async mute(roomId: string, sessionId: string, audio?: boolean, video?: boolean): Promise<boolean> {
+  public async mute(context: Context, sessionId: string, audio?: boolean, video?: boolean): Promise<boolean> {
+    const roomId = context.authorizationToken.roomid;
     await this.notifyRoom(roomId, {
       mute: {
         sessionId,
@@ -213,16 +220,14 @@ export class ClassService extends Base {
     return true;
   }
 
-  public async* joinRoom(context: Context, roomId: string, name?: string) {
+  public async* joinRoom(context: Context, name?: string) {
     const {
       sessionId,
       websocket,
       authorizationToken,
       authenticationToken,
     } = context;
-    if (!authorizationToken) {
-      throw new Error(`Can't subscribe to a room without a token`);
-    }
+    const roomId = authorizationToken.roomid;
     if (!sessionId) {
       throw new Error(`Can't subscribe to a room without a sessionId`);
     }
@@ -488,16 +493,19 @@ export class ClassService extends Base {
     if (changeRoomHost) {
       const teachers = await this.getRoomParticipants(roomId, true, true);
       // room host is changed, reset Whiteboard permissions
-      await this.whiteboardService.resetRoomPermissions(roomId);
+      await this.whiteboardService.resetRoomPermissions(context);
       
       if (teachers.length > 0) {
         const firstJoinedTeacher = teachers[0];
-        await this.setHost(roomId, firstJoinedTeacher.id);
+        await this.setHost(context, firstJoinedTeacher.id);
       }
     }
   }
 
-  public async setSessionStreamId(roomId: string, sessionId: string | undefined, streamId: string): Promise<Boolean> {
+  public async setSessionStreamId(context: Context, streamId: string): Promise<Boolean> {
+    const roomId = context.authorizationToken.roomid;
+    const { sessionId } = context;
+
     if (!sessionId) {
       throw new Error(`Can't setSessionStreamId without knowing the sessionId it was from`);
     }
@@ -514,7 +522,8 @@ export class ClassService extends Base {
     return true;
   }
 
-  public async studentReport(roomId: string, context: Context, materialUrl: string, activityTypeName: string): Promise<Boolean> {
+  public async studentReport(context: Context, materialUrl: string, activityTypeName: string): Promise<Boolean> {
+
     const url = process.env.STUDENT_REPORT_ENDPOINT;
     const classtype = context.authorizationToken?.classtype;
     if (!url || !(materialUrl && activityTypeName && classtype)) return false;
@@ -526,7 +535,7 @@ export class ClassService extends Base {
         contentType: activityTypeName.toLowerCase(),
         actionType: StudentReportActionType.VIEWED,
       };
-
+      const roomId = context.authorizationToken.roomid;
       const studentSessions = await this.getRoomParticipants(roomId, false);
       const students: Student[] = [];
       const recordedAt = new Date().getTime();
@@ -561,7 +570,8 @@ export class ClassService extends Base {
     return true;
   }
 
-  public async setClassAttendees(roomId: string, userIds: [string]): Promise<Boolean> {
+  public async setClassAttendees(context: Context, userIds: [string]): Promise<Boolean> {
+    const roomId = context.authorizationToken.roomid;
     const classContext = await this.getRoomContext(roomId);
     if (classContext.classType === ClassType.CLASS) {
       this.schedulerService.addSchedule(roomId);
@@ -572,7 +582,9 @@ export class ClassService extends Base {
     return true;
   }
 
-  public async getSfuAddress(roomId: string): Promise<String|undefined> {
+  public async getSfuAddress(context: Context): Promise<String|undefined> {
+    const roomId = context.authorizationToken.roomid;
+    
     const sfu = RedisKeys.roomSfu(roomId);
     const address = await this.client.get(sfu.key);
     if (address) {

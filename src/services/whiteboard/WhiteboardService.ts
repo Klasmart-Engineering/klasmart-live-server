@@ -19,7 +19,8 @@ export class WhiteboardService extends Base implements IWhiteboardService {
     super(client);
   }
 
-  async whiteboardSendDisplay(roomId: string, display: boolean): Promise<boolean> {
+  async whiteboardSendDisplay(context: Context, display: boolean): Promise<boolean> {
+    const roomId = context.authorizationToken.roomid;
     const whiteboardStateKey = RedisKeys.whiteboardState(roomId);
 
     const whiteboardState: WhiteboardState = {
@@ -36,7 +37,8 @@ export class WhiteboardService extends Base implements IWhiteboardService {
   // TODO: Add type for the permissions instead of passing a string. This will allow the server
   // to verify the permission settings is sane and that the user is actually allowed to mess
   // with the desired permissions.
-  async whiteboardSendPermissions(roomId: string, userId: string, permissions: string): Promise<boolean> {
+  async whiteboardSendPermissions(context: Context, userId: string, permissions: string): Promise<boolean> {
+    const roomId = context.authorizationToken.roomid;
     const permissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
     await this.client.expire(permissionsKey.key, permissionsKey.ttl);
     await this.client.xadd(permissionsKey.key, `MAXLEN`, `~`, 1, `*`, ...redisStreamSerialize(permissions));
@@ -44,7 +46,8 @@ export class WhiteboardService extends Base implements IWhiteboardService {
     return true;
   }
 
-  async* whiteboardStateStream(context: Context, roomId: string): AsyncGenerator<{ whiteboardState: WhiteboardState }, void> {
+  async* whiteboardStateStream(context: Context): AsyncGenerator<{ whiteboardState: WhiteboardState }, void> {
+    const roomId = context.authorizationToken.roomid;
     const stateKey = RedisKeys.whiteboardState(roomId);
 
     for await (const whiteboardState of this.readMostRecentStreamValue<WhiteboardState>(context, stateKey.key, stateKey.ttl)) {
@@ -54,7 +57,8 @@ export class WhiteboardService extends Base implements IWhiteboardService {
     }
   }
 
-  async* whiteboardPermissionsStream(context: Context, roomId: string, userId: string): AsyncGenerator<{ whiteboardPermissions: string }, void> {
+  async* whiteboardPermissionsStream(context: Context, userId: string): AsyncGenerator<{ whiteboardPermissions: string }, void> {
+    const roomId = context.authorizationToken.roomid;
     const permissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
 
     for await (const whiteboardPermissions of this.readMostRecentStreamValue<string>(context, permissionsKey.key, permissionsKey.ttl)) {
@@ -64,11 +68,11 @@ export class WhiteboardService extends Base implements IWhiteboardService {
     }
   }
 
-  async whiteboardSendEvent(roomId: string, event: string): Promise<boolean> {
+  async whiteboardSendEvent(context: Context, event: string): Promise<boolean> {
     const painterEvent = JSON.parse(event) as PainterEvent;
 
     if (painterEvent === undefined) return false;
-
+    const roomId = context.authorizationToken.roomid;
     // TODO: Ensure user is allowed to do the requested event.
 
     await this.addPainterEventToStream(roomId, event);
@@ -76,7 +80,9 @@ export class WhiteboardService extends Base implements IWhiteboardService {
     return true;
   }
 
-  async* whiteboardEventStream({websocket}: Context, roomId: string): AsyncGenerator<{ whiteboardEvents: PainterEvent[] }, void> {
+  async* whiteboardEventStream(context: Context): AsyncGenerator<{ whiteboardEvents: PainterEvent[] }, void> {
+    const { websocket } = context;
+    const roomId = context.authorizationToken.roomid;
     if (!websocket) {
       throw new Error(`whiteboardEventStream requires a websocket`);
     }
@@ -109,12 +115,13 @@ export class WhiteboardService extends Base implements IWhiteboardService {
     }
   }
 
-  async resetRoomPermissions(roomId: string) {
+  async resetRoomPermissions(context: Context) {
+    const roomId = context.authorizationToken.roomid;
     for await (const session of this.getSessions(roomId)) {
       const userId = session.userId;
-      this.whiteboardSendPermissions(roomId, userId, '');
+      this.whiteboardSendPermissions(context, userId, '');
     }
-    this.whiteboardSendDisplay(roomId, false);
+    this.whiteboardSendDisplay(context, false);
   }
   private async addPainterEventToStream(roomId: string, event: string) {
     const eventsKey = RedisKeys.whiteboardEvents(roomId);
