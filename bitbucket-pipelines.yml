@@ -35,6 +35,7 @@ definitions:
         - docker tag live-backend:latest $REPO:$BRANCH_TAG-latest
         - docker tag live-backend:latest $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
         - docker tag live-backend:latest $REPO:$BRANCH_TAG-$COMMIT_TAG
+        - docker tag live-backend:latest $REPO:alpha-latest
 
         - docker push $REPO:$MAJOR_VERSION
         - docker push $REPO:$MINOR_VERSION
@@ -43,6 +44,7 @@ definitions:
         - docker push $REPO:$BRANCH_TAG-latest
         - docker push $REPO:$BRANCH_TAG-$BITBUCKET_BUILD_NUMBER
         - docker push $REPO:$BRANCH_TAG-$COMMIT_TAG
+        - docker push $REPO:alpha-latest
       services:
         - docker
       caches:
@@ -208,5 +210,4 @@ pipelines:
 
             - docker push $REPO:alpha-$COMMIT_TAG
             - docker push $REPO:alpha-latest
-
-            - AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY_ALPHA_OLD" AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID_ALPHA_OLD" aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
+      - step: *step-deploy-alpha
