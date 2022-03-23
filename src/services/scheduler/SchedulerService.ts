@@ -1,6 +1,5 @@
 import {Pipeline} from '../../pipeline';
 import {RedisKeys} from '../../redisKeys';
-import {ClassType} from '../../types';
 import {AttendanceService} from '../attendance/AttendanceService';
 import {Base} from '../base';
 import Redis from 'ioredis';
@@ -17,18 +16,16 @@ export class SchedulerService extends Base {
 
   public async addSchedule(roomId: string) {
     const roomContext = await this.getRoomContext(roomId);
-    if (roomContext.classType === ClassType.LIVE || roomContext.classType === ClassType.CLASS) {
-      const tempStorageKeys = RedisKeys.tempStorageKeys();
-      const tempStorageKey = RedisKeys.tempStorageKey(roomId);
-      const tempStorageData = await this.client.get(tempStorageKey);
-      if (!tempStorageData) {
-        // send after n hour
-        const time = new Date(roomContext.endAt*1000);
-        if ( time > new Date()) {
-          time.setSeconds(time.getSeconds() + Number(process.env.ASSESSMENT_GENERATE_TIME || 300));
-          await this.client.set(tempStorageKey, time.getTime());
-          await this.client.sadd(tempStorageKeys, roomId);
-        }
+    const tempStorageKeys = RedisKeys.tempStorageKeys();
+    const tempStorageKey = RedisKeys.tempStorageKey(roomId);
+    const tempStorageData = await this.client.get(tempStorageKey);
+    if (!tempStorageData) {
+      // send after n hour
+      const time = new Date(roomContext.endAt*1000);
+      if ( time > new Date()) {
+        time.setSeconds(time.getSeconds() + Number(process.env.ASSESSMENT_GENERATE_TIME || 300));
+        await this.client.set(tempStorageKey, time.getTime());
+        await this.client.sadd(tempStorageKeys, roomId);
       }
     }
   }
