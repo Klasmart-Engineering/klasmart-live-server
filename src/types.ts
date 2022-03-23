@@ -117,3 +117,8 @@ export enum ClassType {
 export enum StudentReportActionType {
     VIEWED = `viewed`
 }
+
+export enum ConnectionType {
+    GRAPHQL_TRANSPORT_WS_PROTOCOL = "graphql-transport-ws",
+    GRAPHQL_WS = "graphql-ws"
+}

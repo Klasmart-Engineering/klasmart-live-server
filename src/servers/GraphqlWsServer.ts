@@ -32,7 +32,7 @@ export class GraphqlWsServer {
           onDisconnect: async (ctx) => {
             console.log('onDisconnect: graphql-ws');
             const context = await this.createContext(ctx);
-            model.leaveRoom(context);
+            model.leaveRoom(context, context.websocket.protocol);
           },
 
 

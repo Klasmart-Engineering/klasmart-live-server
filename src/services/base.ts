@@ -6,13 +6,23 @@ import {
   RoomContext,
   Session,
   NotifyRoomType,
+  ConnectionType
 } from '../types';
 import {
   convertSessionRecordToSession,
   redisStreamSerialize,
 } from '../utils';
 import Redis from 'ioredis';
+const { Gauge } = require('prom-client');
+const graphqlGauge = new Gauge({
+  name: 'GRAPHQL_WS',
+  help: 'number of users connected using graphqlWS',
+});
 
+const subTransGauge = new Gauge({
+  name: 'GRAPHQL_TRANSPORT_WS',
+  help: 'number of users connected using subscriptionTransportWS',
+});
 export class Base {
   constructor(readonly client: Redis.Redis | Redis.Cluster) {}
 
@@ -104,6 +114,23 @@ export class Base {
       sessions.sort((a: Session, b: Session) => a.joinedAt - b.joinedAt);
     }
     return sessions;
+  }
+
+  protected increaseCounter(connectionType: string) {
+    if (connectionType === ConnectionType.GRAPHQL_TRANSPORT_WS_PROTOCOL){
+      graphqlGauge.inc();
+    } else {
+      subTransGauge.inc()
+    }
+
+  }
+
+  protected decreaseCounter(connectionType: string) {
+    if (connectionType === ConnectionType.GRAPHQL_TRANSPORT_WS_PROTOCOL){
+      graphqlGauge.dec();
+    } else {
+      subTransGauge.dec()
+    }
   }
 
   private async deleteOldStreamId(roomId: string, activityType: string) {

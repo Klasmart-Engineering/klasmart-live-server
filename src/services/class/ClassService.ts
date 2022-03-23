@@ -214,9 +214,62 @@ export class ClassService extends Base {
     return true;
   }
 
-  public async leaveRoom(context: Context | any): Promise<boolean> {
+  public async leaveRoom(context: Context | any, connectionType?: string): Promise<boolean> {
     console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
-    await this.userLeave(context);
+    console.log(`userLeft: `, context?.authorizationToken?.classtype);
+    if (connectionType){
+      this.decreaseCounter(connectionType);
+    }
+    const {sessionId} = context;
+    const roomId = context?.authorizationToken?.roomid;
+    if (sessionId === undefined || roomId === undefined) {
+      return false;
+    }
+
+    const roomHostKey = RedisKeys.roomHost(roomId);
+    const roomSessions = RedisKeys.roomSessions(roomId);
+    const sessionKey = RedisKeys.sessionData(roomId, sessionId);
+    const roomHostId = await this.client.get(roomHostKey.key);
+    const changeRoomHost = (roomHostId === sessionId);
+
+    // If using Redis in cluster mode, a pipeline requires all operations to be performed on the
+    // same node, otherwise you will get an error.  This keeps compatibility with using node mode.
+    const pipeline = new Pipeline(this.client);
+
+    if (changeRoomHost) {
+      await pipeline.del(roomHostKey.key);
+    }
+
+    // Get and delete session
+    const session = await this.getSession(roomId, sessionId);
+    await pipeline.srem(roomSessions, sessionKey);
+    await pipeline.del(sessionKey);
+
+    // Notify other participants that this user has left
+    const notify = RedisKeys.roomNotify(roomId);
+    await pipeline.expire(notify.key, notify.ttl);
+    await pipeline.xadd(notify.key, `MAXLEN`, `~`, `64`, `*`, ...redisStreamSerialize({
+      leave: {
+        id: sessionId,
+      },
+    }));
+
+    
+    // Log Attendance
+    await this.attendanceService.log(roomId, session);
+    await pipeline.exec();
+
+    // Select new host
+    if (changeRoomHost) {
+      const teachers = await this.getRoomParticipants(roomId, true, true);
+      // room host is changed, reset Whiteboard permissions
+      await this.whiteboardService.resetRoomPermissions(context);
+      
+      if (teachers.length > 0) {
+        const firstJoinedTeacher = teachers[0];
+        await this.setHost(context, firstJoinedTeacher.id);
+      }
+    }
     return true;
   }
 
@@ -239,7 +292,7 @@ export class ClassService extends Base {
     }
     context.roomId = roomId;
     // TODO: Pipeline initial operations
-    await this.userJoin(roomId, sessionId, authorizationToken.userid, name ?? authorizationToken.name, authorizationToken.teacher, authenticationToken?.email);
+    await this.userJoin(roomId, sessionId, authorizationToken.userid, websocket.protocol, name ?? authorizationToken.name, authorizationToken.teacher, authenticationToken?.email);
     await this.setRoomContext(context);
     if (authorizationToken.classtype === ClassType.LIVE){
       this.schedulerService.addSchedule(roomId);
@@ -421,7 +474,7 @@ export class ClassService extends Base {
     }
   }
 
-  private async userJoin(roomId: string, sessionId: string, userId: string, name?: string, isTeacher?: boolean, email?: string) {
+  private async userJoin(roomId: string, sessionId: string, userId: string, connectionType: string, name?: string, isTeacher?: boolean, email?: string) {
     const joinedAt = new Date().getTime();
     const sessionKey = RedisKeys.sessionData(roomId, sessionId);
     const roomSessions = RedisKeys.roomSessions(roomId);
@@ -449,63 +502,9 @@ export class ClassService extends Base {
     await this.notifyRoom(roomId, {
       join,
     });
+    this.increaseCounter(connectionType);
   }
 
-  private async userLeave(context: Context) {
-    console.log(`userLeft: `, context?.authorizationToken?.classtype);
-    const {sessionId} = context;
-    const roomId = context?.authorizationToken?.roomid;
-    if (sessionId === undefined || roomId === undefined) {
-      return;
-    }
-
-    const roomHostKey = RedisKeys.roomHost(roomId);
-    const roomSessions = RedisKeys.roomSessions(roomId);
-    const sessionKey = RedisKeys.sessionData(roomId, sessionId);
-    const roomHostId = await this.client.get(roomHostKey.key);
-    const changeRoomHost = (roomHostId === sessionId);
-
-    // If using Redis in cluster mode, a pipeline requires all operations to be performed on the
-    // same node, otherwise you will get an error.  This keeps compatibility with using node mode.
-    const pipeline = new Pipeline(this.client);
-
-    if (changeRoomHost) {
-      await pipeline.del(roomHostKey.key);
-    }
-
-    // Get and delete session
-    const session = await this.getSession(roomId, sessionId);
-    await pipeline.srem(roomSessions, sessionKey);
-    await pipeline.del(sessionKey);
-
-    // Notify other participants that this user has left
-    const notify = RedisKeys.roomNotify(roomId);
-    await pipeline.expire(notify.key, notify.ttl);
-    await pipeline.xadd(notify.key, `MAXLEN`, `~`, `64`, `*`, ...redisStreamSerialize({
-      leave: {
-        id: sessionId,
-      },
-    }));
-
-    // Log Attendance
-    await this.attendanceService.log(roomId, session);
-    if (context.authorizationToken.classtype !== ClassType.LIVE){
-      this.attendanceService.send(roomId);
-    }
-    await pipeline.exec();
-
-    // Select new host
-    if (changeRoomHost) {
-      const teachers = await this.getRoomParticipants(roomId, true, true);
-      // room host is changed, reset Whiteboard permissions
-      await this.whiteboardService.resetRoomPermissions(context);
-      
-      if (teachers.length > 0) {
-        const firstJoinedTeacher = teachers[0];
-        await this.setHost(context, firstJoinedTeacher.id);
-      }
-    }
-  }
 
   public async setSessionStreamId(context: Context, streamId: string): Promise<Boolean> {
     const roomId = context.authorizationToken.roomid;
