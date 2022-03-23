@@ -1,6 +1,5 @@
 import {Pipeline} from '../../pipeline';
 import {RedisKeys} from '../../redisKeys';
-import {ClassType} from '../../types';
 import {AttendanceService} from '../attendance/AttendanceService';
 import {Base} from '../base';
 import Redis from 'ioredis';
