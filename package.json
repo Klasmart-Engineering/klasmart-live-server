@@ -62,6 +62,7 @@
     "jsonwebtoken": "^8.5.1",
     "kidsloop-token-validation": "bitbucket:calmisland/kidsloop-token-validation",
     "newrelic": "^8.4.0",
+    "prom-client": "^14.0.1",
     "subscriptions-transport-ws": "^0.11.0",
     "typeorm": "^0.2.29",
     "uuid": "^8.1.0",
