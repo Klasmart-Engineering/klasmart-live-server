@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.13](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.12...v1.10.13) (2022-03-23)
+
+
+### Bug Fixes
+
+* let class of type class send attendance with only teacher ([b8d474b](https://bitbucket.org/calmisland/kidsloop-live-server/commit/b8d474b80c52ec2d09e485ddd72f2ca9bac68c6d))
+
 ### [1.10.12](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.11...v1.10.12) (2022-03-23)
 
 
