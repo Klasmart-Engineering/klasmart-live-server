@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.12](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.11...v1.10.12) (2022-03-23)
+
+
+### Bug Fixes
+
+* send class type students seperatly ([7fce7db](https://bitbucket.org/calmisland/kidsloop-live-server/commit/7fce7db1ffd3a8cb4def510757f1befe726f2d1a))
+
 ### [1.10.11](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.10...v1.10.11) (2022-03-23)
 
 
