@@ -53,7 +53,7 @@ export class AttendanceService extends Base {
     const roomContext = await this.getRoomContext(roomId);
     if (roomContext.classType === ClassType.CLASS) {
       this.sendClassAttendance(roomId);
-    } else if (roomContext.classType === ClassType.LIVE) {
+    } else {
       this.sendLiveAttendance(roomId);
     }
   }
