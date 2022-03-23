@@ -102,7 +102,7 @@ export class AttendanceService extends Base {
       // in live class to trigger attendance there should be at least
       // on teacher an on student
       const roomContext = await this.getRoomContext(roomId);
-      if (numberOfTeachers === 0 || numberOfStudents === 0) {
+      if (roomContext.classType === ClassType.LIVE && (numberOfTeachers === 0 || numberOfStudents === 0)) {
         return;
       }
       const body: AttendanceRequestType = {
