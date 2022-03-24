@@ -87,8 +87,8 @@ export class Model {
     return this.classService.endClass(context);
   }
 
-  public leaveRoom(context: Context | any, connectionType?: string): Promise<boolean> {
-    return this.classService.leaveRoom(context, connectionType);
+  public leaveRoom(context: Context | any): Promise<boolean> {
+    return this.classService.leaveRoom(context);
   }
 
   public joinRoom(context: Context, name?: string) {

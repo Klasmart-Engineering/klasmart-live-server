@@ -214,12 +214,11 @@ export class ClassService extends Base {
     return true;
   }
 
-  public async leaveRoom(context: Context | any, connectionType?: string): Promise<boolean> {
+  public async leaveRoom(context: Context | any): Promise<boolean> {
     console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
     console.log(`userLeft: `, context?.authorizationToken?.classtype);
-    if (connectionType){
-      this.decreaseCounter(connectionType);
-    }
+    this.decreaseCounter(context.websocket.protocol);
+    
     const {sessionId} = context;
     const roomId = context?.authorizationToken?.roomid;
     if (sessionId === undefined || roomId === undefined) {
