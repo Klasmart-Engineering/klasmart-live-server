@@ -18,7 +18,9 @@ export class GraphqlWsServer {
         {
           context: async (ctx: any) => {
             console.log('context: graphql-ws ');
-
+            if ( !(await this.checkAuth(ctx)) ) {
+              throw Error("Forbidden Error")
+            }
             const context = await this.createContext(ctx);
             return context;
           },
@@ -31,8 +33,12 @@ export class GraphqlWsServer {
           },
           onDisconnect: async (ctx) => {
             console.log('onDisconnect: graphql-ws');
-            const context = await this.createContext(ctx);
-            model.leaveRoom(context);
+            try{
+              const context = await this.createContext(ctx);
+              model.leaveRoom(context);
+            } catch (e){
+              console.log('error in onDissconnect: ', e)
+            }
           },
 
 
