@@ -241,7 +241,9 @@ export class ClassService extends Base {
     // TODO: Pipeline initial operations
     await this.userJoin(roomId, sessionId, authorizationToken.userid, name ?? authorizationToken.name, authorizationToken.teacher, authenticationToken?.email);
     await this.setRoomContext(context);
-    this.schedulerService.addSchedule(roomId);
+    if (authorizationToken.classtype === ClassType.LIVE){
+      this.schedulerService.addSchedule(roomId);
+    }
 
     const sfu = RedisKeys.roomSfu(roomId);
     const sfuAddress = await this.client.get(sfu.key);
@@ -487,6 +489,9 @@ export class ClassService extends Base {
 
     // Log Attendance
     await this.attendanceService.log(roomId, session);
+    if (context.authorizationToken.classtype !== ClassType.LIVE){
+      this.attendanceService.send(roomId);
+    }
     await pipeline.exec();
 
     // Select new host
