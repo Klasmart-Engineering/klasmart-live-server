@@ -8,9 +8,9 @@ import WebSocket from 'ws';
 export interface Context {
     authenticationToken?: KidsloopAuthenticationToken;
     authorizationToken: KidsloopLiveAuthorizationToken;
-    sessionId?: string;
+    sessionId: string;
     roomId?: string;
-    websocket?: WebSocket;
+    websocket: WebSocket;
     joinTime?: Date;
 }
 

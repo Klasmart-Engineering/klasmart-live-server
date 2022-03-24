@@ -64,7 +64,13 @@ export class SubTransWsServer {
       },
       onDisconnect: (websocket: WebSocket, connectionData: any) => {
         console.log('onDisconnect: subscriptionServer');
-        model.leaveRoom(connectionData as any);
+        const context: Context = {
+          websocket: websocket,
+          authorizationToken: connectionData.authorizationToken,
+          joinTime: connectionData.joinTime,
+          sessionId: connectionData.sessionId,
+        }
+        model.leaveRoom(context);
       },
     },
     subTransWs,

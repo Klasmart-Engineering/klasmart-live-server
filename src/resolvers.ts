@@ -23,7 +23,7 @@ export const resolvers = {
   },
   Mutation: {
     endClass: (parent: any, arg: any, context: Context) => model.endClass(context),
-    leaveClass: (parent: any, arg: any, context: Context) => model.leaveRoom(context, undefined),
+    leaveClass: (parent: any, arg: any, context: Context) => model.leaveRoom(context),
     setSessionStreamId: (parent: any, {roomId, streamId}: {roomId: string; streamId: string}, context: Context) => model.setSessionStreamId(context, streamId),
     setHost: (parent: any, {roomId, nextHostId}: { roomId: string; nextHostId: string}, context: Context) => model.setHost(context, nextHostId),
     sendMessage: (parent: any, {roomId, message}: { roomId: string; message: string }, context: Context) => model.sendMessage(context, message),

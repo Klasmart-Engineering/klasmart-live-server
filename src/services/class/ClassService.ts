@@ -214,7 +214,7 @@ export class ClassService extends Base {
     return true;
   }
 
-  public async leaveRoom(context: Context | any): Promise<boolean> {
+  public async leaveRoom(context: Context): Promise<boolean> {
     console.log(`Disconnect: ${JSON.stringify(context.sessionId)}`);
     console.log(`userLeft: `, context?.authorizationToken?.classtype);
     this.decreaseCounter(context.websocket.protocol);
