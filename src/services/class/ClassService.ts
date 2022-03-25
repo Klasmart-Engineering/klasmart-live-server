@@ -256,6 +256,9 @@ export class ClassService extends Base {
     
     // Log Attendance
     await this.attendanceService.log(roomId, session);
+    if (context.authorizationToken.classtype !== ClassType.LIVE){
+      this.attendanceService.send(roomId);
+    }
     await pipeline.exec();
 
     // Select new host
