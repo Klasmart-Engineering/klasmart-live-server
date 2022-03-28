@@ -184,7 +184,10 @@ export class ClassService extends Base {
   }
 
   public async endClass(context: Context): Promise<boolean> {
+    console.log('endClass: ', context.authorizationToken.roomid);
     const {sessionId, authorizationToken} = context;
+    // TODO: we should give permission to endClass
+    // for a student who is in Study class
     if (!authorizationToken?.teacher) {
       console.log(`Session ${sessionId} attempted to end class!`);
       return false;
@@ -256,9 +259,6 @@ export class ClassService extends Base {
     
     // Log Attendance
     await this.attendanceService.log(roomId, session);
-    if (context.authorizationToken.classtype !== ClassType.LIVE){
-      this.attendanceService.send(roomId);
-    }
     await pipeline.exec();
 
     // Select new host
@@ -296,9 +296,9 @@ export class ClassService extends Base {
     // TODO: Pipeline initial operations
     await this.userJoin(roomId, sessionId, authorizationToken.userid, websocket.protocol, name ?? authorizationToken.name, authorizationToken.teacher, authenticationToken?.email);
     await this.setRoomContext(context);
-    if (authorizationToken.classtype === ClassType.LIVE){
-      this.schedulerService.addSchedule(roomId);
-    }
+
+    // start scheduler for class
+    this.schedulerService.addSchedule(roomId);
 
     const sfu = RedisKeys.roomSfu(roomId);
     const sfuAddress = await this.client.get(sfu.key);
