@@ -11,34 +11,26 @@ import {
 import cookie from 'cookie';
 import {GraphQLSchema} from 'graphql';
 import {Model} from '../model';
+import {Context} from '../types';
 
 export class GraphqlWsServer {
+  static token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNmMzNlOGZjLTJmMGEtNDIzMi05NDFmLTI5N2UyZWE1NGM4ZiIsImVtYWlsIjoibWFtdXIxOTkxbWFtdXJAZ21haWwuY29tIiwiZXhwIjoxNjQ4NTQ3NDI3LCJpc3MiOiJjYWxtaWQtZGVidWcifQ.m_DJ0zaP85RgYHxpWQOXLXtulfBqssuYOD68LvsbWIE';
   static create(model: Model, schema: GraphQLSchema, graphqlWs: WebSocket.Server<WebSocket.WebSocket>) {
     const server = useServer(
         {
           context: async (ctx: any) => {
-            console.log('context: graphql-ws ');
-            if ( !(await this.checkAuth(ctx)) ) {
-              throw Error("Forbidden Error")
-            }
-            const context = await this.createContext(ctx);
-            return context;
+            return ctx.context;
           },
           onConnect: async (ctx) => {
             console.log('onConnect: graphql-ws ');
-            if ( !(await this.checkAuth(ctx)) ) {
+            if ( !(await this.authenticate(ctx)) ) {
               return false;
             }
             return true;
           },
-          onDisconnect: async (ctx) => {
+          onDisconnect: async (ctx:any) => {
             console.log('onDisconnect: graphql-ws');
-            try{
-              const context = await this.createContext(ctx);
-              model.leaveRoom(context);
-            } catch (e){
-              console.log('error in onDissconnect: ', e)
-            }
+            model.leaveRoom(ctx.context);
           },
 
 
@@ -50,39 +42,13 @@ export class GraphqlWsServer {
     return server;
   }
 
-  private static createContext = async (ctx: any) => {
+  private static authenticate = async (ctx: any) => {
     const connectionParams = ctx.connectionParams;
     const authToken = connectionParams.authToken;
     const sessionId = connectionParams.sessionId;
     const websocket = ctx.extra.socket;
-    const authorizationToken = await checkLiveAuthorizationToken(authToken);
-    const rawCookies = ctx.extra.request.headers.cookie;
-    const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
+
     const joinTime = new Date();
-    (connectionParams as any).authorizationToken = authorizationToken;
-    (connectionParams as any).joinTime = joinTime;
-    if (process.env.DISABLE_AUTH) {
-      return {
-        authorizationToken,
-        sessionId,
-        websocket,
-        joinTime,
-      };
-    }
-
-    const authenticationToken = await checkAuthenticationToken(cookies?.access);
-    (connectionParams as any).authenticationToken = authenticationToken;
-    return {
-      authenticationToken,
-      authorizationToken,
-      sessionId,
-      websocket,
-      joinTime,
-    };
-  };
-
-  private static checkAuth = async (ctx: any) => {
-    const authToken = ctx.connectionParams.authToken;
     let authorizationToken: KidsloopLiveAuthorizationToken;
     try {
       authorizationToken = await checkLiveAuthorizationToken(authToken);
@@ -93,28 +59,38 @@ export class GraphqlWsServer {
       return false;
     }
 
+    const context : Context = {
+      sessionId,
+      websocket,
+      joinTime,
+      authorizationToken
+    }
+
     if (process.env.DISABLE_AUTH) {
+      ctx.context = context;
       return true;
     }
 
+    let authenticationToken: KidsloopAuthenticationToken;
     const rawCookies = ctx.extra.request.headers.cookie;
     const cookies = rawCookies ? cookie.parse(rawCookies) : undefined;
-
-    let authenticationToken: KidsloopAuthenticationToken;
     try {
       authenticationToken = await checkAuthenticationToken(cookies?.access);
     } catch (e: any) {
       if (e instanceof Error) {
+        console.log('Error: ', e);
         ctx.extra.socket.close(CloseCode.Unauthorized, e.message);
       }
       return false;
     }
 
     if ( !authenticationToken.id || authenticationToken.id !== authorizationToken.userid) {
+      console.log('ids dont match')
       ctx.extra.socket.close(CloseCode.Unauthorized, 'Authentication Expired');
       return false;
     }
-
+    context.authenticationToken = authenticationToken;
+    ctx.context = context;
     return true;
   };
 }
