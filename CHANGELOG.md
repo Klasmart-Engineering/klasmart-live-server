@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.11.0](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.14...v1.11.0) (2022-04-07)
+
+
+### Features
+
+* count # users connected ([c802814](https://bitbucket.org/calmisland/kidsloop-live-server/commit/c8028145ff2fb75fef7de58f269ee6d75c9ee91b))
+* enable http server to use 2 WebSocket servers ([4ac2379](https://bitbucket.org/calmisland/kidsloop-live-server/commit/4ac2379675645b42bb73a0d0305174b0bba35bb7))
+
+
+### Bug Fixes
+
+* add all classes to schedule, trigger instantly if endClass api called ([d72d432](https://bitbucket.org/calmisland/kidsloop-live-server/commit/d72d432c896a21da5d645fc49dc378f524c1cbef))
+* add lost code while rebasing ([6358e0c](https://bitbucket.org/calmisland/kidsloop-live-server/commit/6358e0cd788db00c56759869bcef944f97477774))
+* authenticate only onConnect graphqlWs ([637ec85](https://bitbucket.org/calmisland/kidsloop-live-server/commit/637ec85da0bf269d385cec6182b9c209af00d1e0))
+* check auth in every request ([c9bdf3e](https://bitbucket.org/calmisland/kidsloop-live-server/commit/c9bdf3eaf8bc1704fde63907a40dd9d64ddba4b9))
+* get socket protocol from context ([5d42304](https://bitbucket.org/calmisland/kidsloop-live-server/commit/5d423045fd2beda1d0ae3985ea0a698968258822))
+* handle authenticatio ([c9ed650](https://bitbucket.org/calmisland/kidsloop-live-server/commit/c9ed6508cbf5f5b9c33cf5c5642bb156d3a6ef13))
+* retrieve all class attendees from redis ([5eaf0ce](https://bitbucket.org/calmisland/kidsloop-live-server/commit/5eaf0cea898f0aabcdecde3fb09f828f57824f0a))
+* seperate auth from context ([9ca7cb0](https://bitbucket.org/calmisland/kidsloop-live-server/commit/9ca7cb0376b9cd27ecf9557402e4a4c4c7069ffc))
+
 ### [1.10.14](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.10.13...v1.10.14) (2022-03-24)
 
 
