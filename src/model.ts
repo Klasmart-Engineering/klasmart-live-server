@@ -87,7 +87,7 @@ export class Model {
     return this.classService.endClass(context);
   }
 
-  public leaveRoom(context: Context | any): Promise<boolean> {
+  public leaveRoom(context: Context): Promise<boolean> {
     return this.classService.leaveRoom(context);
   }
 
@@ -161,7 +161,6 @@ export class Model {
 
   public saveFeedback(context: Context, stars: number, feedbackType: string, comment: string, quickFeedback: {type: string; stars: number}[]) {
     return this.feedbackService.saveFeedback(context, stars, feedbackType, comment, quickFeedback);
-
   }
   /** feedbackService end */
 }

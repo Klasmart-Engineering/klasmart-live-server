@@ -24,13 +24,12 @@
   "devDependencies": {
     "@commitlint/cli": "^15.0.0",
     "@commitlint/config-conventional": "^15.0.0",
-    "@graphql-tools/schema": "^8.3.1",
+    "@graphql-tools/schema": "^8.3.3",
     "@types/cookie": "^0.4.1",
     "@types/ioredis": "^4.28.1",
     "@types/jsonwebtoken": "^8.5.5",
     "@types/newrelic": "^7.0.2",
     "@types/uuid": "^7.0.4",
-    "@types/ws": "^7.2.5",
     "@typescript-eslint/eslint-plugin": "^5.13.0",
     "@typescript-eslint/parser": "^5.13.0",
     "cz-conventional-changelog": "^3.0.1",
@@ -47,7 +46,9 @@
   },
   "dependencies": {
     "@newrelic/apollo-server-plugin": "^1.2.0",
-    "apollo-server-express": "^3.5.0",
+    "@types/ws": "^8.5.3",
+    "apollo-server-core": "^3.6.4",
+    "apollo-server-express": "^3.6.4",
     "aws-sdk": "^2.926.0",
     "axios": "^0.21.4",
     "cookie": "^0.4.1",
@@ -56,14 +57,16 @@
     "graphql": "^16.0.1",
     "graphql-request": "^3.5.0",
     "graphql-scalars": "^1.8.0",
+    "graphql-ws": "^5.6.3",
     "ioredis": "^4.28.0",
     "jsonwebtoken": "^8.5.1",
     "kidsloop-token-validation": "bitbucket:calmisland/kidsloop-token-validation",
     "newrelic": "^8.4.0",
+    "prom-client": "^14.0.1",
     "subscriptions-transport-ws": "^0.11.0",
     "typeorm": "^0.2.29",
     "uuid": "^8.1.0",
-    "ws": "^7.4.6"
+    "ws": "^8.5.0"
   },
   "config": {
     "commitizen": {

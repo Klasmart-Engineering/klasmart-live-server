@@ -5,7 +5,7 @@ import {
   sign,
   SignOptions,
 } from 'jsonwebtoken';
-import { AttendanceRequestType, StudentReportRequestType } from './types';
+import {AttendanceRequestType, StudentReportRequestType} from './types';
 
 export async function generateToken(requestBody: AttendanceRequestType | StudentReportRequestType) {
   const {secretOrPrivateKey, options} = await jwtConfig();

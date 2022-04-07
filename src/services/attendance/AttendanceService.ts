@@ -7,9 +7,9 @@ import {
   Attendance,
   ClassType,
   Session,
-  AttendanceRequestType
+  AttendanceRequestType,
 } from '../../types';
-import { RedisKeys } from '../../redisKeys';
+import {RedisKeys} from '../../redisKeys';
 import {Base} from '../base';
 import axios from 'axios';
 import request from 'graphql-request';
@@ -110,7 +110,7 @@ export class AttendanceService extends Base {
         class_end_time: roomContext.endAt,
         class_length: roomContext.endAt-roomContext.startAt,
         schedule_id: roomId,
-      }
+      };
       const token = await generateToken(body);
       await axios.post(assessmentUrl, {
         token,
@@ -125,25 +125,25 @@ export class AttendanceService extends Base {
 
   private async sendClassAttendance(roomId: string) {
     const key = RedisKeys.classAttendees(roomId);
-    const response = await this.client.mget(key);
-
-    if (response && response[0]) {
+    const response = await this.client.get(key);
+    console.log('classAttendees added: ',roomId, response);
+    if (response) {
       const assessmentUrl = process.env.ASSESSMENT_ENDPOINT;
       if (!assessmentUrl) return;
-      const attendanceIds = response[0].split(`,`);
-      console.log(`attendanceIds: `, attendanceIds);
+      const attendanceIds = response.split(`,`);
+      console.log(`classAttendees attendanceIds: `, attendanceIds);
       const roomContext = await this.getRoomContext(roomId);
       const requestBody: AttendanceRequestType = {
         attendance_ids: [...attendanceIds],
         class_end_time: roomContext.endAt,
         class_length: roomContext.endAt-roomContext.startAt,
         schedule_id: roomId,
-      }
+      };
       const token = await generateToken(requestBody);
       await axios.post(assessmentUrl, {
         token,
       });
-      console.log(`Attendance sent: `, roomId);
+      console.log(`classAttendees sent: `, roomId);
     }
     await this.client.del(key);
   }

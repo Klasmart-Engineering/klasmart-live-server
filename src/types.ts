@@ -8,9 +8,9 @@ import WebSocket from 'ws';
 export interface Context {
     authenticationToken?: KidsloopAuthenticationToken;
     authorizationToken: KidsloopLiveAuthorizationToken;
-    sessionId?: string;
+    sessionId: string;
     roomId?: string;
-    websocket?: WebSocket;
+    websocket: WebSocket;
     joinTime?: Date;
 }
 
@@ -116,4 +116,9 @@ export enum ClassType {
 
 export enum StudentReportActionType {
     VIEWED = `viewed`
+}
+
+export enum ConnectionType {
+    GRAPHQL_TRANSPORT_WS_PROTOCOL = "graphql-transport-ws",
+    GRAPHQL_WS = "graphql-ws"
 }

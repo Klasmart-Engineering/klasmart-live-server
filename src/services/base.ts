@@ -5,14 +5,24 @@ import {
   Context,
   RoomContext,
   Session,
-  NotifyRoomType
+  NotifyRoomType,
+  ConnectionType
 } from '../types';
 import {
   convertSessionRecordToSession,
   redisStreamSerialize,
 } from '../utils';
 import Redis from 'ioredis';
+const { Gauge } = require('prom-client');
+const graphqlGauge = new Gauge({
+  name: 'GRAPHQL_WS',
+  help: 'number of users connected using graphqlWS',
+});
 
+const subTransGauge = new Gauge({
+  name: 'GRAPHQL_TRANSPORT_WS',
+  help: 'number of users connected using subscriptionTransportWS',
+});
 export class Base {
   constructor(readonly client: Redis.Redis | Redis.Cluster) {}
 
@@ -60,18 +70,21 @@ export class Base {
   }
 
   protected async notifyRoom(roomId: string, message: NotifyRoomType): Promise<string> {
-    
-    if("content" in message) {
+    if ('content' in message) {
       const activityType = message.content?.type;
       if (activityType === `Activity` || activityType === `Stream`) { // delete old Streams
         await this.deleteOldStreamId(roomId, activityType);
       }
     }
-    
 
-    //check if session exist
-    if("leave" in message && !message.leave.id) { return ''; }
-    if("join" in message && !message.join.id) { return ''; }
+
+    // check if session exist
+    if ('leave' in message && !message.leave.id) {
+      return '';
+    }
+    if ('join' in message && !message.join.id) {
+      return '';
+    }
 
     const notify = RedisKeys.roomNotify(roomId);
     await this.client.expire(notify.key, notify.ttl);
@@ -101,6 +114,23 @@ export class Base {
       sessions.sort((a: Session, b: Session) => a.joinedAt - b.joinedAt);
     }
     return sessions;
+  }
+
+  protected increaseCounter(connectionType: string) {
+    if (connectionType === ConnectionType.GRAPHQL_TRANSPORT_WS_PROTOCOL){
+      graphqlGauge.inc();
+    } else {
+      subTransGauge.inc()
+    }
+
+  }
+
+  protected decreaseCounter(connectionType: string) {
+    if (connectionType === ConnectionType.GRAPHQL_TRANSPORT_WS_PROTOCOL){
+      graphqlGauge.dec();
+    } else {
+      subTransGauge.dec()
+    }
   }
 
   private async deleteOldStreamId(roomId: string, activityType: string) {
