@@ -579,11 +579,13 @@ export class ClassService extends Base {
   public async setClassAttendees(context: Context, userIds: [string]): Promise<Boolean> {
     const roomId = context.authorizationToken.roomid;
     const classContext = await this.getRoomContext(roomId);
+    console.log('classAttendees: ',roomId, userIds);
     if (classContext.classType === ClassType.CLASS) {
       this.schedulerService.addSchedule(roomId);
       const key = RedisKeys.classAttendees(roomId);
       await this.client.del(key);
       await this.client.set(key, userIds.toString());
+      console.log('classAttendees added: ',roomId);
     }
     return true;
   }

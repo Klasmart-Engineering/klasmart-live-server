@@ -126,12 +126,12 @@ export class AttendanceService extends Base {
   private async sendClassAttendance(roomId: string) {
     const key = RedisKeys.classAttendees(roomId);
     const response = await this.client.mget(key);
-
+    console.log('classAttendees added: ',roomId, response);
     if (response && response[0]) {
       const assessmentUrl = process.env.ASSESSMENT_ENDPOINT;
       if (!assessmentUrl) return;
       const attendanceIds = response[0].split(`,`);
-      console.log(`attendanceIds: `, attendanceIds);
+      console.log(`classAttendees attendanceIds: `, attendanceIds);
       const roomContext = await this.getRoomContext(roomId);
       const requestBody: AttendanceRequestType = {
         attendance_ids: [...attendanceIds],
@@ -143,7 +143,7 @@ export class AttendanceService extends Base {
       await axios.post(assessmentUrl, {
         token,
       });
-      console.log(`Attendance sent: `, roomId);
+      console.log(`classAttendees sent: `, roomId);
     }
     await this.client.del(key);
   }
