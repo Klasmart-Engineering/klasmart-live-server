@@ -14,7 +14,6 @@ import {Model} from '../model';
 import {Context} from '../types';
 
 export class GraphqlWsServer {
-  static token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNmMzNlOGZjLTJmMGEtNDIzMi05NDFmLTI5N2UyZWE1NGM4ZiIsImVtYWlsIjoibWFtdXIxOTkxbWFtdXJAZ21haWwuY29tIiwiZXhwIjoxNjQ4NTQ3NDI3LCJpc3MiOiJjYWxtaWQtZGVidWcifQ.m_DJ0zaP85RgYHxpWQOXLXtulfBqssuYOD68LvsbWIE';
   static create(model: Model, schema: GraphQLSchema, graphqlWs: WebSocket.Server<WebSocket.WebSocket>) {
     const server = useServer(
         {
