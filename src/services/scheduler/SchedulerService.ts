@@ -3,6 +3,7 @@ import {RedisKeys} from '../../redisKeys';
 import {AttendanceService} from '../attendance/AttendanceService';
 import {Base} from '../base';
 import Redis from 'ioredis';
+import { ClassType } from '../../types';
 
 export class SchedulerService extends Base {
   private attendance: AttendanceService;
@@ -16,6 +17,7 @@ export class SchedulerService extends Base {
 
   public async addSchedule(roomId: string) {
     const roomContext = await this.getRoomContext(roomId);
+    if (roomContext.classType === ClassType.STUDY) return;
     const tempStorageKeys = RedisKeys.tempStorageKeys();
     const tempStorageKey = RedisKeys.tempStorageKey(roomId);
     const tempStorageData = await this.client.get(tempStorageKey);

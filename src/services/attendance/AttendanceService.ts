@@ -24,14 +24,7 @@ export class AttendanceService extends Base {
     const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
     const roomContext = await this.getRoomContext(roomId);
     if (!url || !roomContext || !session.id) return;
-    // in LIVE class, start saving attendances 5 mins before class start time
-    // and until 30 mins after class end time
-    const classStartTime = roomContext.startAt - 300;
-    const classEndTime = roomContext.endAt + 1800;
-    const currentTime = Math.floor(new Date().getTime()/1000);
-    const ok = classStartTime <= currentTime && currentTime <= classEndTime;
 
-    if (roomContext.classType === ClassType.LIVE && !ok) return;
     const variables = {
       roomId: roomId,
       sessionId: session.id,
