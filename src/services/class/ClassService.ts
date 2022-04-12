@@ -260,7 +260,9 @@ export class ClassService extends Base {
     // Log Attendance
     await this.attendanceService.log(roomId, session);
     await pipeline.exec();
-
+    if (context.authorizationToken.classtype === ClassType.STUDY) {
+      await this.attendanceService.send(roomId);
+    }
     // Select new host
     if (changeRoomHost) {
       const teachers = await this.getRoomParticipants(roomId, true, true);
