@@ -1,5 +1,5 @@
-import {gql} from 'apollo-server-express';
-import {typeDefs as typeDef} from 'graphql-scalars';
+import {gql} from "apollo-server-express";
+import {typeDefs as typeDef} from "graphql-scalars";
 
 const customSchema = gql`
   type Query {
