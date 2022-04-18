@@ -7,7 +7,6 @@
 node_modules/
 dist/
 .env
-.vscode
 # Log files
 *.log
 
