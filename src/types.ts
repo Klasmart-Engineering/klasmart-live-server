@@ -1,9 +1,9 @@
 // define interfaces and enums in this file
 import {
-  KidsloopAuthenticationToken,
-  KidsloopLiveAuthorizationToken,
-} from 'kidsloop-token-validation';
-import WebSocket from 'ws';
+    KidsloopAuthenticationToken,
+    KidsloopLiveAuthorizationToken,
+} from "@kl-engineering/kidsloop-token-validation";
+import WebSocket from "ws";
 
 export interface Context {
     authenticationToken?: KidsloopAuthenticationToken;
@@ -108,14 +108,14 @@ export type TrophMessageType = {
     kind: string;
 }
 export enum ClassType {
-    LIVE = `live`,
-    CLASS = `class`,
-    STUDY = `study`,
-    TASK = `task`
+    LIVE = "live",
+    CLASS = "class",
+    STUDY = "study",
+    TASK = "task"
 }
 
 export enum StudentReportActionType {
-    VIEWED = `viewed`
+    VIEWED = "viewed"
 }
 
 export enum ConnectionType {

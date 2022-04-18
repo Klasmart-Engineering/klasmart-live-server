@@ -1,4 +1,4 @@
-import {gql} from 'graphql-request';
+import {gql} from "graphql-request";
 
 export const SAVE_ATTENDANCE_MUTATION = gql`
   mutation saveAttendance($userId: String!, $leaveTimestamp: DateTime!, $joinTimestamp: DateTime!, $isTeacher: Boolean!, $sessionId: String!, $roomId: String!) {
