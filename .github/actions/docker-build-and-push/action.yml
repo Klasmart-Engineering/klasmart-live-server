@@ -79,5 +79,4 @@ runs:
       shell: bash
       run: |
         set +x
-        - pip3 install -U awscli
-        - AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY_ALPHA_OLD" AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID_ALPHA_OLD" aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
+        AWS_SECRET_ACCESS_KEY=${{ inputs.ECR_AWS_SECRET_ACCESS_KEY }} AWS_ACCESS_KEY_ID=${{ inputs.ECR_AWS_ACCESS_KEY_ID }} aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
