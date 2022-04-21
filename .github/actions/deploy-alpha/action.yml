@@ -30,4 +30,4 @@ runs:
       shell: bash
       run: |
         set +x
-        AWS_SECRET_ACCESS_KEY=${{ inputs.AWS_SECRET_ACCESS_KEY_ALPHA_DEV }} AWS_ACCESS_KEY_ID=${{ inputs.AWS_ACCESS_KEY_ID_ALPHA_DEV }} aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/attendance-sincere-clam --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
+        AWS_SECRET_ACCESS_KEY=${{ inputs.AWS_SECRET_ACCESS_KEY_ALPHA_DEV }} AWS_ACCESS_KEY_ID=${{ inputs.AWS_ACCESS_KEY_ID_ALPHA_DEV }} aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
