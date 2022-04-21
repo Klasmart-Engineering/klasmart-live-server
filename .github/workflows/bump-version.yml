@@ -33,7 +33,9 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: NPM Build
         id: npm-build
-        run: npm run build
+        run: |
+          npm run build
+          npm prune --production
       - name: Build and Push Container
         uses: ./.github/actions/docker-build-and-push
         with:
@@ -47,3 +49,10 @@ jobs:
           ecr_registry: 942095822719.dkr.ecr.eu-west-2.amazonaws.com
           ECR_AWS_ACCESS_KEY_ID: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
           ECR_AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+
+      - name: Deploy to Alpha
+        uses: ./.github/actions/deploy-alpha
+        with:
+          ecs_aws_region: ap-northeast-2
+          AWS_ACCESS_KEY_ID_ALPHA_DEV: ${{ secrets.AWS_ACCESS_KEY_ID_ALPHA_DEV }}
+          AWS_SECRET_ACCESS_KEY_ALPHA_DEV: ${{ secrets.AWS_SECRET_ACCESS_KEY_ALPHA_DEV }}
