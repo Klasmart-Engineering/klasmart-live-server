@@ -1,0 +1,33 @@
+name: (Action) docker build & push to ECR
+description: "Action for docker build & push to ECR"
+
+inputs:
+  ecs_aws_region:
+    required: false
+    description: "ECS AWS region"
+    default: eu-west-2
+  AWS_ACCESS_KEY_ID_ALPHA_DEV:
+    required: true
+    description: "ECR AWS Access Key Id, stored as a secret"
+  AWS_SECRET_ACCESS_KEY_ALPHA_DEV:
+    required: true
+    description: "ECR AWS Secret Access Key, stored as a secret"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID_ALPHA_DEV }}
+        aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY_ALPHA_DEV }}
+        aws-region: ${{ inputs.ecs_aws_region }}
+
+    - name: Login to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Deploy to alpha
+      shell: bash
+      run: |
+        set +x
+        AWS_SECRET_ACCESS_KEY=${{ inputs.AWS_SECRET_ACCESS_KEY_ALPHA_DEV }} AWS_ACCESS_KEY_ID=${{ inputs.AWS_ACCESS_KEY_ID_ALPHA_DEV }} aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/attendance-sincere-clam --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
