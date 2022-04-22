@@ -35,6 +35,9 @@ export class ClassService extends Base {
             throw new Error("Can't set the host without knowing the sessionId of the new host");
         }
 
+        if (!context.authorizationToken.teacher) {
+            throw new Error("Only teacher can set host teacher");
+        }
         const roomHostKey = RedisKeys.roomHost(roomId);
         const nextHostSessionKey = RedisKeys.sessionData(roomId, nextHostId);
 

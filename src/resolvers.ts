@@ -28,8 +28,8 @@ export const resolvers = {
         setHost: (parent: any, {roomId, nextHostId}: { roomId: string; nextHostId: string}, context: Context) => model.setHost(context, nextHostId),
         sendMessage: (parent: any, {roomId, message}: { roomId: string; message: string }, context: Context) => model.sendMessage(context, message),
         postPageEvent: (parent: any, {streamId, pageEvents}: { streamId: string; pageEvents: PageEvent[] }) => {
-            const a = model.postPageEvent(streamId, pageEvents).catch((e) => e);
-            return a;
+            return model.postPageEvent(streamId, pageEvents).catch((e) => e);
+            
         },
         showContent: (parent: any, {
             roomId, type, contentId,
