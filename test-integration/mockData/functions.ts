@@ -1,0 +1,42 @@
+export const  getUniqueId = () => {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+        const r = Math.random()*16|0, v = c == "x" ? r : (r&0x3|0x8);
+        return v.toString(16);
+    });
+};
+
+export const getRandomNumber = (limit = 1000) => {
+    return Math.floor((Math.random() * limit));
+};
+
+export const getRandomBoolean = () => {
+    return Boolean(getRandomNumber(2));
+}
+
+export const getRandomFeedbackType = () => {
+    const candidates = ["END_CLASS", "LEAVE_CLASS"];
+    const x = getRandomNumber(2);
+    return candidates[x];
+};
+
+export const getRandomQuickFeedbackType  = () => {
+    const candidates = ["VIDEO", "AUDIO", "PRESENTATION", "OTHER"];
+    const x = getRandomNumber(4);
+    return candidates[x];
+};
+
+export const getEpochTime = (expire: number) => {
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + expire); 
+    return Math.floor(date.getTime()/1000);
+};
+
+export const getRandomString = (size: number = 1) => {
+    const candidates = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    var ret = '';
+    for (var i = 0; i <= size; i++) {
+        var j = getRandomNumber(candidates.length);
+        ret += candidates[j];
+    }
+    return ret;
+}
