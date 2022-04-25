@@ -1,7 +1,7 @@
 import { MUTATION_SAVE_FEEDBACK } from "../../graphql/mutation";
 import { feedbackMockData } from "../../mockData/resolverMock";
 import { CustomApolloClient } from "../../apolloClient";
-import { ClassType } from "../../../src/types";
+import { ClassType } from "../../../../src/types";
 import { getToken } from "../../mockData/generateToken";
 
 export const feedback = () => {

@@ -7,7 +7,7 @@ module.exports = {
 
     preset: "ts-jest",
     testEnvironment: "jest-environment-node",
-    setupFiles: ["<rootDir>/test-integration/config/setEnvVars.ts"],
+    setupFiles: ["<rootDir>/tests/integration/config/setEnvVars.ts"],
     // All imported modules in your tests should be mocked automatically
     // automock: false,
 

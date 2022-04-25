@@ -2,7 +2,7 @@ import { MUTATION_SET_SESSION_STREAMID } from "../../graphql/mutation";
 import { QUERY_TOKEN } from "../../graphql/query";
 import { CustomApolloClient } from "../../apolloClient";
 import { getUniqueId } from "../../mockData/functions";
-import { ClassType } from "../../../src/types";
+import { ClassType } from "../../../../src/types";
 import { getToken } from "../../mockData/generateToken";
 
 export const setSessionStreamId = () => {

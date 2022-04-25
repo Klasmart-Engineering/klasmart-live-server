@@ -2,7 +2,7 @@ import {
     sign,
     SignOptions,
 } from "jsonwebtoken";
-import { ClassType } from "../../src/types";
+import { ClassType } from "../../../src/types";
 import { getUniqueId, getEpochTime } from "./functions";
 
 function generateToken(requestBody: any, expire: number) {

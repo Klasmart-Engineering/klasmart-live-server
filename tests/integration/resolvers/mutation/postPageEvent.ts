@@ -1,6 +1,6 @@
 import { MUTATION_POST_PAGE_EVENTS } from "../../graphql/mutation";
 import { CustomApolloClient } from "../../apolloClient";
-import { ClassType } from "../../../src/types";
+import { ClassType } from "../../../../src/types";
 import { getToken } from "../../mockData/generateToken";
 import { pageEventMockData } from "../../mockData/resolverMock";
 import { getUniqueId } from "../../mockData/functions";

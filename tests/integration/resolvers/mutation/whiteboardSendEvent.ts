@@ -1,50 +1,47 @@
-import { MUTATION_SHOW_CONTENT } from "../../graphql/mutation";
+import { MUTATION_WHITEBOARD_SEND_EVENT } from "../../graphql/mutation";
 import { QUERY_TOKEN } from "../../graphql/query";
 import { CustomApolloClient } from "../../apolloClient";
-import { ClassType } from "../../../src/types";
+import { ClassType } from "../../../../src/types";
 import { getToken } from "../../mockData/generateToken";
-import { contentTypeMockData } from "../../mockData/resolverMock";
+import { whiteboardSendEventMockData } from "../../mockData/resolverMock";
 
-export const showContent = () => {
+export const whiteboardSendEvent = () => {
     const teacher_Live_Token = getToken (ClassType.LIVE, true, false, false);
     const student_Live_Token = getToken (ClassType.LIVE, false, false, false);
     const clientTeacher = new CustomApolloClient(teacher_Live_Token);
     const clientStudent = new CustomApolloClient(student_Live_Token);
 
-    it("showContent as Teacher", async () => {
+    it("whiteboardSendEvent as Teacher", async () => {
         const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({
-          query: MUTATION_SHOW_CONTENT, variables: {
+          query: MUTATION_WHITEBOARD_SEND_EVENT, variables: {
             roomId, 
-            type: contentTypeMockData.type, 
-            contnetId: contentTypeMockData.contentId
+            event: JSON.stringify(whiteboardSendEventMockData)
           }});
-        expect(result.data.showContent).toBe(true);
+        expect(result.data.whiteboardSendEvent).toBe(true);
     });
 
-    it("showContent with wrong content type as Teacher", async () => {
+    it("whiteboardSendEvent with wrong data as Teacher", async () => {
       const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
       const roomId = query.data.token.roomId;
       const result = await clientStudent.createMutation({
-        query: MUTATION_SHOW_CONTENT, variables: {
+        query: MUTATION_WHITEBOARD_SEND_EVENT, variables: {
           roomId, 
-          type: 'no Content', 
-          contnetId: contentTypeMockData.contentId
+          event: ''
         }});
-      expect(result.data).toBe(undefined);
+      expect(result.data.whiteboardSendEvent).toBe(null);
   });
 
 
-    it("showContent as Student", async () => {
+    it("whiteboardSendEvent as Student", async () => {
         const query = await clientStudent.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({
-          query: MUTATION_SHOW_CONTENT, variables: {
+          query: MUTATION_WHITEBOARD_SEND_EVENT, variables: {
             roomId, 
-            type: contentTypeMockData.type, 
-            contnetId: contentTypeMockData.contentId
+            event: JSON.stringify(whiteboardSendEventMockData)
           }});
-        expect(result.data.showContent).toBe(true);
+        expect(result.data.whiteboardSendEvent).toBe(true);
     });
 };

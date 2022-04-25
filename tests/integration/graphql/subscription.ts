@@ -2,7 +2,7 @@ import {
     gql
 } from "@apollo/client";
 
-export const SUB_ROOM = gql`
+export const SUBSCRIPTION_ROOM = gql`
     subscription room($roomId: ID!, $name: String) {
         room(roomId: $roomId, name: $name) {
             message { id, message, session { name, isTeacher } },
@@ -14,4 +14,13 @@ export const SUB_ROOM = gql`
             trophy { from, user, kind },
         }
     }
+`;
+
+export const SUBSCRIPTION_EVENTS = gql`
+  subscription stream($streamId: ID!) {
+    stream(streamId: $streamId) {
+      id,
+      event
+    }
+  }
 `;

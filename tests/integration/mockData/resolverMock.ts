@@ -1,6 +1,6 @@
 import { getRandomFeedbackType, getRandomBoolean, getRandomQuickFeedbackType, getRandomNumber, getUniqueId, getRandomString } from "./functions";
-import { PainterEvent } from "../../src/services/whiteboard/events/PainterEvent";
-import { ContentMessageType } from "../../src/types";
+import { PainterEvent } from "../../../src/services/whiteboard/events/PainterEvent";
+import { ContentMessageType } from "../../../src/types";
 import { WhiteboardPermissions } from "./types";
 
 export const attendanceMockData = {

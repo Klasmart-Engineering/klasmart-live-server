@@ -1,7 +1,7 @@
 import { MUTATION_WHITEBOARD_SEND_PERMISSIONS } from "../../graphql/mutation";
 import { QUERY_TOKEN } from "../../graphql/query";
 import { CustomApolloClient } from "../../apolloClient";
-import { ClassType } from "../../../src/types";
+import { ClassType } from "../../../../src/types";
 import { getToken } from "../../mockData/generateToken";
 import { getRandomString } from "../../mockData/functions";
 import { whiteboardSendPermissionsMockData } from "../../mockData/resolverMock";
