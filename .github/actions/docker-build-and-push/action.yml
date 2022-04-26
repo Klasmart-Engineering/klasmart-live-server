@@ -74,9 +74,3 @@ runs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BRANCH_TAG-latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:alpha-latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TAG
-
-    - name: Deploy to alpha
-      shell: bash
-      run: |
-        set +x
-        AWS_SECRET_ACCESS_KEY=${{ inputs.ECR_AWS_SECRET_ACCESS_KEY }} AWS_ACCESS_KEY_ID=${{ inputs.ECR_AWS_ACCESS_KEY_ID }} aws ecs update-service --service arn:aws:ecs:ap-northeast-2:871601235178:service/kidsloop-alpha/kidsloop-alpha-live-graphql --force-new-deployment --cluster kidsloop-alpha --region ap-northeast-2
