@@ -31,5 +31,7 @@ export const setHost = () => {
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({query: MUTATION_SET_HOST, variables: {roomId, nextHostId}});
         expect(result.data.setHost).toBe(null);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 };

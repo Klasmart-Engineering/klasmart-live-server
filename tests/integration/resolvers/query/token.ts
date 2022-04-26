@@ -1,6 +1,6 @@
 import { QUERY_TOKEN } from "../../graphql/query";
 import { CustomApolloClient } from "../../apolloClient";
-import { ClassType } from "../../../src/types";
+import { ClassType } from "../../../../src/types";
 import { getToken } from "../../mockData/generateToken";
 
 export const token = () => {
@@ -30,6 +30,8 @@ export const token = () => {
         expect(typeof roomId === "string").toBe(true);
         expect(typeof name === "string").toBe(true);
         expect(teacher).toBe(false);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 
 };

@@ -134,7 +134,7 @@ export class ClassService extends Base {
         const { sessionId } = context;
 
         if (!sessionId) {
-            throw new Error("Can't reward trophy without knowing the sessionId it was from");
+            throw new Error("Can't send message without knowing the sessionId it was from");
         }
         message = message.trim();
         if (message.length > 1024) {

@@ -5,7 +5,7 @@ export async function globalSetup() {
 
     await setup({
         command: "npm run dev",
-        launchTimeout: 10000,
+        launchTimeout: 20000,
         debug: true,
         port: PORT
     });

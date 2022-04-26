@@ -16,7 +16,7 @@ export const SUBSCRIPTION_ROOM = gql`
     }
 `;
 
-export const SUBSCRIPTION_EVENTS = gql`
+export const SUBSCRIPTION_STREAM = gql`
   subscription stream($streamId: ID!) {
     stream(streamId: $streamId) {
       id,
@@ -24,3 +24,27 @@ export const SUBSCRIPTION_EVENTS = gql`
     }
   }
 `;
+
+export const SUBSCRIPTION_WHITEBOARD_EVENTS = gql`
+  subscription whiteboardEvents($roomId: ID!) {
+    whiteboardEvents(roomId: $roomId) {
+      type
+      id
+      generatedBy
+      objectType
+      param
+    }
+  }
+`;
+
+export const SUBSCRIPTION_WHITEBOARD_STATE = gql`
+  subscription whiteboardState($roomId: ID!) {
+      whiteboardState(roomId: $roomId) {
+          display
+      }
+  }`;
+
+export const SUBSCRIPTION_WHITEBOARD_PERMISSIONS = gql`
+  subscription whiteboardPermissions($roomId: ID! $userId: ID!) {
+      whiteboardPermissions(roomId: $roomId, userId: $userId)
+  }`;

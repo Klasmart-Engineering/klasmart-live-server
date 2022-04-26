@@ -1,6 +1,6 @@
 import { QUERY_READY } from "../../graphql/query";
 import { CustomApolloClient } from "../../apolloClient";
-import { ClassType } from "../../../src/types";
+import { ClassType } from "../../../../src/types";
 import { getToken } from "../../mockData/generateToken";
 export const ready = () => {
     const teacher_Live_Token = getToken (ClassType.LIVE, true, false, false);
@@ -17,5 +17,7 @@ export const ready = () => {
     it("check if Server is ready as Student", async () => {
         const query = await clientStudent.createQuery({query: QUERY_READY});
         expect(query.data.ready).toBe(true);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 };

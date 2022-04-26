@@ -18,5 +18,7 @@ export const feedback = () => {
     it("save Feedback as Student", async () => {
         const result = await clientStudent.createMutation({query: MUTATION_SAVE_FEEDBACK, variables: feedbackMockData});
         expect(result.data.saveFeedback).toBe(true);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 };

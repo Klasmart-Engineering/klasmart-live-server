@@ -39,5 +39,7 @@ export const setSessionStreamId = () => {
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({query: MUTATION_SET_SESSION_STREAMID, variables: {roomId}});
         expect(result.data).toBe(undefined);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 };

@@ -43,5 +43,7 @@ export const whiteboardSendEvent = () => {
             event: JSON.stringify(whiteboardSendEventMockData)
           }});
         expect(result.data.whiteboardSendEvent).toBe(true);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 };

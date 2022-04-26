@@ -16,15 +16,20 @@ function generateToken(requestBody: any, expire: number) {
     return sign(requestBody, secretOrPrivateKey, options);
 }
 
-function generateUserData(name: string, end_at: number, classType: string, isTeacher: boolean) {
+function generateUserData(name: string, end_at: number, classType: string, isTeacher: boolean, roomId?: string) {
+    
+    let roomid = getUniqueId();
+    if (roomId){
+        roomid = roomId;
+    }
     const data: any = {
-        "name": name,
+        "name": name+'_'+getUniqueId(),
         "schedule_id": getUniqueId(),
         "is_review": false,
         "user_id": getUniqueId(),
         "type": "live",
         "teacher": isTeacher,
-        "roomid": getUniqueId(),
+        "roomid": roomid,
         "materials": [
             {
                 "id": "60b7566558b0e68ab76bac76",
@@ -42,11 +47,11 @@ function generateUserData(name: string, end_at: number, classType: string, isTea
 }
 
 
-export  function getToken (classType: ClassType, isTeacher: boolean, isTokenExpired: boolean, isClassEnded: boolean) {
+export  function getToken (classType: ClassType, isTeacher: boolean, isTokenExpired: boolean, isClassEnded: boolean, roomId?: string) {
     const name = isTeacher? "Teacher" : "Student";
     const end_at = isClassEnded ? getEpochTime(1) : getEpochTime(3600);
     const expire = isTokenExpired ? 1 : 3600;
-    const data = generateUserData(name, end_at,  classType, isTeacher);
+    const data = generateUserData(name, end_at,  classType, isTeacher, roomId);
     const token = generateToken(data, expire);
     return token;
 }

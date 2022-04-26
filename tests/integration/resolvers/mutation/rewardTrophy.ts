@@ -4,7 +4,8 @@ import { CustomApolloClient } from "../../apolloClient";
 import { ClassType } from "../../../../src/types";
 import { getToken } from "../../mockData/generateToken";
 import { rewardThropyMockData } from "../../mockData/resolverMock";
-export const mute = () => {
+
+export const rewardTrophy = () => {
   const teacher_Live_Token = getToken (ClassType.LIVE, true, false, false);
   const student_Live_Token = getToken (ClassType.LIVE, false, false, false);
   const clientTeacher = new CustomApolloClient(teacher_Live_Token);
@@ -20,10 +21,13 @@ export const mute = () => {
       const result = await clientTeacher.createMutation({
         query: MUTATION_REWARD_TROPHY, variables: {
           roomId, 
-          userId,
+          user: userId,
           kind: rewardThropyMockData.kind
-        }});
+      }});
+      
       expect(result.data.rewardTrophy).toBe(true);
+      clientTeacher.stop();
+      clientStudent.stop();
     });
 
 };

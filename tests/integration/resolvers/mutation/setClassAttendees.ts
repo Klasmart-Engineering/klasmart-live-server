@@ -20,6 +20,7 @@ export const setClassAttendees = () => {
             userIds: classAttendeesMockData(5)
           }});
         expect(result.data.setClassAttendees).toBe(true);
+        clientTeacher.stop();
     });
 
 };

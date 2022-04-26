@@ -43,6 +43,7 @@ export const studentReport = () => {
           materialUrl: studentReportMockData.materialUrl
         }});
       expect(result.data.whiteboardSendEvent).toBe(false);
+      clientTeacher.stop();
     });
 
 };

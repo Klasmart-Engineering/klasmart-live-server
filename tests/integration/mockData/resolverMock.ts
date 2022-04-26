@@ -22,7 +22,7 @@ export const pageEventMockData = {
     sequenceNumber: getRandomNumber(100),
     isKeyframe: getRandomBoolean(),
     eventsSinceKeyframe: getRandomNumber(20),
-    eventData: ""
+    eventData: getRandomString(200)
 }
 
 const ContentTypeArr: string[] =  [

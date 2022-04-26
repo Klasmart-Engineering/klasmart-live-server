@@ -21,5 +21,7 @@ export const leaveClass = () => {
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({query: MUTATION_LEAVECLASS, variables: {roomId}});
         expect(result.data.leaveClass).toBe(true);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 };

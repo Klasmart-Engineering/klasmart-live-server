@@ -28,12 +28,12 @@ export class CustomApolloClient {
             isFatalConnectionProblem: () => {
                 return false;
             },
-            // retryWait: async function waitForServerHealthyBeforeRetry() {
-            //     console.log("console retryWait");
-            //     await new Promise((resolve) =>
-            //         setTimeout(resolve, 10000),
-            //     );
-            // },
+            retryWait: async function waitForServerHealthyBeforeRetry() {
+                console.log("console retryWait");
+                await new Promise((resolve) =>
+                    setTimeout(resolve, 10000),
+                );
+            },
             on: {
                 "connected": () => {
                     console.log("console connected to graphql");

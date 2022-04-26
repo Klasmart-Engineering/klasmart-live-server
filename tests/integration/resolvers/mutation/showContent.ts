@@ -46,5 +46,7 @@ export const showContent = () => {
             contnetId: contentTypeMockData.contentId
           }});
         expect(result.data.showContent).toBe(true);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 };

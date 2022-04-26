@@ -40,3 +40,12 @@ export const getRandomString = (size: number = 1) => {
     }
     return ret;
 }
+
+export const wait = async (time: number): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        setTimeout(()=> {
+            resolve()
+        }, time)
+    })
+    
+}

@@ -39,6 +39,8 @@ export const mute = () => {
             video,
           }});
         expect(result.data.mute).toBe(true);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 
 };

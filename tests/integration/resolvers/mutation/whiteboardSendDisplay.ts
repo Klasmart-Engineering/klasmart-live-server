@@ -20,6 +20,8 @@ export const whiteboardSendDisplay = () => {
             display: getRandomBoolean()
           }});
         expect(result.data.whiteboardSendDisplay).toBe(true);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 
 };

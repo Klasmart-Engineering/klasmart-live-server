@@ -8,5 +8,7 @@ export { postPageEvent } from "./postPageEvent";
 export { showContent } from "./showContent";
 export { whiteboardSendEvent } from "./whiteboardSendEvent";
 export { whiteboardSendDisplay } from "./whiteboardSendDisplay";
+export { whiteboardSendPermissions } from "./whiteboardSendPermissions";
 export { mute } from "./mute";
 export { setClassAttendees } from "./setClassAttendees";
+export { rewardTrophy } from "./rewardTrophy";

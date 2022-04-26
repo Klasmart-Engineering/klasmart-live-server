@@ -20,5 +20,7 @@ export const postPageEvent = () => {
     it("postPageEvent as Student", async () => {
         const result = await clientStudent.createMutation({query: MUTATION_POST_PAGE_EVENTS, variables: {streamId, pageEvents: pageEventMockData}});
         expect(result.data.postPageEvent).toBe(true);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 };

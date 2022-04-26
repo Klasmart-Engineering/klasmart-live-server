@@ -33,5 +33,7 @@ export const sendMessage = () => {
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({query: MUTATION_SEND_MESSAGE, variables: {roomId, message}});
         expect(result.data.sendMessage.message).toMatch(message);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 };

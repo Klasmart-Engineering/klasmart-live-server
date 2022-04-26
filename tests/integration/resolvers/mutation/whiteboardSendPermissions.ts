@@ -22,7 +22,7 @@ export const whiteboardSendPermissions = () => {
         query: MUTATION_WHITEBOARD_SEND_PERMISSIONS, variables: {
           roomId, 
           userId,
-          permissions: whiteboardSendPermissionsMockData
+          permissions: JSON.stringify(whiteboardSendPermissionsMockData)
         }});
       expect(result.data.whiteboardSendPermissions).toBe(true);
     });
@@ -43,6 +43,8 @@ export const whiteboardSendPermissions = () => {
             permissions: getRandomString()
           }});
         expect(result.data.whiteboardSendPermissions).toBe(true);
+        clientTeacher.stop();
+        clientStudent.stop();
     });
 
 };
