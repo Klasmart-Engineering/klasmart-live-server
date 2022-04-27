@@ -22,7 +22,7 @@ jobs:
   # disbaled untill we have working unit tests
   # test:
   #   needs: [install, lint]
-  #   uses: KL-Engineering/github-action-workflows/.github/workflows/npm-test-jest.yml@v3.1.1 
+  #   uses: ./.github/workflows/run-tests.yml
 
   generate-version:
     if: ${{ github.event.pull_request.merged }}
