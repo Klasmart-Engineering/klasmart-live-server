@@ -10,6 +10,10 @@ import { getToken } from "../../mockData/generateToken";
 import { getUniqueId } from "../../mockData/functions";
 import { rewardThropyMockData } from "../../mockData/resolverMock";
 
+/**
+ * TODO: test canse for room.sfu
+ * to test sfu we might need to 
+ */
 export const room = () => {
   const roomid = getUniqueId();
   const teacher_Live_Token = getToken (ClassType.LIVE, true, false, false, roomid);
@@ -60,7 +64,7 @@ export const room = () => {
     
   });
 
-  it(' SUBSCRIPTION test room.leave', async () => {
+  it('SUBSCRIPTION test room.leave', async () => {
     /**
      * 1. Teacher subscribe
      * 2. Student subscribe
@@ -96,7 +100,7 @@ export const room = () => {
      teacherSub.disconnect();
   });
 
-  it(' SUBSCRIPTION test room.message', async () => {
+  it('SUBSCRIPTION test room.message', async () => {
     /**
      * 1. Teacher subscribe
      * 2. Student subscribe
@@ -134,7 +138,7 @@ export const room = () => {
     teacherSub.disconnect();
   });
 
-  it(' SUBSCRIPTION test room.trophy', async () => {
+  it('SUBSCRIPTION test room.trophy', async () => {
     /**
      * 1. Teacher subscribe
      * 2. Student subscribe
