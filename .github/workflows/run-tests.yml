@@ -31,5 +31,5 @@ jobs:
           path: ./node_modules
           key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
-      - name: Run tests
-        run: npm run test
+      - name: Run integration tests
+        run: npm run test:integration
