@@ -12,16 +12,15 @@ export const SAVE_ATTENDANCE_MUTATION = gql`
     }
 }`;
 
-export const GET_ATTENDANCE_QUERY = gql`
-  query Query($roomId: String!) {
-    getClassAttendance(roomId: $roomId) {
-      roomId
-      userId
-      sessionId
-      isTeacher
-      joinTimestamp
-      leaveTimestamp
-    }
+export const SEND_ATTENDANCE_MUTAION = gql`
+  mutation sendAttendance($roomId: String!) {
+    sendAttendance(roomId: $roomId)
+  }
+`;
+
+export const SCHEDULE_ATTENDANCE_MUTATION = gql`
+  mutation scheduleAttendance($roomId: String!) {
+    scheduleAttendance(roomId: $roomId)
   }
 `;
 

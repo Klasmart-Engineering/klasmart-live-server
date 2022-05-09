@@ -13,18 +13,15 @@ import {
 } from "../../utils";
 
 import {AttendanceService} from "../attendance/AttendanceService";
-import {SchedulerService} from "../scheduler/SchedulerService";
 import {WhiteboardService} from "../whiteboard/WhiteboardService";
 
 export class ClassService extends Base {
     private attendanceService: AttendanceService;
-    private schedulerService: SchedulerService;
     private whiteboardService: WhiteboardService;
 
     constructor(readonly client: Redis.Cluster | Redis.Redis) {
         super(client);
         this.attendanceService = new AttendanceService(client);
-        this.schedulerService = new SchedulerService(client);
         this.whiteboardService = new WhiteboardService(client);
     }
 
@@ -300,7 +297,7 @@ export class ClassService extends Base {
         await this.setRoomContext(context);
 
         // start scheduler for class
-        this.schedulerService.addSchedule(roomId);
+        this.attendanceService.schedule(roomId);
 
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
@@ -583,7 +580,7 @@ export class ClassService extends Base {
         const classContext = await this.getRoomContext(roomId);
         console.log("classAttendees: ",roomId, userIds);
         if (classContext.classType === ClassType.CLASS) {
-            this.schedulerService.addSchedule(roomId);
+            this.attendanceService.schedule(roomId);
             const key = RedisKeys.classAttendees(roomId);
             await this.client.del(key);
             await this.client.set(key, userIds.toString());
