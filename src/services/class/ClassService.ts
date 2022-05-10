@@ -35,6 +35,9 @@ export class ClassService extends Base {
             throw new Error("Can't set the host without knowing the sessionId of the new host");
         }
 
+        if (!context.authorizationToken.teacher) {
+            throw new Error("Only teacher can set host teacher");
+        }
         const roomHostKey = RedisKeys.roomHost(roomId);
         const nextHostSessionKey = RedisKeys.sessionData(roomId, nextHostId);
 
@@ -131,7 +134,7 @@ export class ClassService extends Base {
         const { sessionId } = context;
 
         if (!sessionId) {
-            throw new Error("Can't reward trophy without knowing the sessionId it was from");
+            throw new Error("Can't send message without knowing the sessionId it was from");
         }
         message = message.trim();
         if (message.length > 1024) {

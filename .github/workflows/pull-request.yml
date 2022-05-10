@@ -15,7 +15,6 @@ jobs:
     needs: [install]
     uses: KL-Engineering/github-action-workflows/.github/workflows/npm-lint.yml@v3.1.1
 
-# TEMPORARILY DISABLED. ENABLE WHEN ADDING TESTS AGAIN
-  # test:
-  #   needs: [install, lint, conventional-pr-title]
-  #   uses: KL-Engineering/github-action-workflows/.github/workflows/npm-test-jest.yml@v3.1.1
+  test:
+    needs: [install, lint, conventional-pr-title]
+    uses: ./.github/workflows/run-tests.yml

@@ -5,6 +5,7 @@ import {
 } from "@kl-engineering/kidsloop-token-validation";
 import WebSocket from "ws";
 
+/** INTERFACE */
 export interface Context {
     authenticationToken?: KidsloopAuthenticationToken;
     authorizationToken: KidsloopLiveAuthorizationToken;
@@ -12,12 +13,6 @@ export interface Context {
     roomId?: string;
     websocket: WebSocket;
     joinTime?: Date;
-}
-
-export type Message = {
-    id: string,
-    session: Session,
-    message: string,
 }
 export interface PageEvent {
     sequenceNumber: number;
@@ -45,17 +40,25 @@ export interface Attendance {
     leaveTimestamp: Date;
 }
 
-export type Student = {
-    user_id: string;
-    email: string;
-    name: string;
-}
-
 export interface StudentReport {
     classType: string;
     lessonMaterialUrl: string;
     contentType: string;
     actionType: StudentReportActionType;
+}
+
+/** TYPES */
+
+export type Message = {
+    id: string,
+    session: Session,
+    message: string,
+}
+
+export type Student = {
+    user_id: string;
+    email: string;
+    name: string;
 }
 
 export type StudentReportRequestType = {
@@ -107,6 +110,8 @@ export type TrophMessageType = {
     user: string;
     kind: string;
 }
+
+/** ENUM */
 export enum ClassType {
     LIVE = "live",
     CLASS = "class",

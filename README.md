@@ -56,3 +56,25 @@ We follow [Semantic Versioning](https://semver.org/)
 3. ***patch*** version when you make backwards compatible bug fixes  
 
 **npm version <update_types>** will upgrade version and make commit.
+
+## Running Integration Tests
+
+This service contains integration tests that validate the live server API. Before opening new PRs developers should
+validate their code by running integration tests.
+
+### Prerequistes
+The integration tests will start a live backend instance internally to test against, however they are also reliant on
+a Redis instance being available.  If you do not have one available, you can start a Redis docker instance that will
+work with the integration test configuration by running:
+
+```
+docker run --name live-redis -p 6379:6379 -d redis
+```
+
+### Running Integration Tests
+
+Run integration tests with the following command:
+
+```
+npm run test:integration
+```
