@@ -17,12 +17,14 @@ jobs:
       NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
   lint:
+    if: ${{ github.event.pull_request.merged }}
     needs: [install]
     uses: KL-Engineering/github-action-workflows/.github/workflows/npm-lint.yml@v3.1.1
-  # disbaled untill we have working unit tests
-  # test:
-  #   needs: [install, lint]
-  #   uses: ./.github/workflows/run-tests.yml
+
+  test:
+    if: ${{ github.event.pull_request.merged }}
+    needs: [install, lint]
+    uses: ./.github/workflows/run-tests.yml
 
   generate-version:
     if: ${{ github.event.pull_request.merged }}
