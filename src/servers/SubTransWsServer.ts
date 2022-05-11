@@ -45,6 +45,9 @@ export class SubTransWsServer {
                 }
 
                 const authenticationToken = await checkAuthenticationToken(cookies?.access).catch((e) => {
+                    if(process.env.NODE_ENV === 'alpha'){
+                        console.log('expiredToken: ', cookies?.access);
+                    }
                     if (e.name === "TokenExpiredError") {
                         throw new ApolloError("AuthenticationExpired", "AuthenticationExpired");
                     }
