@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.11.8](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.11.7...v1.11.8) (2022-05-11)
+
+
+### Bug Fixes
+
+* use alpine image to reduce the docker image size ([90adf67](https://bitbucket.org/calmisland/kidsloop-live-server/commit/90adf6723b34c66336d66d7d03f928044a5c6986))
+
 ### [1.11.7](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.11.6...v1.11.7) (2022-05-10)
 
 ### [1.11.6](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.11.5...v1.11.6) (2022-04-26)
