@@ -12,14 +12,14 @@ on:
 jobs:
   install:
     if: ${{ github.event.pull_request.merged }}
-    uses: KL-Engineering/github-action-workflows/.github/workflows/npm-ci.yml@v3.1.1
+    uses: KL-Engineering/github-action-workflows/.github/workflows/npm-ci.yml@v3.2.1
     secrets:
       NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
   lint:
     if: ${{ github.event.pull_request.merged }}
     needs: [install]
-    uses: KL-Engineering/github-action-workflows/.github/workflows/npm-lint.yml@v3.1.1
+    uses: KL-Engineering/github-action-workflows/.github/workflows/npm-lint.yml@v3.2.1
 
   test:
     if: ${{ github.event.pull_request.merged }}
@@ -29,7 +29,7 @@ jobs:
   generate-version:
     if: ${{ github.event.pull_request.merged }}
     needs: [lint]
-    uses: KL-Engineering/github-action-workflows/.github/workflows/npm-generate-version.yml@v3.1.1
+    uses: KL-Engineering/github-action-workflows/.github/workflows/npm-generate-version.yml@v3.2.1
     secrets:
       NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
@@ -38,7 +38,7 @@ jobs:
     needs: [generate-version]
     runs-on: ubuntu-latest
     steps:
-      - uses: KL-Engineering/github-action-workflows/.github/actions/npm-ci@v3.1.1
+      - uses: KL-Engineering/github-action-workflows/.github/actions/npm-ci@v3.2.1
         with:
           NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       - name: NPM Build
