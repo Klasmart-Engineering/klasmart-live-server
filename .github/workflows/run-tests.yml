@@ -32,4 +32,4 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Run integration tests
-        run: npm run test:integration
+        run: npm run test

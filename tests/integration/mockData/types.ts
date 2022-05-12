@@ -13,12 +13,12 @@ export type WhiteboardPermissions = {
 
 
 export enum ContentType {
-  Blank = `Blank`,
-  Stream = `Stream`,
-  Activity = `Activity`,
-  Video = `Video`,
-  Audio = `Audio`,
-  Image = `Image`,
-  Camera = `Camera`,
-  Screen = `Screen`,
+  Blank = "Blank",
+  Stream = "Stream",
+  Activity = "Activity",
+  Video = "Video",
+  Audio = "Audio",
+  Image = "Image",
+  Camera = "Camera",
+  Screen = "Screen",
 }

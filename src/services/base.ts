@@ -1,4 +1,7 @@
 
+import Redis from "ioredis";
+import { Cluster } from "ioredis";
+import { Gauge } from "prom-client";
 import {Pipeline} from "../pipeline";
 import {RedisKeys} from "../redisKeys";
 import {
@@ -12,8 +15,7 @@ import {
     convertSessionRecordToSession,
     redisStreamSerialize,
 } from "../utils";
-import Redis from "ioredis";
-import { Gauge } from "prom-client";
+
 const graphqlGauge = new Gauge({
     name: "GRAPHQL_WS",
     help: "number of users connected using graphqlWS",
@@ -24,7 +26,7 @@ const subTransGauge = new Gauge({
     help: "number of users connected using subscriptionTransportWS",
 });
 export class Base {
-    constructor(readonly client: Redis.Redis | Redis.Cluster) {}
+    constructor(readonly client: Redis | Cluster) {}
 
     protected async setRoomContext(context: Context) {
         const roomId = context.roomId;
@@ -56,8 +58,11 @@ export class Base {
                 await pipeline.hgetall(key);
             }
             const sessions = await pipeline.exec();
-            for (const [, session] of sessions) {
-                yield convertSessionRecordToSession(session);
+            if(sessions){
+                for (const [, session] of sessions) {
+                    const sess = session as Record<string,string>;
+                    yield convertSessionRecordToSession(sess);
+                }
             }
             sessionSearchCursor = newCursor;
         } while (sessionSearchCursor !== "0");
@@ -89,13 +94,20 @@ export class Base {
         const notify = RedisKeys.roomNotify(roomId);
         await this.client.expire(notify.key, notify.ttl);
         const res = await this.client.xadd(notify.key, "MAXLEN", "~", 32, "*", ...redisStreamSerialize(message));
-        return res;
+        if (res){
+            return res;
+        }
+        return "execution is not complite";
     }
 
     protected async notifySession(roomId: string, sessionId: string, message: any): Promise<string> {
         const notifyKey = RedisKeys.sessionNotify(roomId, sessionId);
         const res = await this.client.xadd(notifyKey, "MAXLEN", "~", 32, "*", ...redisStreamSerialize(message));
-        return res;
+        if (res) {
+            return res;
+        }
+
+        return "execution is not complite";
     }
 
     protected async getTime() {

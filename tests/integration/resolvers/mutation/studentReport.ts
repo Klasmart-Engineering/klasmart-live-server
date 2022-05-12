@@ -15,35 +15,35 @@ export const studentReport = () => {
         const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const result = await clientTeacher.createMutation({
-          query: MUTATION_SEND_STUDENT_USAGE_RECORD_EVENT, variables: {
-            roomId,
-            materialUrl: studentReportMockData.materialUrl,
-            activityTypeName: studentReportMockData.activityTypeName
-          }});
+            query: MUTATION_SEND_STUDENT_USAGE_RECORD_EVENT, variables: {
+                roomId,
+                materialUrl: studentReportMockData.materialUrl,
+                activityTypeName: studentReportMockData.activityTypeName
+            }});
         expect(result.data.whiteboardSendEvent).toBe(true);
     });
 
     it("report student activities without materialURl", async () => {
-      const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
-      const roomId = query.data.token.roomId;
-      const result = await clientTeacher.createMutation({
-        query: MUTATION_SEND_STUDENT_USAGE_RECORD_EVENT, variables: {
-          roomId,
-          activityTypeName: studentReportMockData.activityTypeName
-        }});
-      expect(result.data.whiteboardSendEvent).toBe(false);
+        const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
+        const roomId = query.data.token.roomId;
+        const result = await clientTeacher.createMutation({
+            query: MUTATION_SEND_STUDENT_USAGE_RECORD_EVENT, variables: {
+                roomId,
+                activityTypeName: studentReportMockData.activityTypeName
+            }});
+        expect(result.data.whiteboardSendEvent).toBe(false);
     });
 
     it("report student activities without activityTypeName", async () => {
-      const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
-      const roomId = query.data.token.roomId;
-      const result = await clientTeacher.createMutation({
-        query: MUTATION_SEND_STUDENT_USAGE_RECORD_EVENT, variables: {
-          roomId,
-          materialUrl: studentReportMockData.materialUrl
-        }});
-      expect(result.data.whiteboardSendEvent).toBe(false);
-      clientTeacher.stop();
+        const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
+        const roomId = query.data.token.roomId;
+        const result = await clientTeacher.createMutation({
+            query: MUTATION_SEND_STUDENT_USAGE_RECORD_EVENT, variables: {
+                roomId,
+                materialUrl: studentReportMockData.materialUrl
+            }});
+        expect(result.data.whiteboardSendEvent).toBe(false);
+        clientTeacher.stop();
     });
 
 };

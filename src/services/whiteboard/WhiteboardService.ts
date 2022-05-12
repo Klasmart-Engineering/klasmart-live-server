@@ -1,3 +1,6 @@
+import Redis from "ioredis";
+import { Cluster } from "ioredis";
+import WebSocket from "ws";
 import {RedisKeys} from "../../redisKeys";
 import {Context} from "../../types";
 import {
@@ -7,11 +10,6 @@ import {
 import {PainterEvent} from "./events/PainterEvent";
 import {IWhiteboardService} from "./IWhiteboardService";
 import {WhiteboardState} from "./model/WhiteboardState";
-import {
-    Cluster,
-    Redis,
-} from "ioredis";
-import WebSocket from "ws";
 import {Base} from "../base";
 
 export class WhiteboardService extends Base implements IWhiteboardService {

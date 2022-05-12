@@ -1,14 +1,15 @@
-import {Base} from "../base";
 import Redis from "ioredis";
-import {RedisKeys} from "../../redisKeys";
+import { Cluster } from "ioredis";
 import WebSocket from "ws";
+import {Base} from "../base";
+import {RedisKeys} from "../../redisKeys";
 import { Context } from "../../types";
 import {
     redisStreamDeserialize,
 } from "../../utils";
 
 export class VideoServices extends Base {
-    constructor(readonly client: Redis.Cluster | Redis.Redis) {
+    constructor(readonly client: Cluster | Redis) {
         super(client);
     }
 

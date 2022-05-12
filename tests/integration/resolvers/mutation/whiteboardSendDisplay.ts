@@ -15,10 +15,10 @@ export const whiteboardSendDisplay = () => {
         const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({
-          query: MUTATION_WHITEBOARD_SEND_DISPLAY, variables: {
-            roomId, 
-            display: getRandomBoolean()
-          }});
+            query: MUTATION_WHITEBOARD_SEND_DISPLAY, variables: {
+                roomId, 
+                display: getRandomBoolean()
+            }});
         expect(result.data.whiteboardSendDisplay).toBe(true);
         clientTeacher.stop();
         clientStudent.stop();

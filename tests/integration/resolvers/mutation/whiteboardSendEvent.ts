@@ -15,33 +15,33 @@ export const whiteboardSendEvent = () => {
         const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({
-          query: MUTATION_WHITEBOARD_SEND_EVENT, variables: {
-            roomId, 
-            event: JSON.stringify(whiteboardSendEventMockData)
-          }});
+            query: MUTATION_WHITEBOARD_SEND_EVENT, variables: {
+                roomId, 
+                event: JSON.stringify(whiteboardSendEventMockData)
+            }});
         expect(result.data.whiteboardSendEvent).toBe(true);
     });
 
     it("whiteboardSendEvent with wrong data as Teacher", async () => {
-      const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
-      const roomId = query.data.token.roomId;
-      const result = await clientStudent.createMutation({
-        query: MUTATION_WHITEBOARD_SEND_EVENT, variables: {
-          roomId, 
-          event: ''
-        }});
-      expect(result.data.whiteboardSendEvent).toBe(null);
-  });
+        const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
+        const roomId = query.data.token.roomId;
+        const result = await clientStudent.createMutation({
+            query: MUTATION_WHITEBOARD_SEND_EVENT, variables: {
+                roomId, 
+                event: ""
+            }});
+        expect(result.data.whiteboardSendEvent).toBe(null);
+    });
 
 
     it("whiteboardSendEvent as Student", async () => {
         const query = await clientStudent.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({
-          query: MUTATION_WHITEBOARD_SEND_EVENT, variables: {
-            roomId, 
-            event: JSON.stringify(whiteboardSendEventMockData)
-          }});
+            query: MUTATION_WHITEBOARD_SEND_EVENT, variables: {
+                roomId, 
+                event: JSON.stringify(whiteboardSendEventMockData)
+            }});
         expect(result.data.whiteboardSendEvent).toBe(true);
         clientTeacher.stop();
         clientStudent.stop();

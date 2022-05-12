@@ -1,9 +1,8 @@
+import { Redis } from "ioredis";
 import {
+    ChainableCommander,
     Cluster,
-    KeyType,
-    Pipeline as RedisPipeline,
-    Redis,
-    ValueType,
+    RedisKey
 } from "ioredis";
 
 enum RedisMode {
@@ -13,11 +12,12 @@ enum RedisMode {
 
 // / A mode agnostic interface for dealing with pipelines.  Only uses pipeline when connected to a single redis node.
 export class Pipeline {
-    private pipeline?: RedisPipeline;
+    private pipeline?: ChainableCommander;
     private readonly mode: RedisMode;
     private results: Array<[Error | null, any]> = [];
     public constructor(private client: Redis | Cluster) {
         if (this.client instanceof Cluster) {
+
             this.mode = RedisMode.CLUSTER;
             return;
         }
@@ -26,7 +26,7 @@ export class Pipeline {
         this.pipeline = client.pipeline();
     }
 
-    public async hgetall(key: KeyType): Promise<Pipeline> {
+    public async hgetall(key: RedisKey): Promise<Pipeline> {
         if (this.mode === RedisMode.CLUSTER) {
             const result = await this.client.hgetall(key);
             this.results.push([null, result]);
@@ -36,7 +36,7 @@ export class Pipeline {
         return this;
     }
 
-    public async hset(key: KeyType, ...args: ValueType[]): Promise<Pipeline> {
+    public async hset(key: RedisKey, ...args: (string | Buffer | number)[]): Promise<Pipeline> {
         if (this.mode === RedisMode.CLUSTER) {
             const result = await this.client.hset(key, ...args);
             this.results.push([null, result]);
@@ -46,7 +46,7 @@ export class Pipeline {
         return this;
     }
 
-    public async expire(key: KeyType, seconds: number): Promise<Pipeline> {
+    public async expire(key: RedisKey, seconds: number): Promise<Pipeline> {
         if (this.mode === RedisMode.CLUSTER) {
             const result = await this.client.expire(key, seconds);
             this.results.push([null, result]);
@@ -56,7 +56,7 @@ export class Pipeline {
         return this;
     }
 
-    public async xadd(key: KeyType, id: string, ...args: string[]): Promise<Pipeline> {
+    public async xadd(key: RedisKey, id: string, ...args: string[]): Promise<Pipeline> {
         if (this.mode === RedisMode.CLUSTER) {
             const result = await this.client.xadd(key, id, ...args);
             this.results.push([null, result]);
@@ -66,7 +66,7 @@ export class Pipeline {
         return this;
     }
 
-    public async del(...keys: KeyType[]): Promise<Pipeline> {
+    public async del(...keys: RedisKey[]): Promise<Pipeline> {
         if (this.mode === RedisMode.CLUSTER) {
             const result = await this.client.del(...keys);
             this.results.push([null, result]);
@@ -76,7 +76,7 @@ export class Pipeline {
         return this;
     }
 
-    public async sadd(key: KeyType, ...members: ValueType[]): Promise<Pipeline> {
+    public async sadd(key: RedisKey, ...members: (string | Buffer | number)[]): Promise<Pipeline> {
         if (this.mode === RedisMode.CLUSTER) {
             const result = await this.client.sadd(key, ...members);
             this.results.push([null, result]);
@@ -86,7 +86,7 @@ export class Pipeline {
         return this;
     }
 
-    public async srem(key: KeyType, ...members: ValueType[]): Promise<Pipeline> {
+    public async srem(key: RedisKey, ...members: (string | Buffer | number)[]): Promise<Pipeline> {
         if (this.mode === RedisMode.CLUSTER) {
             const result = await this.client.srem(key, ...members);
             this.results.push([null, result]);
@@ -96,7 +96,7 @@ export class Pipeline {
         return this;
     }
 
-    public async exec(): Promise<Array<[Error | null, any]>> {
+    public async exec(): Promise<[error: Error | null, result: unknown][] | null> {
         if (this.mode === RedisMode.CLUSTER) {
             return this.results;
         }
