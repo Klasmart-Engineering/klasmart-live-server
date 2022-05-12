@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.12.0](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.11.11...v1.12.0) (2022-05-12)
+
+
+### Features
+
+* move schedule module to Attendance service ([526faa9](https://bitbucket.org/calmisland/kidsloop-live-server/commit/526faa998008d6468d0fbe0994d95eccb9869f83))
+
 ### [1.11.11](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.11.10...v1.11.11) (2022-05-11)
 
 ### [1.11.10](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.11.9...v1.11.10) (2022-05-11)
