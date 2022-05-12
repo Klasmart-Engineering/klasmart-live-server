@@ -15,10 +15,10 @@ export const setClassAttendees = () => {
         const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const result = await clientTeacher.createMutation({
-          query: MUTATION_SET_CLASS_ATTENDEES, variables: {
-            roomId,
-            userIds: classAttendeesMockData(5)
-          }});
+            query: MUTATION_SET_CLASS_ATTENDEES, variables: {
+                roomId,
+                userIds: classAttendeesMockData(5)
+            }});
         expect(result.data.setClassAttendees).toBe(true);
         clientTeacher.stop();
     });

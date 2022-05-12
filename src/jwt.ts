@@ -13,14 +13,14 @@ export async function generateToken(requestBody: AttendanceRequestType | Student
     return new Promise<string>((resolve, reject) => {
         sign(requestBody, secretOrPrivateKey, options, (err, token) => {
             if (err) {
-            reject(err);
+                reject(err);
             } else if (token) {
-            resolve(token);
+                resolve(token);
             } else {
-            reject(new Error(`Signing token failed without explicit error`));
+                reject(new Error("Signing token failed without explicit error"));
             }
-        })
-    })
+        });
+    });
 }
 
 let config: { options: SignOptions; secretOrPrivateKey: Secret; secretOrPublicKey: Secret } | undefined;

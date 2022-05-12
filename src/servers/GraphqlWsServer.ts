@@ -76,8 +76,8 @@ export class GraphqlWsServer {
         try {
             authenticationToken = await checkAuthenticationToken(cookies?.access);
         } catch (e: any) {
-            if(process.env.NODE_ENV === 'alpha'){
-                console.log('expiredToken: ', cookies?.access);
+            if(process.env.NODE_ENV === "alpha"){
+                console.log("expiredToken: ", cookies?.access);
             }
             if (e instanceof Error) {
                 console.log("Error: ", e);

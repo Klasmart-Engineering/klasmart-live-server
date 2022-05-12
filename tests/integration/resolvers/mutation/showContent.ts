@@ -15,36 +15,36 @@ export const showContent = () => {
         const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({
-          query: MUTATION_SHOW_CONTENT, variables: {
-            roomId, 
-            type: contentTypeMockData.type, 
-            contnetId: contentTypeMockData.contentId
-          }});
+            query: MUTATION_SHOW_CONTENT, variables: {
+                roomId, 
+                type: contentTypeMockData.type, 
+                contnetId: contentTypeMockData.contentId
+            }});
         expect(result.data.showContent).toBe(true);
     });
 
     it("showContent with wrong content type as Teacher", async () => {
-      const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
-      const roomId = query.data.token.roomId;
-      const result = await clientStudent.createMutation({
-        query: MUTATION_SHOW_CONTENT, variables: {
-          roomId, 
-          type: 'no Content', 
-          contnetId: contentTypeMockData.contentId
-        }});
-      expect(result.data).toBe(undefined);
-  });
+        const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
+        const roomId = query.data.token.roomId;
+        const result = await clientStudent.createMutation({
+            query: MUTATION_SHOW_CONTENT, variables: {
+                roomId, 
+                type: "no Content", 
+                contnetId: contentTypeMockData.contentId
+            }});
+        expect(result.data).toBe(undefined);
+    });
 
 
     it("showContent as Student", async () => {
         const query = await clientStudent.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const result = await clientStudent.createMutation({
-          query: MUTATION_SHOW_CONTENT, variables: {
-            roomId, 
-            type: contentTypeMockData.type, 
-            contnetId: contentTypeMockData.contentId
-          }});
+            query: MUTATION_SHOW_CONTENT, variables: {
+                roomId, 
+                type: contentTypeMockData.type, 
+                contnetId: contentTypeMockData.contentId
+            }});
         expect(result.data.showContent).toBe(true);
         clientTeacher.stop();
         clientStudent.stop();

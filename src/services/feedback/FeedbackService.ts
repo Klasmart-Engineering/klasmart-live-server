@@ -1,11 +1,12 @@
+import Redis from "ioredis";
+import { Cluster } from "ioredis";
+import request from "graphql-request";
 import {Base} from "../base";
 import {Context} from "../../types";
-import Redis from "ioredis";
-import request from "graphql-request";
 import {SAVE_FEEDBACK_MUTATION} from "../../graphql";
 
 export class FeedbackService extends Base {
-    constructor(readonly client: Redis.Cluster | Redis.Redis) {
+    constructor(readonly client: Cluster | Redis) {
         super(client);
     }
 

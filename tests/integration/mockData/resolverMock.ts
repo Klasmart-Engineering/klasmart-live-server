@@ -23,16 +23,16 @@ export const pageEventMockData = {
     isKeyframe: getRandomBoolean(),
     eventsSinceKeyframe: getRandomNumber(20),
     eventData: getRandomString(200)
-}
+};
 
 const ContentTypeArr: string[] =  [
-    `Blank`,`Stream`,`Activity`,`Video`,`Audio`,`Image`,`Camera`,`Screen`,
-]
+    "Blank","Stream","Activity","Video","Audio","Image","Camera","Screen",
+];
 
 export const contentTypeMockData: ContentMessageType = {
     type: ContentTypeArr[getRandomNumber(8)],
     contentId: getRandomString(10)
-}
+};
 
 
 export const whiteboardSendEventMockData: PainterEvent = {
@@ -41,7 +41,7 @@ export const whiteboardSendEventMockData: PainterEvent = {
     generatedBy: getRandomString(10),
     objectType: getRandomString(10),
     param: getRandomString(10)
-}
+};
 
 export const whiteboardSendPermissionsMockData: WhiteboardPermissions = {
     allowShowHide: getRandomBoolean(),
@@ -54,33 +54,33 @@ export const whiteboardSendPermissionsMockData: WhiteboardPermissions = {
         own: getRandomBoolean(),
         others: getRandomBoolean()
     },
-}
+};
 
-const thropyArr = ["trophy","great_job","star","heart"]
+const thropyArr = ["trophy","great_job","star","heart"];
 export const rewardThropyMockData = {
     kind: thropyArr[getRandomNumber(thropyArr.length)]
-}
+};
 
 
-const activityTypeArr = ["h5p", "audio","video","image"]
+const activityTypeArr = ["h5p", "audio","video","image"];
 const materialUrlArr = [
     "/h5p/play/61dbd45290c8380013f4e224",
     "/h5p/play/61dbd51e52f46a0015552d52",
     "/h5p/play/61dbd575a394f50014907539",
     "/h5p/play/61b99471f1306a001544bb87",
-]
+];
 export const studentReportMockData = {
     materialUrl: materialUrlArr[getRandomNumber(materialUrlArr.length)],
     activityTypeName: activityTypeArr[getRandomNumber(activityTypeArr.length)]
-}
+};
 
 
 export const classAttendeesMockData = (numOfStudents: number): string[] => {
     const userIds: string [] = [];
-    for (var i = 0; i < numOfStudents; i++){
-        userIds.push(getUniqueId())
+    for (let i = 0; i < numOfStudents; i++){
+        userIds.push(getUniqueId());
     }
     return userIds;
-}
+};
 
 

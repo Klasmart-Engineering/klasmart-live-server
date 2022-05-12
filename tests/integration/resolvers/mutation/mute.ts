@@ -14,30 +14,30 @@ export const mute = () => {
     const audio = getRandomBoolean();
     const video = getRandomBoolean();
     it("mute&unmute audio and video as Teacher", async () => {
-      const query = await clientTeacher.createQuery({query: QUERY_TOKEN})
-      const roomId = query.data.token.roomId;
+        const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
+        const roomId = query.data.token.roomId;
 
-      const result = await clientTeacher.createMutation({
-        query: MUTATION_MUTE, variables: {
-          roomId, 
-          sessionId,
-          audio,
-          video,
-        }});
-      expect(result.data.mute).toBe(true);
+        const result = await clientTeacher.createMutation({
+            query: MUTATION_MUTE, variables: {
+                roomId, 
+                sessionId,
+                audio,
+                video,
+            }});
+        expect(result.data.mute).toBe(true);
     });
     
     it("mute&unmute audio and video as Student", async () => {
-        const query = await clientStudent.createQuery({query: QUERY_TOKEN})
+        const query = await clientStudent.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
 
         const result = await clientStudent.createMutation({
-          query: MUTATION_MUTE, variables: {
-            roomId, 
-            sessionId,
-            audio,
-            video,
-          }});
+            query: MUTATION_MUTE, variables: {
+                roomId, 
+                sessionId,
+                audio,
+                video,
+            }});
         expect(result.data.mute).toBe(true);
         clientTeacher.stop();
         clientStudent.stop();

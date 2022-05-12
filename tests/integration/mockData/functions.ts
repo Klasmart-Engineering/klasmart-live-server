@@ -11,7 +11,7 @@ export const getRandomNumber = (limit = 1000) => {
 
 export const getRandomBoolean = () => {
     return Boolean(getRandomNumber(2));
-}
+};
 
 export const getRandomFeedbackType = () => {
     const candidates = ["END_CLASS", "LEAVE_CLASS"];
@@ -31,21 +31,21 @@ export const getEpochTime = (expire: number) => {
     return Math.floor(date.getTime()/1000);
 };
 
-export const getRandomString = (size: number = 1) => {
-    const candidates = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    var ret = '';
-    for (var i = 0; i <= size; i++) {
-        var j = getRandomNumber(candidates.length);
+export const getRandomString = (size = 1) => {
+    const candidates = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    let ret = "";
+    for (let i = 0; i <= size; i++) {
+        const j = getRandomNumber(candidates.length);
         ret += candidates[j];
     }
     return ret;
-}
+};
 
 export const wait = async (time: number): Promise<void> => {
     return new Promise((resolve, reject) => {
         setTimeout(()=> {
-            resolve()
-        }, time)
-    })
+            resolve();
+        }, time);
+    });
     
-}
+};

@@ -1,10 +1,11 @@
-import {Base} from "../base";
 import Redis from "ioredis";
+import { Cluster } from "ioredis";
+import axios from "axios";
+import WebSocket from "ws";
+import {Base} from "../base";
 import {RedisKeys} from "../../redisKeys";
 import {Context, PageEvent, Session, SFUEntry, Message, StudentReportActionType, StudentReportRequestType, Student, StudentReport, ClassType} from "../../types";
-import WebSocket from "ws";
 import {Pipeline} from "../../pipeline";
-import axios from "axios";
 import {generateToken} from "../../jwt";
 import {
     fromRedisKeyValueArray,
@@ -19,7 +20,7 @@ export class ClassService extends Base {
     private attendanceService: AttendanceService;
     private whiteboardService: WhiteboardService;
 
-    constructor(readonly client: Redis.Cluster | Redis.Redis) {
+    constructor(readonly client: Cluster | Redis) {
         super(client);
         this.attendanceService = new AttendanceService(client);
         this.whiteboardService = new WhiteboardService(client);
@@ -109,7 +110,7 @@ export class ClassService extends Base {
                 }
                 prevResult = result;
             }
-            return true;
+            
         } else {
             for (const {
                 eventsSinceKeyframe, isKeyframe, eventData,
@@ -119,11 +120,12 @@ export class ClassService extends Base {
             await pipeline.expire(key, 60);
             if (process.env.REDIS_MODE !== "CLUSTER") {
                 const result = await pipeline.exec();
-                return result.every(([e]) => e == null);
-            } else {
-                return true;
+                if(result){
+                    return result.every(([e]) => e == null);
+                }
             }
         }
+        return true;
     }
 
     public async sendMessage(context: Context, message: string): Promise<Message|undefined> {
@@ -148,11 +150,14 @@ export class ClassService extends Base {
             session,
             message,
         }));
-        return {
-            id,
-            session,
-            message,
-        };
+        if (id){
+            return {
+                id,
+                session,
+                message,
+            };
+        }
+        return;
     }
 
     public async webRTCSignal(context: Context, toSessionId: string, webRTC: any): Promise<boolean> {

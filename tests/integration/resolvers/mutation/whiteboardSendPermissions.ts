@@ -13,18 +13,18 @@ export const whiteboardSendPermissions = () => {
     const clientStudent = new CustomApolloClient(student_Live_Token);
 
     it("whiteboardSendPermissions as Teacher", async () => {
-      const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
-      const queryStudent = await clientStudent.createQuery({query: QUERY_TOKEN})
-      const roomId = query.data.token.roomId;
-      const userId= queryStudent.data.token.userId;
+        const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
+        const queryStudent = await clientStudent.createQuery({query: QUERY_TOKEN});
+        const roomId = query.data.token.roomId;
+        const userId= queryStudent.data.token.userId;
 
-      const result = await clientStudent.createMutation({
-        query: MUTATION_WHITEBOARD_SEND_PERMISSIONS, variables: {
-          roomId, 
-          userId,
-          permissions: JSON.stringify(whiteboardSendPermissionsMockData)
-        }});
-      expect(result.data.whiteboardSendPermissions).toBe(true);
+        const result = await clientStudent.createMutation({
+            query: MUTATION_WHITEBOARD_SEND_PERMISSIONS, variables: {
+                roomId, 
+                userId,
+                permissions: JSON.stringify(whiteboardSendPermissionsMockData)
+            }});
+        expect(result.data.whiteboardSendPermissions).toBe(true);
     });
     
     // this test should not pass with random stirng, 
@@ -32,16 +32,16 @@ export const whiteboardSendPermissions = () => {
     // there is no type check
     it("whiteboardSendPermissions with wrong permissions as Teacher", async () => {
         const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
-        const queryStudent = await clientStudent.createQuery({query: QUERY_TOKEN})
+        const queryStudent = await clientStudent.createQuery({query: QUERY_TOKEN});
         const roomId = query.data.token.roomId;
         const userId= queryStudent.data.token.userId;
 
         const result = await clientStudent.createMutation({
-          query: MUTATION_WHITEBOARD_SEND_PERMISSIONS, variables: {
-            roomId, 
-            userId,
-            permissions: getRandomString()
-          }});
+            query: MUTATION_WHITEBOARD_SEND_PERMISSIONS, variables: {
+                roomId, 
+                userId,
+                permissions: getRandomString()
+            }});
         expect(result.data.whiteboardSendPermissions).toBe(true);
         clientTeacher.stop();
         clientStudent.stop();

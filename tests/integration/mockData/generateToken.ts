@@ -23,7 +23,7 @@ function generateUserData(name: string, end_at: number, classType: string, isTea
         roomid = roomId;
     }
     const data: any = {
-        "name": name+'_'+getUniqueId(),
+        "name": name+"_"+getUniqueId(),
         "schedule_id": getUniqueId(),
         "is_review": false,
         "user_id": getUniqueId(),

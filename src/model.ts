@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { Cluster } from "ioredis";
 import {ClassService} from "./services/class/ClassService";
 import {FeedbackService} from "./services/feedback/FeedbackService";
 import {VideoServices} from "./services/video/VideoServices";
@@ -12,12 +13,12 @@ import {
 export class Model {
     private static async createClient() {
         const redisMode = process.env.REDIS_MODE ?? "NODE";
-        const port = Number(process.env.REDIS_PORT) || undefined;
-        const host = process.env.REDIS_HOST;
+        const port = Number(process.env.REDIS_PORT) || 6379;
+        const host = process.env.REDIS_HOST || "localhost";
         const password = process.env.REDIS_PASS;
         const lazyConnect = true;
 
-        let redis: Redis.Redis | Redis.Cluster;
+        let redis: Redis | Cluster;
         if (redisMode === "CLUSTER") {
             redis = new Redis.Cluster([
                 {
@@ -51,7 +52,7 @@ export class Model {
     private feedbackService: FeedbackService;
     private classService: ClassService;
 
-    private constructor(client: Redis.Cluster | Redis.Redis) {
+    private constructor(client: Cluster | Redis) {
         this.whiteboardService = new WhiteboardService(client);
         this.videoService = new VideoServices(client);
         this.feedbackService = new FeedbackService(client);

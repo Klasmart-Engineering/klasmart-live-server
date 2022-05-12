@@ -1,3 +1,6 @@
+import Redis from "ioredis";
+import { Cluster } from "ioredis";
+import request from "graphql-request";
 import {
     SAVE_ATTENDANCE_MUTATION,
     SEND_ATTENDANCE_MUTAION,
@@ -7,11 +10,9 @@ import {
     Session,
 } from "../../types";
 import {Base} from "../base";
-import request from "graphql-request";
-import Redis from "ioredis";
 
 export class AttendanceService extends Base {
-    constructor(readonly client: Redis.Cluster | Redis.Redis) {
+    constructor(readonly client: Cluster | Redis) {
         super(client);
     }
 
