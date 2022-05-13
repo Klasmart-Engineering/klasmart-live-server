@@ -91,7 +91,7 @@ export const room = () => {
         await studentSub.wait(1000);
         // 3
         await clientStudent.createMutation({query: MUTATION_LEAVECLASS, variables: {roomId}});
-        // await teacherSub.wait(1000);
+        await teacherSub.wait(2000);
         // 4
         teacherSub.results.forEach((res) => {
             if(res.data.room?.leave){
