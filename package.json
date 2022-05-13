@@ -9,7 +9,7 @@
     "lint": "eslint --fix '**/*.{ts,tsx}'",
     "clean": "rm -rf ./dist",
     "test": "npm run test:integration",
-    "test:unit": "echo \"No unit tests configured\" && exit 1",
+    "test:unit": "jest --runInBand -c ./tests/unit/jest.unit.config.js",
     "test:integration": "jest --runInBand -c ./tests/integration/jest.integration.config.js",
     "build": "npm run clean && npm run build:compile && npm run build:copy-assets",
     "build:compile": "tsc -p tsconfig.json --outDir ./dist",
