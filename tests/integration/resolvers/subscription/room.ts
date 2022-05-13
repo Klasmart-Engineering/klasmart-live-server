@@ -91,8 +91,13 @@ export const room = () => {
         await studentSub.wait(1000);
         // 3
         await clientStudent.createMutation({query: MUTATION_LEAVECLASS, variables: {roomId}});
-        await teacherSub.wait(1000);
+        // await teacherSub.wait(1000);
         // 4
+        teacherSub.results.forEach((res) => {
+            if(res.data.room?.leave){
+                console.log('TEACHER room.leave :', res.data.room.leave);
+            }
+        })
         expect(teacherSub.results[3].data.room.leave.id).toEqual(studentSub.results[2].data.room.join.id);
      
         // unsubscribe clients
