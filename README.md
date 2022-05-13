@@ -7,11 +7,11 @@
 
 1. Clone repository, Recommended using **ssh+clone** to skip authentication every time
 2. Run `npm i`  to install required packages
-3. Install redis and postgres. Recommended to install them in docker, so install docker first.  `REDIS_MODE=CLUSTER` requires a functional cluster: https://dltlabs.com/blog/how-to-setup-configure-a-redis-cluster-easily-573120.
-4. run `npm run build`.
-5. To install and run postgres:  `docker run -e POSTGRES_PASSWORD=kidsloop -e POSTGRES_USER=postgres -p 5432:5432 -d postgres`
-6. Add `DATABASE_URL=postgres://postgres:kidsloop@localhost` in ***.env*** *(steps 5 and 6 will be moved to kidsloop-attendance-service soon)*
-7. Finally, run `npm start`.
+3. Install redis. Recommended to install them in docker, so install docker first.  `REDIS_MODE=CLUSTER` requires a functional cluster: https://dltlabs.com/blog/how-to-setup-configure-a-redis-cluster-easily-573120.
+4. run `npm run test` to run unit && integration tests.
+5. run `npm run build` to build the project.
+6. run `npm run dev` to run in development.
+7. run `npm start` to run build project from `./dist`.
 
 
 ## Run the service in a docker container
@@ -34,9 +34,8 @@ docker run --rm -it \
 ```
 ## How to make PR
 
-Project has `master` and `alpha` (dev) branches. `master` branch contains production ready code.  
-If there are any feature/bug_fixes need to be added. Start new branch onto `alpha`.  
-When feature/bug_fixes are ready to merge, make ***PR*** (Pull Request) targeting `alpha`.
+Start new branch off `master`  
+When feature/bug_fixes are ready to merge, make \*\*\_PR*\*\* (Pull Request) targeting `master`
 
 ## How to make commit
 We follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0-beta.2/)
