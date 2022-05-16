@@ -5,7 +5,6 @@ import {makeExecutableSchema} from "@graphql-tools/schema";
 import dotenv from "dotenv";
 import Express from "express";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import {createServer} from "http";
 import {GRAPHQL_WS} from "subscriptions-transport-ws";
 import {WebSocketServer} from "ws";
@@ -42,15 +41,8 @@ async function main() {
         const gaugeApp = Express();
 
         // basic sec enhancements
-        app.set("trust proxy", 1); // trust first proxy
         app.disable("x-powered-by");
         app.use(helmet()); // basic sec
-        if (process.env.NODE_ENV === "production") {
-            app.use(rateLimit({
-                windowMs: 15 * 60 * 1000, // 15 minutes
-                max: 100, // limit each IP to 100 requests per windowMs
-            }));
-        }
 
         app.use(Express.json({
             limit: "50mb",
