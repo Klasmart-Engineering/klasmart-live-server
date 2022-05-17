@@ -61,6 +61,7 @@ jobs:
           ECR_AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
 
   deploy-alpha-dev-test:
+    needs: [build-and-push]
     uses: ./.github/workflows/deploy-alpha-dev-call.yml
     with:
       ecs_aws_service: kidsloop-alpha-live-graphql
