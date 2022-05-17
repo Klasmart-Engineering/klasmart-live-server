@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.13.0](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.12.2...v1.13.0) (2022-05-17)
+
+
+### Features
+
+* basic security added at webserver level ([b877ccc](https://bitbucket.org/calmisland/kidsloop-live-server/commit/b877ccc4b05a132ace5eac0d35515a1dc6b3de13))
+* removed rate limiter, needs more investigation ([102d30c](https://bitbucket.org/calmisland/kidsloop-live-server/commit/102d30c8011c743e6b3ee7fa6f6f949fbd3f2c49))
+
 ### [1.12.2](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.12.1...v1.12.2) (2022-05-13)
 
 ### [1.12.1](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.12.0...v1.12.1) (2022-05-12)
