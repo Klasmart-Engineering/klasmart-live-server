@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.13.2](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.13.1...v1.13.2) (2022-05-17)
+
+
+### Bug Fixes
+
+* notify room pariticipants as soon as socket closes ([e7e3b76](https://bitbucket.org/calmisland/kidsloop-live-server/commit/e7e3b76f716402744e77bd3f1ee38a2a68812626))
+
 ### [1.13.1](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.13.0...v1.13.1) (2022-05-17)
 
 
