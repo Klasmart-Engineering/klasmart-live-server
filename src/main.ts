@@ -7,7 +7,7 @@ import Express from "express";
 import helmet from "helmet";
 import {createServer} from "http";
 import {GRAPHQL_WS} from "subscriptions-transport-ws";
-import {WebSocketServer} from "ws";
+import { WebSocketServer} from "ws";
 import {register} from "prom-client";
 import {typeDefs} from "./typeDefs";
 import {GRAPHQL_TRANSPORT_WS_PROTOCOL} from "graphql-ws";

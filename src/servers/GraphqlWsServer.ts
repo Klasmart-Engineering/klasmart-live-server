@@ -1,7 +1,6 @@
 import {useServer} from "graphql-ws/lib/use/ws";
 import WebSocket from "ws";
 import {CloseCode} from "graphql-ws";
-
 import {
     checkAuthenticationToken,
     checkLiveAuthorizationToken,
@@ -20,23 +19,21 @@ export class GraphqlWsServer {
                 context: async (ctx: any) => {
                     return ctx.context;
                 },
-                onConnect: async (ctx) => {
+                onConnect: async (ctx: any) => {
                     console.log("onConnect: graphql-ws ");
+                    const socket = ctx.extra.socket;
+                    socket.on('close', () => {
+                        model.leaveRoom(ctx.context);
+                    })
                     if ( !(await this.authenticate(ctx)) ) {
                         return false;
                     }
                     return true;
                 },
-                onDisconnect: async (ctx:any) => {
-                    console.log("onDisconnect: graphql-ws");
-                    model.leaveRoom(ctx.context);
-                },
-
-
                 schema,
             },
             graphqlWs,
-            1000,
+            1000
         );
         return server;
     }
