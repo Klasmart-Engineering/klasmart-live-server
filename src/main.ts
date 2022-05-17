@@ -4,6 +4,7 @@ import {resolvers} from "./resolvers";
 import {makeExecutableSchema} from "@graphql-tools/schema";
 import dotenv from "dotenv";
 import Express from "express";
+import helmet from "helmet";
 import {createServer} from "http";
 import {GRAPHQL_WS} from "subscriptions-transport-ws";
 import {WebSocketServer} from "ws";
@@ -38,6 +39,10 @@ async function main() {
 
         const app = Express();
         const gaugeApp = Express();
+
+        // basic sec enhancements
+        app.disable("x-powered-by");
+        app.use(helmet()); // basic sec
 
         app.use(Express.json({
             limit: "50mb",
