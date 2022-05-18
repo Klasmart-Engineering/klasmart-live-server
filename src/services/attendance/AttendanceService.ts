@@ -1,15 +1,17 @@
 import Redis from "ioredis";
 import { Cluster } from "ioredis";
 import request from "graphql-request";
+import axios from "axios";
 import {
     SAVE_ATTENDANCE_MUTATION,
     SEND_ATTENDANCE_MUTAION,
     SCHEDULE_ATTENDANCE_MUTATION,
 } from "../../graphql";
 import {
-    Session,
+    Session, ClassType, AttendanceRequestType
 } from "../../types";
 import {Base} from "../base";
+import { generateToken } from "../../jwt";
 
 export class AttendanceService extends Base {
     constructor(readonly client: Cluster | Redis) {
@@ -65,6 +67,35 @@ export class AttendanceService extends Base {
         }).catch((e) => {
             console.log("could not schedule attendance: ", e);
         });
+    }
+
+    public async sendClassStatus(roomId: string, userId: string): Promise<boolean> {
+        const assessmentUrl = process.env.ASSESSMENT_ENDPOINT;
+        if (!assessmentUrl) {
+            return false;
+        }
+        const roomContext = await this.getRoomContext(roomId);
+        if (roomContext.classType !== ClassType.LIVE 
+            && roomContext.classType !== ClassType.STUDY) {
+            return false;
+        }
+        try{
+            const body: AttendanceRequestType = {
+                action: 'EnterLiveRoom',
+                attendance_ids: [userId],
+                class_end_time: 0,
+                class_length: 0,
+                schedule_id: roomId,
+            };
+            const token = await generateToken(body);
+            await axios.post(assessmentUrl, {
+                token,
+            });
+            console.log('sendClassStatus DONE!')
+        }catch(e) {
+            console.log('could not send action of user to assessment service')
+        }
+        return true;
     }
 }
 
