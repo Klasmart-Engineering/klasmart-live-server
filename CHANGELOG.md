@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.14.0](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.13.3...v1.14.0) (2022-05-18)
+
+
+### Features
+
+* send message when user joins CLASS&STUDY classes ([855a222](https://bitbucket.org/calmisland/kidsloop-live-server/commit/855a2222947e65ab5dd2b7fb70119aa24172389f))
+
 ### [1.13.3](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.13.2...v1.13.3) (2022-05-17)
 
 
