@@ -72,6 +72,7 @@ export type StudentReportRequestType = {
 }
 
 export type AttendanceRequestType = {
+    action: string,
     attendance_ids: string [],
     class_end_time: number,
     class_length: number,

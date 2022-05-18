@@ -305,7 +305,8 @@ export class ClassService extends Base {
         await this.setRoomContext(context);
 
         // start scheduler for class
-        this.attendanceService.schedule(roomId);
+        await this.attendanceService.schedule(roomId);
+        await this.attendanceService.sendClassStatus(roomId, authorizationToken.userid);
 
         const sfu = RedisKeys.roomSfu(roomId);
         const sfuAddress = await this.client.get(sfu.key);
