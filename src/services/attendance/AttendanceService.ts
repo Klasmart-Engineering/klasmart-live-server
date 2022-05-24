@@ -18,10 +18,10 @@ export class AttendanceService extends Base {
         super(client);
     }
 
-    public async log(roomId: string, session: Session) {
+    public async log(roomId: string, session: Session): Promise<Boolean> {
         const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
         const roomContext = await this.getRoomContext(roomId);
-        if (!url || !roomContext || !session.id) return;
+        if (!url || !roomContext || !session.id) return false;
         const variables = {
             roomId: roomId,
             sessionId: session.id,
@@ -37,12 +37,16 @@ export class AttendanceService extends Base {
         }).catch((e) => {
             console.log("could not save attendance: ", e);
         });
+
+        return true;
     }
 
-    public async send(roomId: string) {
+    public async send(roomId: string): Promise<Boolean> {
         const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
         const roomContext = await this.getRoomContext(roomId);
-        if (!url || !roomContext) return;
+        if (!url || !roomContext) {
+            return false;
+        }
         const variables = {
             roomId: roomId
         };
@@ -52,12 +56,13 @@ export class AttendanceService extends Base {
         }).catch((e) => {
             console.log("could not send attendance: ", e);
         });
+        return true;
     }
 
-    public async schedule(roomId: string) {
+    public async schedule(roomId: string): Promise<Boolean> {
         const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
         const roomContext = await this.getRoomContext(roomId);
-        if (!url || !roomContext) return;
+        if (!url || !roomContext) return false;
         const variables = {
             roomId: roomId
         };
@@ -67,6 +72,8 @@ export class AttendanceService extends Base {
         }).catch((e) => {
             console.log("could not schedule attendance: ", e);
         });
+
+        return true;
     }
 
     public async sendClassStatus(roomId: string, userId: string): Promise<boolean> {

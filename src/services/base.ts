@@ -97,7 +97,7 @@ export class Base {
         if (res){
             return res;
         }
-        return "execution is not complite";
+        return "execution is not complete";
     }
 
     protected async notifySession(roomId: string, sessionId: string, message: any): Promise<string> {
