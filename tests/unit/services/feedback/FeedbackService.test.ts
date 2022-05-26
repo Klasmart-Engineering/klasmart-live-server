@@ -9,7 +9,7 @@ describe("FeedbackService",() => {
     expire: jest.fn(),
     xadd: jest.fn(),
   } as any as Cluster;
-
+  
   describe("rewardTrophy", () => {
     afterEach(() => {
       delete process.env.ATTENDANCE_SERVICE_ENDPOINT;
@@ -47,5 +47,75 @@ describe("FeedbackService",() => {
       expect(received).toBeTruthy();
     })
 
+  })
+
+  describe("saveFeedback", () => {
+    afterEach(() => {
+      delete process.env.ATTENDANCE_SERVICE_ENDPOINT;
+    })
+
+    const testAttendanceService = new FeedbackService(fakeRedisCluster);
+    const stars = 4;
+    const feedbackType = "feedbackType";
+    const comment = "comment";
+    const quickFeedback = [
+      {
+        type: 'type1', stars: 5
+      },
+      {
+        type: 'type2', stars: 4
+      },
+    ]
+
+    const authorizationToken = {
+      roomId: "roomid",
+      userId: "userid",
+      sessionId: "sessionId",
+      stars,
+      comment,
+      feedbackType,
+      quickFeedback,
+    };
+    const sessionId = "sessionId";
+    
+
+    it("should resolve falsy if authorizationToken is undefined in context", async () => {
+      process.env.ATTENDANCE_SERVICE_ENDPOINT = 'https://attendence.endpoint.net';
+      const context = {
+        sessionId
+      } as any as Context;
+
+      const received = await testAttendanceService.saveFeedback(context, stars,feedbackType,comment,quickFeedback);
+      expect(received).toBeFalsy();
+    })
+
+    it("should resolve falsy if sessionId is undefined in context", async () => {
+      process.env.ATTENDANCE_SERVICE_ENDPOINT = 'https://attendence.endpoint.net';
+      const context = {
+        authorizationToken
+      } as any as Context;
+      const received = await testAttendanceService.saveFeedback(context, stars,feedbackType,comment,quickFeedback);
+      expect(received).toBeFalsy();
+    })
+
+    it("should resolve falsy if ATTENDANCE_SERVICE_ENDPOINT is undefined", async () => {
+      const context = {
+        authorizationToken,
+        sessionId
+      } as any as Context;
+      const received = await testAttendanceService.saveFeedback(context, stars,feedbackType,comment,quickFeedback);
+      expect(received).toBeFalsy();
+    })
+
+    it("should resolve truth if everthing works well", async () => {
+      process.env.ATTENDANCE_SERVICE_ENDPOINT = 'https://attendence.endpoint.net';
+      const context = {
+        authorizationToken,
+        sessionId
+      } as any as Context;
+      const received = await testAttendanceService.saveFeedback(context, stars,feedbackType,comment,quickFeedback);
+      expect(received).toBeTruthy();
+
+    })
   })
 })
