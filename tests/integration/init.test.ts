@@ -21,12 +21,12 @@ afterAll(async () => {
 
 
 describe("API tests", () => {
-    /** 
-     * Live class test 
-     */
 
+    // QUERY
     ready();
     token();
+
+    // MUTATION
     feedback();
     setSessionStreamId();
     leaveClass();
