@@ -5,8 +5,8 @@ import { ClassType } from "../../../../src/types";
 
 describe("AttendanceService",() => {
 
-   // Mock redis cluster
-   const fakeRedisCluster = {} as any as Cluster;
+  // Mock redis cluster
+  const fakeRedisCluster = {} as any as Cluster;
 
   const defaultRoomId = 'room-id';
 

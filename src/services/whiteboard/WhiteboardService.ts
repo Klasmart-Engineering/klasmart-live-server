@@ -67,14 +67,21 @@ export class WhiteboardService extends Base implements IWhiteboardService {
     }
 
     async whiteboardSendEvent(context: Context, event: string): Promise<boolean> {
-        const painterEvent = JSON.parse(event) as PainterEvent;
+        var painterEvent: PainterEvent | undefined = undefined;
+        try{
+            painterEvent = JSON.parse(event) as PainterEvent;
+
+        }catch(e) {
+            console.log('Event was not right format: ', e)
+            return false;
+        }
 
         if (painterEvent === undefined) return false;
         const roomId = context.authorizationToken.roomid;
         // TODO: Ensure user is allowed to do the requested event.
-
+        console.log('here: 1')
         await this.addPainterEventToStream(roomId, event);
-
+        console.log('here: 2')
         return true;
     }
 
