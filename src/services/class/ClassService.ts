@@ -28,17 +28,17 @@ export class ClassService extends Base {
 
     public async setHost(context: Context, nextHostId: string): Promise<boolean> {
         const roomId = context.authorizationToken.roomid;
-        const userId = context.authorizationToken.userid;
+        const sessionId = context.sessionId;
         if (!nextHostId) {
             throw new Error("Can't set the host without knowing the nextHostId of the new host");
         }
 
         const roomHostKey = RedisKeys.roomHost(roomId);
         const roomHostId = await this.client.get(roomHostKey.key);
-        if (roomHostId !== userId) {
+        if (roomHostId !== sessionId) {
             throw new Error("Only host teacher can set next host_teacher");
         }
-
+        
         const nextHostSessionKey = RedisKeys.sessionData(roomId, nextHostId);
 
         const previousHostId = await this.client.getset(roomHostKey.key, nextHostId);

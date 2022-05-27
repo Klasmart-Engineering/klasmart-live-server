@@ -1,12 +1,5 @@
 import { globalSetup, globalTeardown} from "./config";
-import { ready, token} from "./resolvers/query";
-import { 
-    feedback, rewardTrophy, endClass, leaveClass, 
-    setSessionStreamId, setHost, sendMessage, postPageEvent, 
-    showContent, whiteboardSendEvent, whiteboardSendDisplay,
-    whiteboardSendPermissions, mute, setClassAttendees
-} from "./resolvers/mutation";
-import { room, stream, whiteboard } from "./resolvers/subscription";
+import { queries, mutations, subscriptions } from './resolvers/index';
 
 jest.setTimeout(20*1000);
 
@@ -23,27 +16,16 @@ afterAll(async () => {
 describe("API tests", () => {
 
     // QUERY
-    ready();
-    token();
-
+    describe('QUERY', () => {
+        queries();
+    })
     // MUTATION
-    feedback();
-    setSessionStreamId();
-    leaveClass();
-    endClass();
-    setHost();
-    sendMessage();
-    postPageEvent();
-    showContent();
-    whiteboardSendEvent();
-    whiteboardSendDisplay();
-    whiteboardSendPermissions();
-    mute();
-    setClassAttendees();
-    rewardTrophy();
-
-    // SUBSCRIPTIONS
-    room();
-    stream();
-    whiteboard();
+    describe('MUTATIONS', () => {
+        mutations();
+    })
+    // SUBSCRIPTION
+    describe('SUBSCRIPTION', () => {
+        subscriptions();
+    })
+    
 });
