@@ -79,9 +79,7 @@ export class WhiteboardService extends Base implements IWhiteboardService {
         if (painterEvent === undefined) return false;
         const roomId = context.authorizationToken.roomid;
         // TODO: Ensure user is allowed to do the requested event.
-        console.log('here: 1')
         await this.addPainterEventToStream(roomId, event);
-        console.log('here: 2')
         return true;
     }
 
