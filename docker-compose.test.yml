@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  live-server-test:
+    image: kl-local-live-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      # cache_from:
+      #   - "node:16-alpine"
+      args:
+        node_env: production
+        exposed_port: 8080
+        npm_private_repo_token: ${NPM_GITHUB_TOKEN}
+  live-redis:
+    image: redis:alpine
+    command: redis-server --port 6379
+    container_name: redis
+    hostname: redis
+    labels:
+      - "name=redis"
+      - "mode=standalone"
+    ports:
+      - "6379:6379"

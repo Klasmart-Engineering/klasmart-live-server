@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:experimental
+FROM node:16-alpine
+
+ARG node_env
+ARG exposed_port
+ARG npm_private_repo_token
+
+ENV AUTH_TOKEN_PRIVATE_REGISTRY=$npm_private_repo_token
+ENV NODE_ENV=$node_env
+ENV PORT=$exposed_port
+EXPOSE $exposed_port
+
+WORKDIR /usr/app
+RUN npm config set @kl-engineering:registry https://npm.pkg.github.com && npm config set '//npm.pkg.github.com/:_authToken' ${AUTH_TOKEN_PRIVATE_REGISTRY}
+COPY ["package.json", "package-lock.json", "./.npmrc", "./"]
+# COPY ["../package-lock.json", "./"]
+# COPY ["../.npmrc", "./"]
+RUN npm ci
+COPY ["src","tests", "types", ".eslint*", "./"]
+RUN npm run lint
+RUN npm run tests
+# cleanup
+RUN ["/bin/bash", "-c", "find . ! -name dist ! -name node_modules -maxdepth 1 -mindepth 1 -exec rm -rf {} \\;"]
+ENTRYPOINT ["node", "/root/node_modules/.bin/http-server" , "./dist/"]
+
