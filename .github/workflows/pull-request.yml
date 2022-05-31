@@ -8,5 +8,5 @@ jobs:
     uses: KL-Engineering/github-action-workflows/.github/workflows/conventional-pr-title.yml@v3.2.1
 
   test:
-    needs: [install, lint, conventional-pr-title]
+    needs: [conventional-pr-title]
     uses: ./.github/workflows/run-tests.yml
