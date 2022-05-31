@@ -32,10 +32,10 @@ jobs:
           cache: 'npm'
           registry-url: https://npm.pkg.github.com/
 
-      - name: code complexity check
-        run: |
-          npm install code-complexity
-          npx code-complexity . --sort=score --limit=10
+      # - name: code complexity check
+      #   run: |
+      #     npm install --no-save --ignore-scripts code-complexity 
+      #     npx code-complexity . --sort=score --limit=10
 
       - name: Run integration tests
         env:
