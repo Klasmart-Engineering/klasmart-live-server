@@ -1,25 +1,39 @@
 # syntax=docker/dockerfile:experimental
 FROM node:16-alpine
-
+# Inputs
 ARG node_env
 ARG exposed_port
 ARG npm_private_repo_token
+ARG redis_host
+ARG redis_port
 
+# local env settings
 ENV AUTH_TOKEN_PRIVATE_REGISTRY=$npm_private_repo_token
 ENV NODE_ENV=$node_env
 ENV PORT=$exposed_port
+ENV REDIS_HOST=$redis_host
+ENV REDIS_PORT=$redis_port
 EXPOSE $exposed_port
 
+# Root folder
 WORKDIR /usr/app
-RUN npm config set @kl-engineering:registry https://npm.pkg.github.com && npm config set '//npm.pkg.github.com/:_authToken' ${AUTH_TOKEN_PRIVATE_REGISTRY}
-COPY ["package.json", "package-lock.json", "./.npmrc", "./"]
-# COPY ["../package-lock.json", "./"]
-# COPY ["../.npmrc", "./"]
+
+# cache and install dependencies
+RUN npm config set @kl-engineering:registry https://npm.pkg.github.com \
+      && npm config set '//npm.pkg.github.com/:_authToken' ${AUTH_TOKEN_PRIVATE_REGISTRY}
+COPY ["package.json", "package-lock.json", ".eslint*", "tsconfig*", "./.npmrc", "./"]
 RUN npm ci
-COPY ["src","tests", "types", ".eslint*", "./"]
+
+# quality checks
+ADD ["./src/", "./src"]
+ADD ["./tests/", "./tests"]
+ADD ["./types/", "./types"]
+# ADD ["./src/", "./tests/", "./types/", "./"]
 RUN npm run lint
-RUN npm run tests
+RUN npm run test
+
 # cleanup
-RUN ["/bin/bash", "-c", "find . ! -name dist ! -name node_modules -maxdepth 1 -mindepth 1 -exec rm -rf {} \\;"]
-ENTRYPOINT ["node", "/root/node_modules/.bin/http-server" , "./dist/"]
+# RUN ["/bin/bash", "-c", "find . ! -name dist ! -name node_modules -maxdepth 1 -mindepth 1 -exec rm -rf {} \\;"]
+# ENTRYPOINT ["node", "/root/node_modules/.bin/http-server" , "./dist/"]
+ENTRYPOINT [ "/bin/sh" ]
 

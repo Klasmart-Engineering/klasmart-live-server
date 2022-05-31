@@ -39,6 +39,7 @@
     "@types/uuid": "^7.0.4",
     "@typescript-eslint/eslint-plugin": "^5.19.0",
     "@typescript-eslint/parser": "^5.13.0",
+    "code-complexity": "^4.1.0",
     "cz-conventional-changelog": "^3.0.1",
     "eslint": "^8.13.0",
     "eslint-config-google": "^0.14.0",

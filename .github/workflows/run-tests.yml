@@ -31,5 +31,8 @@ jobs:
           path: ./node_modules
           key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
+      - name: complexity
+        run: npx code-complexity . --sort=score --limit=10
+
       - name: Run integration tests
         run: npm run test

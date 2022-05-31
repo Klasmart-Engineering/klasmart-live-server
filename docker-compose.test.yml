@@ -1,17 +1,24 @@
+# test/docker-compose.yml
 version: "3.9"
 services:
   live-server-test:
-    image: kl-local-live-server:latest
+    image: kltest-live-server:latest
     build:
       context: .
       dockerfile: Dockerfile.test
-      # cache_from:
-      #   - "node:16-alpine"
       args:
-        node_env: production
+        node_env: development
         exposed_port: 8080
         npm_private_repo_token: ${NPM_GITHUB_TOKEN}
-  live-redis:
+        redis_host: redis
+        redis_port: 6379
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    networks:
+      - testnet
+  redis:
     image: redis:alpine
     command: redis-server --port 6379
     container_name: redis
@@ -21,3 +28,9 @@ services:
       - "mode=standalone"
     ports:
       - "6379:6379"
+    networks:
+      - testnet
+networks:
+  testnet: {}
+    # driver: bridge
+    # attachable: true
