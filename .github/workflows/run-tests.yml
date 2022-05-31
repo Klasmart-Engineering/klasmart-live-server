@@ -7,32 +7,44 @@ jobs:
   test:
     name: ⚡ Run tests
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    strategy:
+      matrix:
+        node-version: [16]
+    # services:
+    #   redis:
+    #     image: redis
+    #     ports:
+    #       - 6379:6379
+    #     options: >-
+    #       --health-cmd "redis-cli ping"
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
-          node-version: 16
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
           registry-url: https://npm.pkg.github.com/
 
-      - name: Find node_modules cache
-        id: cache-node_modules
-        uses: actions/cache@v3
-        with:
-          path: ./node_modules
-          key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: complexity
-        run: npx code-complexity . --sort=score --limit=10
+      - name: code complexity check
+        run: |
+          npm install code-complexity
+          npx code-complexity . --sort=score --limit=10
 
       - name: Run integration tests
-        run: npm run test
+        env:
+          NPM_GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+        run: ./ci.test.sh
+
+      - name: Archive tests artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: tests-artifacts
+          path: |
+            *.test.log

@@ -1,9 +1,12 @@
 #!/bin/sh
-docker compose -f docker-compose.test.yml down
-docker compose -f docker-compose.test.yml rm
-docker compose -f docker-compose.test.yml up --abort-on-container-exit --remove-orphans --renew-anon-volumes --timeout 1
+# cleanup
+docker rmi -f kltest-live-server:latest
+docker compose -f docker-compose.test.yml down -v --remove-orphans --rmi local
+docker compose -f docker-compose.test.yml rm -svf
 
-docker logs -t kltest-live-server > ci-test.log
+# build test env
+docker compose -f docker-compose.test.yml up --force-recreate --always-recreate-deps --abort-on-container-exit --remove-orphans --renew-anon-volumes --timeout 1
 
-# docker sbom redis:alpine
-# docker sbom kl-local-live-server:latest 
+# save output
+docker logs -t kltest-live-server >& ci.test.log
+docker sbom kltest-live-server:latest > sbom-kltest-live-server.test.log

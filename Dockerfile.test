@@ -28,13 +28,10 @@ RUN npm ci
 ADD ["./src/", "./src"]
 ADD ["./tests/", "./tests"]
 ADD ["./types/", "./types"]
-# ADD ["./src/", "./tests/", "./types/", "./"]
 RUN npm run lint
-# RUN npm run test
 
 # cleanup
 # RUN ["/bin/bash", "-c", "find . ! -name dist ! -name node_modules -maxdepth 1 -mindepth 1 -exec rm -rf {} \\;"]
 # ENTRYPOINT ["node", "/root/node_modules/.bin/http-server" , "./dist/"]
 # ENTRYPOINT [ "/bin/sh" ]
-CMD [ "npm", "run", "test" ]
-
+CMD ["npm run test" ]
