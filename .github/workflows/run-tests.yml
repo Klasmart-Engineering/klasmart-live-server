@@ -40,6 +40,7 @@ jobs:
       - name: Run integration tests
         env:
           NPM_GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+          DOCKER_BUILDKIT: 1
         run: |
           # cleanup
           docker rmi -f kltest-live-server:latest
