@@ -22,7 +22,8 @@ WORKDIR /usr/app
 RUN touch .npmrc && \
     echo "@kl-engineering:registry=https://npm.pkg.github.com" >> .npmrc && \
     echo "//npm.pkg.github.com/:_authToken=${AUTH_TOKEN_PRIVATE_REGISTRY}" >> .npmrc && \
-    cat .npmrc
+    cat .npmrc && \
+    npm c list
 # RUN npm config set @kl-engineering:registry=https://npm.pkg.github.com \
 #       && npm config set '//npm.pkg.github.com/:_authToken'=${AUTH_TOKEN_PRIVATE_REGISTRY}
 COPY ["package.json", "package-lock.json", ".eslint*", "tsconfig*", "./"]
