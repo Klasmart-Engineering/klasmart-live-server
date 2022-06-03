@@ -19,8 +19,11 @@ EXPOSE $exposed_port
 WORKDIR /usr/app
 
 # cache and install dependencies
-RUN npm config set @kl-engineering:registry https://npm.pkg.github.com \
-      && npm config set '//npm.pkg.github.com/:_authToken' ${AUTH_TOKEN_PRIVATE_REGISTRY}
+RUN touch .npmrc && \
+    echo "@kl-engineering:registry=https://npm.pkg.github.com" >> .npmrc && \
+    echo "//npm.pkg.github.com/:_authToken=${AUTH_TOKEN_PRIVATE_REGISTRY}" >> .npmrc
+# RUN npm config set @kl-engineering:registry=https://npm.pkg.github.com \
+#       && npm config set '//npm.pkg.github.com/:_authToken'=${AUTH_TOKEN_PRIVATE_REGISTRY}
 COPY ["package.json", "package-lock.json", ".eslint*", "tsconfig*", "./"]
 RUN npm ci --ignore-scripts
 
