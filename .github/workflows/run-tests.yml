@@ -39,7 +39,7 @@ jobs:
 
       - name: Run integration tests
         env:
-          NPM_GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+          NPM_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_BUILDKIT: 1
         run: |
           # cleanup
