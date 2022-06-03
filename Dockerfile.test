@@ -27,7 +27,7 @@ RUN npm install npm@latest -g && \
     echo "@kl-engineering:always-auth=true" && \
     cat .npmrc && \
     npm c ls -l && \
-    npm info @kl-engineering/kidsloop-token-validation
+    npm info @kl-engineering\/kidsloop-token-validation
 # RUN npm config set @kl-engineering:registry=https://npm.pkg.github.com \
 #       && npm config set '//npm.pkg.github.com/:_authToken'=${AUTH_TOKEN_PRIVATE_REGISTRY}
 COPY ["package.json", "package-lock.json", ".eslint*", "tsconfig*", "./"]
