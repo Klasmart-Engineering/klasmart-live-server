@@ -20,7 +20,7 @@ WORKDIR /usr/app
 
 # cache and install dependencies
 RUN npm install npm@latest -g && \
-    npm cache clean && \
+    # npm cache clean && \
     touch .npmrc && \
     echo "@kl-engineering:registry=https://npm.pkg.github.com" >> .npmrc && \
     echo "//npm.pkg.github.com/:_authToken=${AUTH_TOKEN_PRIVATE_REGISTRY}" >> .npmrc && \
