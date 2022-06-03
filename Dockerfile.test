@@ -26,7 +26,8 @@ RUN npm install npm@latest -g && \
     echo "//npm.pkg.github.com/:_authToken=${AUTH_TOKEN_PRIVATE_REGISTRY}" >> .npmrc && \
     echo "@kl-engineering:always-auth=true" && \
     cat .npmrc && \
-    npm c ls -l
+    npm c ls -l && \
+    npm info @kl-engineering/kidsloop-token-validation
 # RUN npm config set @kl-engineering:registry=https://npm.pkg.github.com \
 #       && npm config set '//npm.pkg.github.com/:_authToken'=${AUTH_TOKEN_PRIVATE_REGISTRY}
 COPY ["package.json", "package-lock.json", ".eslint*", "tsconfig*", "./"]
@@ -42,4 +43,4 @@ RUN npm run lint
 # RUN ["/bin/bash", "-c", "find . ! -name dist ! -name node_modules -maxdepth 1 -mindepth 1 -exec rm -rf {} \\;"]
 # ENTRYPOINT ["node", "/root/node_modules/.bin/http-server" , "./dist/"]
 # ENTRYPOINT [ "/bin/sh" ]
-CMD ["npm run test" ]
+CMD ["npm", "run", "test"]
