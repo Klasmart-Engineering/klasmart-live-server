@@ -30,7 +30,7 @@ export class FeedbackService extends Base {
         const url = process.env.ATTENDANCE_SERVICE_ENDPOINT;
 
         if (!context.authorizationToken || !context.sessionId || !url) {
-            return true;
+            return false;
         }
         const variables = {
             roomId: context.authorizationToken.roomid,

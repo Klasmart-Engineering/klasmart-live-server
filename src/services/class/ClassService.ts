@@ -28,15 +28,17 @@ export class ClassService extends Base {
 
     public async setHost(context: Context, nextHostId: string): Promise<boolean> {
         const roomId = context.authorizationToken.roomid;
-
+        const sessionId = context.sessionId;
         if (!nextHostId) {
-            throw new Error("Can't set the host without knowing the sessionId of the new host");
+            throw new Error("Can't set the host without knowing the nextHostId of the new host");
         }
 
-        if (!context.authorizationToken.teacher) {
-            throw new Error("Only teacher can set host teacher");
-        }
         const roomHostKey = RedisKeys.roomHost(roomId);
+        const roomHostId = await this.client.get(roomHostKey.key);
+        if (roomHostId !== sessionId) {
+            throw new Error("Only host teacher can set next host_teacher");
+        }
+        
         const nextHostSessionKey = RedisKeys.sessionData(roomId, nextHostId);
 
         const previousHostId = await this.client.getset(roomHostKey.key, nextHostId);
@@ -271,12 +273,13 @@ export class ClassService extends Base {
         // Select new host
         if (changeRoomHost) {
             const teachers = await this.getRoomParticipants(roomId, true, true);
-            // room host is changed, reset Whiteboard permissions
-            await this.whiteboardService.resetRoomPermissions(context);
-      
+            
             if (teachers.length > 0) {
                 const firstJoinedTeacher = teachers[0];
                 await this.setHost(context, firstJoinedTeacher.id);
+            }else{
+                // teacher left the class, reset Whiteboard permissions
+                await this.whiteboardService.resetRoomPermissions(context);
             }
         }
         return true;

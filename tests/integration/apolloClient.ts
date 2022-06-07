@@ -36,10 +36,10 @@ export class CustomApolloClient {
             },
             on: {
                 "connected": () => {
-                    console.log("console connected to graphql");
+                    // console.log("console connected to graphql");
                 },
                 "closed": () => {
-                    console.log("socket connection closed");
+                    // console.log("socket connection closed");
                 },
                 "error": (error: unknown) => {
                     if (error instanceof Error) {
