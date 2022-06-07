@@ -44,6 +44,7 @@ jobs:
           DOCKER_BUILDKIT: 1
         run: |
           echo "**** ==> ${NODE_AUTH_TOKEN}"
+          env
           # cleanup
           docker rmi -f kltest-live-server:latest
           docker compose -f docker-compose.test.yml down -v --remove-orphans --rmi local
