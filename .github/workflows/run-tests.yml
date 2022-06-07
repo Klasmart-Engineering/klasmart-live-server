@@ -43,7 +43,9 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
           DOCKER_BUILDKIT: 1
         run: |
-          echo "**** ==> ${NODE_AUTH_TOKEN}"
+          echo "1**** ==> ${NODE_AUTH_TOKEN}"
+          echo "2**** ==> "
+          echo "${NODE_AUTH_TOKEN}" | wc -c
           env
           # cleanup
           docker rmi -f kltest-live-server:latest
