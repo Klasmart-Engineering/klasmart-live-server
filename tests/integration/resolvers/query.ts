@@ -13,8 +13,8 @@ export const queries = () => {
     afterAll(() => {
         clientTeacher.stop();
         clientStudent.stop();
-    })
-    describe('ready', () => {
+    });
+    describe("ready", () => {
         //Teacher
         it("should resolve true when queries as Teacher", async () => {
             const query = await clientTeacher.createQuery({query: QUERY_READY});
@@ -27,9 +27,9 @@ export const queries = () => {
             expect(query.data.ready).toBe(true);
             
         });
-    })
+    });
 
-    describe('token', () => {
+    describe("token", () => {
         // Teacher
         it("should resolve true when Teacher sends request to get Token", async () => {
             const query = await clientTeacher.createQuery({query: QUERY_TOKEN});
@@ -53,6 +53,6 @@ export const queries = () => {
             expect(typeof name === "string").toBe(true);
             expect(teacher).toBe(false);
         });
-    })
-}
+    });
+};
 

@@ -22,9 +22,9 @@ export class GraphqlWsServer {
                 onConnect: async (ctx: any) => {
                     console.log("onConnect: graphql-ws ");
                     const socket = ctx.extra.socket;
-                    socket.on('close', () => {
+                    socket.on("close", () => {
                         model.leaveRoom(ctx.context);
-                    })
+                    });
                     if ( !(await this.authenticate(ctx)) ) {
                         return false;
                     }

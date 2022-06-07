@@ -67,12 +67,12 @@ export class WhiteboardService extends Base implements IWhiteboardService {
     }
 
     async whiteboardSendEvent(context: Context, event: string): Promise<boolean> {
-        var painterEvent: PainterEvent | undefined = undefined;
+        let painterEvent: PainterEvent | undefined = undefined;
         try{
             painterEvent = JSON.parse(event) as PainterEvent;
 
         }catch(e) {
-            console.log('Event was not right format: ', e)
+            console.log("Event was not right format: ", e);
             return false;
         }
 

@@ -1,5 +1,5 @@
 import { globalSetup, globalTeardown} from "./config";
-import { queries, mutations, subscriptions } from './resolvers/index';
+import { queries, mutations, subscriptions } from "./resolvers/index";
 
 jest.setTimeout(20*1000);
 
@@ -16,16 +16,16 @@ afterAll(async () => {
 describe("API tests", () => {
 
     // QUERY
-    describe('QUERY', () => {
+    describe("QUERY", () => {
         queries();
-    })
+    });
     // MUTATION
-    describe('MUTATIONS', () => {
+    describe("MUTATIONS", () => {
         mutations();
-    })
+    });
     // SUBSCRIPTION
-    describe('SUBSCRIPTION', () => {
+    describe("SUBSCRIPTION", () => {
         subscriptions();
-    })
+    });
     
 });

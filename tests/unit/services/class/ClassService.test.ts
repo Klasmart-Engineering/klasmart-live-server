@@ -32,7 +32,7 @@ describe("ClassService", () => {
             // setup mock values
             (fakeRedisCluster.get as jest.Mock).mockResolvedValue("test-id");
             await expect(testClassService.setHost(defaultContext, defaultNextHostId)).rejects.toBeTruthy();
-        })
+        });
 
     });
 
@@ -48,11 +48,11 @@ describe("ClassService", () => {
 
         it("should resolve when content is sent", async () => {
             // setup mock implementations
-            notifyRoomSpy.mockImplementation(async () => {})
+            notifyRoomSpy.mockImplementation(async () => {return true;});
             const received = await testClassService.showContent(defaultContext, "type", "contentId");
             expect(received).toBeTruthy();
-        })
-    })
+        });
+    });
 
     describe("webRTCSignal", () => {
         const testClassService = new ClassService(fakeRedisCluster);
@@ -64,7 +64,7 @@ describe("ClassService", () => {
 
         it("should reject when sessionId is falsy", async () => {
             await expect(testClassService.webRTCSignal(defaultContext, "test-id", "random message")).rejects.toBeTruthy();
-        })
+        });
 
     });
 
@@ -94,8 +94,8 @@ describe("ClassService", () => {
                 isTeacher: true,
                 isHost: true,
                 joinedAt: 2234234
-            }
-        })
+            };
+        });
 
         it("should reject when context.sessionId is falsy", async () => {
             const badContext = {
@@ -117,7 +117,7 @@ describe("ClassService", () => {
         it("should resolve to object when xadd returns truthy id", async () => {
             // Setup mock implementations
             (fakeRedisCluster.xadd as jest.Mock).mockResolvedValue(1);
-            const received = await testClassService.sendMessage(defaultContext, defaultMessage)
+            const received = await testClassService.sendMessage(defaultContext, defaultMessage);
             expect(
                 received
             ).toBeInstanceOf(Object);
@@ -127,7 +127,7 @@ describe("ClassService", () => {
             // Setup mock implementations
             (fakeRedisCluster.xadd as jest.Mock).mockResolvedValue(1);
             const testMessage = getRandomString(1500);
-            const received = await testClassService.sendMessage(defaultContext, testMessage)
+            const received = await testClassService.sendMessage(defaultContext, testMessage);
             expect(
                 received?.message.length
             ).toBeLessThan(1030);
@@ -136,7 +136,7 @@ describe("ClassService", () => {
         it("should resolve with trimmed messages", async () => {
             // Setup mock implementations
             (fakeRedisCluster.xadd as jest.Mock).mockResolvedValue(1);
-            const received = await testClassService.sendMessage(defaultContext, defaultMessage)
+            const received = await testClassService.sendMessage(defaultContext, defaultMessage);
             expect(
                 received?.message
             ).toEqual(defaultMessage);
@@ -168,7 +168,7 @@ describe("ClassService", () => {
         it("should return false when someone who is not teacher try to end class", async () => {
             const received = await testClassService.endClass(defaultContext);
             expect(received).toBeFalsy();
-        })
+        });
 
     });
 
@@ -183,7 +183,7 @@ describe("ClassService", () => {
             } as unknown as Context;
             const received = await testClassService.endClass(defaultContext);
             expect(received).toBeFalsy();
-        })
+        });
 
         it("should return false when roomId is falsy", async () => {
             const defaultContext = {
@@ -194,7 +194,7 @@ describe("ClassService", () => {
             } as unknown as Context;
             const received = await testClassService.endClass(defaultContext);
             expect(received).toBeFalsy();
-        })
+        });
 
     });
 
