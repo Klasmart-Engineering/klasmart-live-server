@@ -28,11 +28,13 @@ WORKDIR /usr/app
 #     cat .npmrc && \
 #     npm c ls -l && \
 #     npm info @kl-engineering\/kidsloop-token-validation
+RUN echo "####____#### ${AUTH_TOKEN_PRIVATE_REGISTRY}"
+RUN cat /root/.npmrc
 RUN npm config set @kl-engineering:registry https://npm.pkg.github.com \
       && npm config set '//npm.pkg.github.com/:_authToken' ${AUTH_TOKEN_PRIVATE_REGISTRY}
+RUN cat /root/.npmrc
 
 RUN npm c ls -l
-RUN cat /root/.npmrc
 RUN npm info @kl-engineering\/kidsloop-token-validation
 
 COPY ["package.json", "package-lock.json", ".eslint*", "tsconfig*", "./"]
