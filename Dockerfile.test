@@ -24,7 +24,7 @@ RUN npm install npm@latest -g && \
     touch .npmrc && \
     echo "@kl-engineering:registry=https://npm.pkg.github.com" >> .npmrc && \
     echo "//npm.pkg.github.com/:_authToken=${AUTH_TOKEN_PRIVATE_REGISTRY}" >> .npmrc && \
-    echo "@kl-engineering:always-auth=true" && \
+    echo "@kl-engineering:always-auth=true" >> .npmrc && \
     cat .npmrc && \
     npm c ls -l && \
     npm info @kl-engineering\/kidsloop-token-validation
