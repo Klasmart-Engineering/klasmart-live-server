@@ -19,17 +19,22 @@ EXPOSE $exposed_port
 WORKDIR /usr/app
 
 # cache and install dependencies
-RUN npm install npm@latest -g && \
-    npm cache clean --force && \
-    touch .npmrc && \
-    echo "@kl-engineering:registry=https://npm.pkg.github.com" >> .npmrc && \
-    echo "//npm.pkg.github.com/:_authToken=${AUTH_TOKEN_PRIVATE_REGISTRY}" >> .npmrc && \
-    echo "@kl-engineering:always-auth=true" >> .npmrc && \
-    cat .npmrc && \
-    npm c ls -l && \
-    npm info @kl-engineering\/kidsloop-token-validation
-# RUN npm config set @kl-engineering:registry=https://npm.pkg.github.com \
-#       && npm config set '//npm.pkg.github.com/:_authToken'=${AUTH_TOKEN_PRIVATE_REGISTRY}
+# RUN npm install npm@latest -g && \
+#     npm cache clean --force && \
+#     touch .npmrc && \
+#     echo "@kl-engineering:registry=https://npm.pkg.github.com" >> .npmrc && \
+#     echo "//npm.pkg.github.com/:_authToken=${AUTH_TOKEN_PRIVATE_REGISTRY}" >> .npmrc && \
+#     echo "@kl-engineering:always-auth=true" >> .npmrc && \
+#     cat .npmrc && \
+#     npm c ls -l && \
+#     npm info @kl-engineering\/kidsloop-token-validation
+RUN npm config set @kl-engineering:registry=https://npm.pkg.github.com \
+      && npm config set '//npm.pkg.github.com/:_authToken'=${AUTH_TOKEN_PRIVATE_REGISTRY}
+
+RUN cat .npmrc
+RUN npm c ls -l
+RUN npm info @kl-engineering\/kidsloop-token-validation
+
 COPY ["package.json", "package-lock.json", ".eslint*", "tsconfig*", "./"]
 RUN npm ci --ignore-scripts
 
