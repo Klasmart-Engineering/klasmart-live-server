@@ -273,12 +273,13 @@ export class ClassService extends Base {
         // Select new host
         if (changeRoomHost) {
             const teachers = await this.getRoomParticipants(roomId, true, true);
-            // room host is changed, reset Whiteboard permissions
-            await this.whiteboardService.resetRoomPermissions(context);
-      
+            
             if (teachers.length > 0) {
                 const firstJoinedTeacher = teachers[0];
                 await this.setHost(context, firstJoinedTeacher.id);
+            }else{
+                // teacher left the class, reset Whiteboard permissions
+                await this.whiteboardService.resetRoomPermissions(context);
             }
         }
         return true;
