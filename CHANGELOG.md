@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.14.1](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.14.0...v1.14.1) (2022-06-07)
+
+
+### Bug Fixes
+
+* fix failing test case ([34b2556](https://bitbucket.org/calmisland/kidsloop-live-server/commit/34b255675a2bf1b1158c0c33b9f1a71e0c7bdd0e))
+* set fake STUDENT_REPORT_ENDPOINT env variable ([d5b7204](https://bitbucket.org/calmisland/kidsloop-live-server/commit/d5b7204a546f905e5a0741ac45d4a365cd118d24))
+
 ## [1.14.0](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.13.3...v1.14.0) (2022-05-18)
 
 
