@@ -303,7 +303,7 @@ export const subscriptions = () => {
 
         await studentSub.wait(2000);
         // 3
-        expect(studentSub.results[0].data.whiteboardState.display).toEqual(bool);
+        expect(studentSub.results[1].data.whiteboardState.display).toEqual(bool);
     
         studentSub.disconnect();
     });
