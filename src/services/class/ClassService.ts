@@ -589,9 +589,8 @@ export class ClassService extends Base {
 
     public async setClassAttendees(context: Context, userIds: [string]): Promise<boolean> {
         const roomId = context.authorizationToken.roomid;
-        const classContext = await this.getRoomContext(roomId);
         console.log("classAttendees: ",roomId, userIds);
-        if (classContext.classType === ClassType.CLASS) {
+        if (context.authorizationToken?.classtype === ClassType.CLASS) {
             this.attendanceService.schedule(roomId);
             const key = RedisKeys.classAttendees(roomId);
             await this.client.del(key);
