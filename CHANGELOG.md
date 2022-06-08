@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.14.2](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.14.1...v1.14.2) (2022-06-08)
+
+
+### Bug Fixes
+
+* use class type from context ([c492269](https://bitbucket.org/calmisland/kidsloop-live-server/commit/c492269ac44d40d5ab32ef08d63dd78cd25e1a08))
+
 ### [1.14.1](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.14.0...v1.14.1) (2022-06-07)
 
 
