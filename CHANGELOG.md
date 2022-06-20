@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.14.3](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.14.2...v1.14.3) (2022-06-20)
+
+
+### Bug Fixes
+
+* add Error code for expired authorization token ([97376ed](https://bitbucket.org/calmisland/kidsloop-live-server/commit/97376ed436e5b682baf0ec2107a1716e1676d291))
+
 ### [1.14.2](https://bitbucket.org/calmisland/kidsloop-live-server/compare/v1.14.1...v1.14.2) (2022-06-08)
 
 
