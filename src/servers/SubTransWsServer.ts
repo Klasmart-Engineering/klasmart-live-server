@@ -27,6 +27,9 @@ export class SubTransWsServer {
             onConnect: async ({authToken, sessionId}: any, websocket: WebSocket, connectionData: any): Promise<Context> => {
                 console.log("onConnect: subscriptionServer");
                 const authorizationToken = await checkLiveAuthorizationToken(authToken).catch((e) => {
+                    if(e.name === "TokenExpiredError"){
+                        throw new ApolloError("TokenExpiredError", "TokenExpiredError");
+                    }
                     throw new ForbiddenError(e);
                 });
                 const rawCookies = connectionData.request.headers.cookie;
@@ -45,9 +48,6 @@ export class SubTransWsServer {
                 }
 
                 const authenticationToken = await checkAuthenticationToken(cookies?.access).catch((e) => {
-                    if(process.env.NODE_ENV === "alpha"){
-                        console.log("expiredToken: ", cookies?.access);
-                    }
                     if (e.name === "TokenExpiredError") {
                         throw new ApolloError("AuthenticationExpired", "AuthenticationExpired");
                     }
