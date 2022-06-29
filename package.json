@@ -57,6 +57,7 @@
     "@kl-engineering/kidsloop-token-validation": "^1.6.0",
     "@newrelic/apollo-server-plugin": "^1.2.0",
     "@types/ws": "^8.5.3",
+    "@types/yieldable-json": "^2.0.0",
     "apollo-server-core": "^3.6.4",
     "apollo-server-express": "^3.6.4",
     "aws-sdk": "^2.926.0",
@@ -81,7 +82,8 @@
     "ts-node-dev": "^1.1.8",
     "typeorm": "^0.2.29",
     "uuid": "^8.1.0",
-    "ws": "^8.5.0"
+    "ws": "^8.5.0",
+    "yieldable-json": "^2.0.1"
   },
   "config": {
     "commitizen": {

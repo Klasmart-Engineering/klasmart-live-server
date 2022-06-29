@@ -52,7 +52,6 @@ async function main() {
             extended: true,
             parameterLimit: 50000,
         }));
-
         gaugeApp.get("/metrics", async (_req, res) => {
             try {
                 res.set("Content-Type", register.contentType);

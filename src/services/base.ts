@@ -93,7 +93,8 @@ export class Base {
 
         const notify = RedisKeys.roomNotify(roomId);
         await this.client.expire(notify.key, notify.ttl);
-        const res = await this.client.xadd(notify.key, "MAXLEN", "~", 32, "*", ...redisStreamSerialize(message));
+        const serializedStream = await redisStreamSerialize(message);
+        const res = await this.client.xadd(notify.key, "MAXLEN", "~", 32, "*", ...serializedStream);
         if (res){
             return res;
         }
@@ -102,7 +103,8 @@ export class Base {
 
     protected async notifySession(roomId: string, sessionId: string, message: any): Promise<string> {
         const notifyKey = RedisKeys.sessionNotify(roomId, sessionId);
-        const res = await this.client.xadd(notifyKey, "MAXLEN", "~", 32, "*", ...redisStreamSerialize(message));
+        const serializedStream = await redisStreamSerialize(message);
+        const res = await this.client.xadd(notifyKey, "MAXLEN", "~", 32, "*", ...serializedStream);
         if (res) {
             return res;
         }

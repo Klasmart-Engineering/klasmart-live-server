@@ -257,11 +257,12 @@ export class ClassService extends Base {
         // Notify other participants that this user has left
         const notify = RedisKeys.roomNotify(roomId);
         await pipeline.expire(notify.key, notify.ttl);
-        await pipeline.xadd(notify.key, "MAXLEN", "~", "64", "*", ...redisStreamSerialize({
+        const res = await redisStreamSerialize({
             leave: {
                 id: sessionId,
             },
-        }));
+        });
+        await pipeline.xadd(notify.key, "MAXLEN", "~", "64", "*", ...res);
 
     
         // Log Attendance
@@ -469,7 +470,7 @@ export class ClassService extends Base {
                 const [[, messages]] = response;
                 for (const [id, keyValues] of messages) {
                     from = id;
-                    const m = fromRedisKeyValueArray(keyValues);
+                    const m = await fromRedisKeyValueArray(keyValues);
                     yield {
                         stream: {
                             id,

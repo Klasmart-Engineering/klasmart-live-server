@@ -1,5 +1,5 @@
 import {Session} from "./types";
-
+import { stringifyAsync } from "yieldable-json";
 export function redisStreamDeserialize<T>(keyValues: string[]): T | undefined {
     for (let i = 0; i + 1 < keyValues.length; i += 2) {
         try {
@@ -13,8 +13,14 @@ export function redisStreamDeserialize<T>(keyValues: string[]): T | undefined {
     return undefined;
 }
 
-export function redisStreamSerialize(value: any): ["json", string] {
-    return ["json", JSON.stringify(value)];
+export function redisStreamSerialize(value: any): Promise<["json", string]> {
+    return new Promise((resolve) => {
+        stringifyAsync(value, (err, result) =>{
+            if (result){
+                resolve(["json", result]);
+            }
+        });
+    });
 }
 
 export async function* mapAsync<T, U>(collection: AsyncIterable<T>, f: (item: T) => U) {
