@@ -4,6 +4,7 @@ import { RedisKeys } from "../../../../src/redisKeys";
 import { Context } from "../../../../src/types";
 import { getRandomString } from "../../../integration/mockData/functions";
 
+jest.setTimeout(20*1000);
 describe("ClassService", () => {
 
     // Mock redis cluster

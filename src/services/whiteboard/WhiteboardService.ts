@@ -27,7 +27,8 @@ export class WhiteboardService extends Base implements IWhiteboardService {
         };
 
         await this.client.expire(whiteboardStateKey.key, whiteboardStateKey.ttl);
-        await this.client.xadd(whiteboardStateKey.key, "MAXLEN", "~", 1, "*", ...redisStreamSerialize(whiteboardState));
+        const res = await redisStreamSerialize(whiteboardState);
+        await this.client.xadd(whiteboardStateKey.key, "MAXLEN", "~", 1, "*", ...res);
 
         return true;
     }
@@ -39,7 +40,8 @@ export class WhiteboardService extends Base implements IWhiteboardService {
         const roomId = context.authorizationToken.roomid;
         const permissionsKey = RedisKeys.whiteboardPermissions(roomId, userId);
         await this.client.expire(permissionsKey.key, permissionsKey.ttl);
-        await this.client.xadd(permissionsKey.key, "MAXLEN", "~", 1, "*", ...redisStreamSerialize(permissions));
+        const res = await redisStreamSerialize(permissions);
+        await this.client.xadd(permissionsKey.key, "MAXLEN", "~", 1, "*", ...res);
 
         return true;
     }

@@ -2,6 +2,7 @@ import { FeedbackService } from "../../../../src/services/feedback/FeedbackServi
 import { Cluster } from "ioredis";
 import { Context } from "../../../../src/types";
 
+jest.setTimeout(20*1000);
 describe("FeedbackService",() => {
 
     // Mock redis cluster
