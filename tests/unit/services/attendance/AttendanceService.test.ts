@@ -3,6 +3,7 @@ import { Cluster } from "ioredis";
 import { Session } from "../../../../src/types";
 import { ClassType } from "../../../../src/types";
 
+jest.setTimeout(20*1000);
 describe("AttendanceService",() => {
 
     // Mock redis cluster

@@ -4,7 +4,7 @@ import { Context } from "../../../../src/types";
 import { PainterEvent } from "../../../../src/services/whiteboard/events/PainterEvent";
 
 
-
+jest.setTimeout(20*1000);
 describe("whiteboardService", () => {
     // Mock redis cluster
     const fakeRedisCluster = {} as any as Cluster;
