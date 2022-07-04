@@ -1,6 +1,6 @@
 {
   "name": "kidsloop-live-server",
-  "version": "1.14.4",
+  "version": "1.14.5",
   "description": "",
   "main": "main.js",
   "scripts": {
