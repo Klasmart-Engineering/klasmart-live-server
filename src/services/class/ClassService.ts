@@ -46,7 +46,7 @@ export class ClassService extends Base {
         if (previousHostId === nextHostId) {
             return true;
         } // The host has not changed
-
+        
         const pipeline = new Pipeline(this.client);
         await pipeline.hset(nextHostSessionKey, "isHost", "true");
         await pipeline.expire(roomHostKey.key, roomHostKey.ttl);
@@ -245,9 +245,6 @@ export class ClassService extends Base {
         // same node, otherwise you will get an error.  This keeps compatibility with using node mode.
         const pipeline = new Pipeline(this.client);
 
-        if (changeRoomHost) {
-            await pipeline.del(roomHostKey.key);
-        }
 
         // Get and delete session
         const session = await this.getSession(roomId, sessionId);
@@ -274,12 +271,12 @@ export class ClassService extends Base {
         // Select new host
         if (changeRoomHost) {
             const teachers = await this.getRoomParticipants(roomId, true, true);
-            
             if (teachers.length > 0) {
                 const firstJoinedTeacher = teachers[0];
                 await this.setHost(context, firstJoinedTeacher.id);
             }else{
                 // teacher left the class, reset Whiteboard permissions
+                await this.client.del(roomHostKey.key);
                 await this.whiteboardService.resetRoomPermissions(context);
             }
         }
@@ -512,7 +509,6 @@ export class ClassService extends Base {
         }
 
         const join = await this.getSession(roomId, sessionId);
-        console.log("session: ", join);
         await this.notifyRoom(roomId, {
             join,
         });
